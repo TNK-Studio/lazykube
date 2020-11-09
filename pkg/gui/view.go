@@ -2,9 +2,9 @@ package gui
 
 import (
 	"fmt"
+	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
 	"github.com/jroimartin/gocui"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -68,7 +68,7 @@ func (view *View) BindGui(gui *Gui) {
 
 func (view *View) InitDimension() {
 	if !view.IsBindingGui() {
-		logrus.Warningf("Please run 'InitDimension' after binding Gui.")
+		log.Logger.Warningf("Please run 'InitDimension' after binding Gui.")
 		return
 	}
 

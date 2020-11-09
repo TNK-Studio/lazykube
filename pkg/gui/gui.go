@@ -2,15 +2,14 @@ package gui
 
 import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
+	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/golang-collections/collections/stack"
 	"github.com/jroimartin/gocui"
-	"log"
-	"time"
 )
 
 type Gui struct {
-	State  State
-	Render func(gui *Gui) error
+	State         State
+	Render        func(gui *Gui) error
 	RenderOptions func(gui *Gui) error
 
 	// History of focused views name.
@@ -31,11 +30,8 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 
 	if err != nil {
-		log.Panic(err)
+		log.Logger.Panicln(err)
 	}
-
-	// Todo: add debug option to wait
-	time.Sleep(1000 * time.Millisecond)
 
 	gui.g = g
 	gui.Configure(config)
@@ -83,7 +79,7 @@ func (gui *Gui) BindAction(viewName string, action *Action) {
 	if viewName != "" {
 		_, err := gui.g.View("v2")
 		if err != nil {
-			log.Panicln(err)
+			log.Logger.Panicln(err)
 		}
 	}
 
@@ -93,7 +89,7 @@ func (gui *Gui) BindAction(viewName string, action *Action) {
 		action.Mod,
 		action.Handler(gui),
 	); err != nil {
-		log.Panic(err)
+		log.Logger.Panicln(err)
 	}
 }
 
@@ -140,7 +136,7 @@ func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
 
 func (gui *Gui) Run() {
 	if err := gui.g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Panicln(err)
+		log.Logger.Panicln(err)
 	}
 }
 
@@ -159,6 +155,7 @@ func (gui *Gui) GetView(name string) (*View, error) {
 func (gui *Gui) RenderView(view *View) error {
 	x0, y0, x1, y1 := view.GetDimensions()
 	if !gui.ViewDimensionValidated(x0, y0, x1, y1) {
+		log.Logger.Warningf("View '%s' has not enough space to render. x0: %d, y0: %d, x1: %d, y1: %d", view.Name, x0, y0, x1, y1)
 		view.v = nil
 		return ErrNotEnoughSpace
 	}
@@ -310,7 +307,7 @@ func (gui *Gui) popPreviousView() string {
 	return ""
 }
 
-func (gui *Gui) peekPreviousView() string {
+func (gui *Gui) PeekPreviousView() string {
 	if gui.previousViews.Len() > 0 {
 		return gui.previousViews.Peek().(string)
 	}
@@ -355,7 +352,6 @@ func (gui *Gui) SwitchFocus(oldViewName, newViewName string, returning bool) err
 	//return gui.newLineFocused(newView)
 	return nil
 }
-
 
 func (gui *Gui) renderOptions() error {
 	currentView := gui.CurrentView()
