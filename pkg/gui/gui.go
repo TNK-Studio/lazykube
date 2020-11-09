@@ -39,7 +39,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	gui.BindAction("", Quit)
 
 	for _, view := range views {
-		view.gui = gui
+		view.BindGui(gui)
 		gui.views = append(gui.views, view)
 	}
 
@@ -92,29 +92,23 @@ func (gui *Gui) BindAction(viewName string, action *Action) {
 }
 
 func (gui *Gui) layout(g *gocui.Gui) error {
+	if err := gui.Clear(); err != nil {
+		return err
+	}
 	for _, view := range gui.views {
-		view.InitDimension()
-		if v, err := g.SetView(
-			view.Name,
-			view.UpperLeftPointX(),
-			view.UpperLeftPointY(),
-			view.LowerRightPointX(),
-			view.LowerRightPointY(),
-		); err != nil {
-			if err != gocui.ErrUnknownView {
+		err := gui.RenderView(view)
+		if err == nil {
+			continue
+		}
+
+		if err == ErrNotEnoughSpace {
+			if err := gui.renderNotEnoughSpaceView(); err != nil {
 				return err
 			}
-
-			if v != nil {
-				view.v = v
-				view.InitView()
-				if view.Render != nil {
-					if err := view.Render(gui, view); err != nil {
-						return err
-					}
-				}
-			}
+			err = nil
 		}
+
+		return err
 	}
 
 	if gui.Render != nil {
@@ -124,6 +118,14 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 	}
 
 	return nil
+}
+
+func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
+	if x0 >= x1 || y0 >= y1 {
+		return false
+	}
+
+	return true
 }
 
 func (gui *Gui) Run() {
@@ -142,6 +144,62 @@ func (gui *Gui) GetView(name string) (*View, error) {
 	}
 
 	return gui.getView(name), nil
+}
+
+func (gui *Gui) RenderView(view *View) error {
+	x0, y0, x1, y1 := view.GetDimensions()
+	if !gui.ViewDimensionValidated(x0, y0, x1, y1) {
+		view.v = nil
+		return ErrNotEnoughSpace
+	}
+	return gui.renderView(view, x0, y0, x1, y1)
+}
+
+func (gui *Gui) unRenderNotEnoughSpaceView() error {
+	v, _ := gui.g.View(NotEnoughSpace.Name)
+	if v != nil {
+		NotEnoughSpace.v = nil
+		return gui.g.DeleteView(NotEnoughSpace.Name)
+	}
+	return nil
+}
+
+func (gui *Gui) Clear() error {
+	if err := gui.unRenderNotEnoughSpaceView(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (gui *Gui) renderNotEnoughSpaceView() error {
+	NotEnoughSpace.BindGui(gui)
+	x0, y0, x1, y1 := NotEnoughSpace.GetDimensions()
+	if !gui.ViewDimensionValidated(x0, y0, x1, y1) {
+		return nil
+	}
+	return gui.renderView(NotEnoughSpace, x0, y0, x1, y1)
+}
+
+func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
+	if v, err := gui.g.SetView(
+		view.Name,
+		x0, y0, x1, y1,
+	); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+
+		if v != nil {
+			view.v = v
+			view.InitView()
+			if view.Render != nil {
+				if err := view.Render(gui, view); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (gui *Gui) CurrentView() *View {

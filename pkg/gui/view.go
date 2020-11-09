@@ -4,7 +4,23 @@ import (
 	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
 	"github.com/jroimartin/gocui"
+	"github.com/sirupsen/logrus"
 )
+
+var (
+	NotEnoughSpace *View
+)
+
+func init() {
+	NotEnoughSpace = &View{
+		Name:                  "notEnoughSpace",
+		Title:                 "Not enough space to render.",
+		DimensionFunc: func(gui *Gui, view *View) (int, int, int, int) {
+			maxWidth, maxHeight := gui.Size()
+			return 0, 0, maxWidth - 1, maxHeight - 1
+		},
+	}
+}
 
 type View struct {
 	Name  string
@@ -43,9 +59,13 @@ func (view *View) InitView() {
 	}
 }
 
+func (view *View) BindGui (gui *Gui) {
+	view.gui = gui
+}
+
 func (view *View) InitDimension() {
 	if !view.IsBindingGui() {
-		// Todo: Add warning log.
+		logrus.Warningf("Please run 'InitDimension' after binding Gui.")
 		return
 	}
 
@@ -84,6 +104,12 @@ func (view *View) LowerRightPointY() int {
 	return view.y1
 }
 
+func (view *View) GetDimensions() (int, int, int, int) {
+	view.InitDimension()
+	x0, y0, x1, y1 := view.UpperLeftPointX(), view.UpperLeftPointY(), view.LowerRightPointX(), view.LowerRightPointY()
+	return x0, y0, x1, y1
+}
+
 func (view *View) IsBindingGui() bool {
 	if view.gui != nil && view.gui.g != nil {
 		return true
@@ -92,7 +118,7 @@ func (view *View) IsBindingGui() bool {
 	return false
 }
 
-func (view *View) IsBindingView() bool {
+func (view *View) Rendered() bool {
 	if view.v != nil {
 		return true
 	}
@@ -109,14 +135,14 @@ func (view *View) SetViewContent(s string) error {
 }
 
 func (view *View) SetOrigin(x, y int) error {
-	if view.IsBindingView() {
+	if view.Rendered() {
 		return view.v.SetOrigin(x, y)
 	}
 	return nil
 }
 
 func (view *View) SetCursor(x, y int) error {
-	if view.IsBindingView() {
+	if view.Rendered() {
 		return view.v.SetCursor(x, y)
 	}
 	return nil
