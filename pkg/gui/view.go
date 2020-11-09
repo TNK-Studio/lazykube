@@ -13,8 +13,8 @@ var (
 
 func init() {
 	NotEnoughSpace = &View{
-		Name:                  "notEnoughSpace",
-		Title:                 "Not enough space to render.",
+		Name:  "notEnoughSpace",
+		Title: "Not enough space to render.",
 		DimensionFunc: func(gui *Gui, view *View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			return 0, 0, maxWidth - 1, maxHeight - 1
@@ -31,9 +31,11 @@ type View struct {
 	Autoscroll            bool
 	IgnoreCarriageReturns bool
 	Highlight             bool
+	NoFrame               bool
 	FgColor               gocui.Attribute
 
-	Render func(gui *Gui, view *View) error
+	Render        func(gui *Gui, view *View) error
+	RenderOptions func(gui *Gui, view *View) error
 
 	DimensionFunc DimensionFunc
 
@@ -55,11 +57,12 @@ func (view *View) InitView() {
 		view.v.Editable = view.Editable
 		view.v.Autoscroll = view.Autoscroll
 		view.v.Highlight = view.Highlight
+		view.v.Frame = !view.NoFrame
 		view.v.FgColor = view.FgColor
 	}
 }
 
-func (view *View) BindGui (gui *Gui) {
+func (view *View) BindGui(gui *Gui) {
 	view.gui = gui
 }
 

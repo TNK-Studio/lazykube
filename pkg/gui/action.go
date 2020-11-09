@@ -21,3 +21,4 @@ type Action struct {
 	Handler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
 	Mod     gocui.Modifier
 }
+

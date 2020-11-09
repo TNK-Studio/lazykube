@@ -25,7 +25,7 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 		"service":     space / tallPanels,
 		"deployment":  space / tallPanels,
 		"pod":         space / tallPanels,
-		"options":     1,
+		"option":     1,
 	}
 	//if maxHeight < 28 {
 	//	defaultHeight := 3
@@ -35,9 +35,10 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	//	vHeights = map[string]int{
 	//		"clusterInfo": defaultHeight,
 	//		"namespace":   defaultHeight,
-	//		"images":      defaultHeight,
-	//		"volumes":     defaultHeight,
-	//		"options":     defaultHeight,
+	//		"service":   defaultHeight,
+	//		"deployment":      defaultHeight,
+	//		"pod":     defaultHeight,
+	//		"option":     defaultHeight,
 	//	}
 	//	//if gui.DockerCommand.InDockerComposeProject {
 	//	//	vHeights["services"] = defaultHeight

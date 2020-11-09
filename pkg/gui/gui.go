@@ -2,6 +2,7 @@ package gui
 
 import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
+	"github.com/golang-collections/collections/stack"
 	"github.com/jroimartin/gocui"
 	"log"
 	"time"
@@ -10,6 +11,10 @@ import (
 type Gui struct {
 	State  State
 	Render func(gui *Gui) error
+	RenderOptions func(gui *Gui) error
+
+	// History of focused views name.
+	previousViews *stack.Stack
 
 	g      *gocui.Gui
 	views  []*View
@@ -19,7 +24,8 @@ type Gui struct {
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
 
 	gui := &Gui{
-		State: &StateMap{state: make(map[string]interface{}, 0)},
+		State:         &StateMap{state: make(map[string]interface{}, 0)},
+		previousViews: stack.New(),
 	}
 	gui.views = make([]*View, 0)
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -115,6 +121,10 @@ func (gui *Gui) layout(g *gocui.Gui) error {
 		if err := gui.Render(gui); err != nil {
 			return nil
 		}
+	}
+
+	if err := gui.renderOptions(); err != nil {
+		return err
 	}
 
 	return nil
@@ -288,6 +298,73 @@ func (gui *Gui) getView(name string) *View {
 		if view.Name == name {
 			return view
 		}
+	}
+	return nil
+}
+
+func (gui *Gui) popPreviousView() string {
+	if gui.previousViews.Len() > 0 {
+		return gui.previousViews.Pop().(string)
+	}
+
+	return ""
+}
+
+func (gui *Gui) peekPreviousView() string {
+	if gui.previousViews.Len() > 0 {
+		return gui.previousViews.Peek().(string)
+	}
+
+	return ""
+}
+
+func (gui *Gui) pushPreviousView(name string) {
+	gui.previousViews.Push(name)
+}
+
+func (gui *Gui) FocusView(name string) error {
+	if _, err := gui.g.SetCurrentView(name); err != nil {
+		return err
+	}
+	if _, err := gui.g.SetViewOnTop(name); err != nil {
+		return err
+	}
+	return nil
+}
+
+// pass in oldView = nil if you don't want to be able to return to your old view
+// TODO: move some of this logic into our onFocusLost and onFocus hooks
+func (gui *Gui) SwitchFocus(oldViewName, newViewName string, returning bool) error {
+	// we assume we'll never want to return focus to a popup panel i.e.
+	// we should never stack popup panels
+	//if oldView != nil && !gui.isPopupPanel(oldView.Name()) && !returning {
+	//	gui.pushPreviousView(oldView.Name())
+	//}
+	if oldViewName != "" && !returning {
+		gui.pushPreviousView(oldViewName)
+	}
+
+	//gui.Log.Info("setting highlight to true for view " + newView.Name())
+	//gui.Log.Info("new focused view is " + newView.Name())
+	if err := gui.FocusView(newViewName); err != nil {
+		return err
+	}
+
+	//g.Cursor = newView.Editable
+
+	//return gui.newLineFocused(newView)
+	return nil
+}
+
+
+func (gui *Gui) renderOptions() error {
+	currentView := gui.CurrentView()
+	if currentView != nil && currentView.RenderOptions != nil {
+		return currentView.RenderOptions(gui, currentView)
+	}
+
+	if gui.RenderOptions != nil {
+		return gui.RenderOptions(gui)
 	}
 	return nil
 }
