@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/TNK-Studio/lazykube/pkg/app/panel"
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	"github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
@@ -21,19 +20,20 @@ type App struct {
 
 func NewApp() *App {
 	app := &App{
-		ClusterInfo: panel.ClusterInfo,
-		Namespace:   panel.Namespace,
-		Service:     panel.Service,
-		Deployment:  panel.Deployment,
-		Pod:         panel.Pod,
-		Detail:      panel.Detail,
-		Option:      panel.Option,
+		ClusterInfo: ClusterInfo,
+		Namespace:   Namespace,
+		Service:     Service,
+		Deployment:  Deployment,
+		Pod:         Pod,
+		Detail:      Detail,
+		Option:      Option,
 	}
 
 	//Todo: add app config
 	conf := config.GuiConfig{
 		Highlight:  true,
 		SelFgColor: gocui.ColorGreen,
+		Mouse: true,
 	}
 	app.Gui = gui.NewGui(
 		conf,
@@ -62,16 +62,8 @@ func (app *App) Stop() {
 
 func (app *App) Render(gui *gui.Gui) error {
 	if gui.CurrentView() == nil {
-		_, err := gui.GetView(app.Namespace.Name)
-		if err != nil {
-			return nil
-		}
-
-		if err:= gui.SwitchFocus("", app.Namespace.Name, false); err != nil {
-			return err
-		}
+		return gui.FocusView(app.Namespace.Name, false)	
 	}
-
 	return nil
 }
 

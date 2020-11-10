@@ -1,7 +1,11 @@
-package panel
+package app
 
 import (
 	"github.com/TNK-Studio/lazykube/pkg/gui"
+)
+
+var (
+	viewHeights = map[string]int{}
 )
 
 func leftSideWidth(maxWidth int) int {
@@ -34,7 +38,7 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	space := usableSpace(maxHeight)
 
 	tallPanels := 4
-	vHeights := map[string]int{
+	viewHeights = map[string]int{
 		"clusterInfo": 3,
 		"namespace":   space / tallPanels,
 		"service":     space / tallPanels,
@@ -45,15 +49,22 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 	currentView := gui.CurrentView()
 	if currentView != nil {
-		vHeights[currentView.Name] += space % tallPanels
+
+		if currentView.Name != "detail" {
+			viewHeights[currentView.Name] += space % tallPanels
+		} else {
+			previousView := gui.PeekPreviousView()
+			viewHeights[previousView] += space % tallPanels
+		}
 	}
+
 	if maxHeight < 28 {
 		defaultHeight := 3
 		// Todo: Folding panel
 		if maxHeight < 21 {
 			defaultHeight = 1
 		}
-		vHeights = map[string]int{
+		viewHeights = map[string]int{
 			"clusterInfo": defaultHeight,
 			"namespace":   defaultHeight,
 			"service":     defaultHeight,
@@ -62,13 +73,13 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 			"option":      defaultHeight,
 		}
 
-		vHeights[currentCyclebleView] = maxHeight - defaultHeight*tallPanels - 1
+		viewHeights[currentCyclebleView] = maxHeight - defaultHeight*tallPanels - 1
 	}
 
-	vHeights["clusterInfo"] -= 1
-	if vHeights["clusterInfo"] == 0 {
-		vHeights["clusterInfo"] = 1
+	viewHeights["clusterInfo"] -= 1
+	if viewHeights["clusterInfo"] == 0 {
+		viewHeights["clusterInfo"] = 1
 	}
-	height := vHeights[view.Name]
+	height := viewHeights[view.Name]
 	return height
 }
