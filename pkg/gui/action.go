@@ -42,23 +42,24 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 		currentView := gui.CurrentView()
 		canReturn := true
 
-		if currentView != nil {
-			if currentView.Name == viewName {
-				return nil
+		if currentView == nil || currentView.Name != viewName {
+			canReturn = true
+
+			if currentView != nil {
+				canReturn = !currentView.CanNotReturn
 			}
 
-			canReturn = !currentView.CanNotReturn
+			if err := gui.FocusView(viewName, canReturn); err != nil {
+				return err
+			}
 		}
 
 		view, err := gui.GetView(viewName)
 		if err != nil {
 			if err == gocui.ErrUnknownView {
+				log.Logger.Warningf("ViewClickHandler - gui.GetView(%s) error %+v", view, err)
 				return nil
 			}
-			return err
-		}
-
-		if err := gui.FocusView(viewName, canReturn); err != nil {
 			return err
 		}
 

@@ -34,17 +34,19 @@ var (
 		Title:        "Navigation",
 		Clickable:    true,
 		CanNotReturn: true,
+		OnClick:      navigationOnClick,
+		FgColor:      gocui.ColorGreen,
+		SelFgColor:   gocui.ColorBlack | gocui.ColorRed | gocui.AttrBold,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
+		Render: navigationRender,
 	}
 
 	Detail = &gui.View{
-		Name:       "detail",
-		Title:      "",
-		Clickable:  true,
-		FgColor:    gocui.ColorGreen,
-		SelFgColor: gocui.ColorBlack | gocui.ColorRed | gocui.AttrBold,
+		Name:      "detail",
+		Title:     "",
+		Clickable: true,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},

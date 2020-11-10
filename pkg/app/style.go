@@ -38,6 +38,7 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 		for _, viewName := range resizeableViews {
 			if currentView.Name == viewName {
 				resizeView = viewName
+				break
 			}
 		}
 

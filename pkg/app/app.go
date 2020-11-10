@@ -65,9 +65,6 @@ func (app *App) Stop() {
 }
 
 func (app *App) Render(gui *gui.Gui) error {
-	if gui.CurrentView() == nil {
-		return gui.FocusView(app.Namespace.Name, false)
-	}
 	return nil
 }
 

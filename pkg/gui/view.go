@@ -163,5 +163,17 @@ func (view *View) SetCursor(x, y int) error {
 	return nil
 }
 
+func (view *View) Write(p []byte) (n int, err error) {
+	return view.v.Write(p)
+}
+
+func (view *View) Clear() {
+	view.v.Clear()
+}
+
+func (view *View) Cursor() (int, int) {
+	return view.v.Cursor()
+}
+
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)
 type ViewPointFunc func(gui *Gui, view *View) int

@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3
+	github.com/gookit/color v1.3.2
 	github.com/jesseduffield/lazydocker v0.9.1 // indirect
 	github.com/jroimartin/gocui v0.4.0
 	github.com/mattn/go-runewidth v0.0.9 // indirect

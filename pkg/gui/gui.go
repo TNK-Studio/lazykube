@@ -231,17 +231,18 @@ func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		if view != nil && view.Render != nil {
-			if err := view.Render(gui, view); err != nil {
-				return err
-			}
+	}
+
+	if view != nil && view.Render != nil {
+		if err := view.Render(gui, view); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (gui *Gui) viewColors(view *View) (gocui.Attribute, gocui.Attribute) {
+func (gui *Gui) ViewColors(view *View) (gocui.Attribute, gocui.Attribute) {
 	if gui.config.Highlight && view == gui.CurrentView() {
 		return gui.config.SelFgColor, gui.config.SelBgColor
 	}
