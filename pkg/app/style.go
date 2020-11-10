@@ -5,7 +5,9 @@ import (
 )
 
 var (
-	viewHeights = map[string]int{}
+	viewHeights     = map[string]int{}
+	resizeView      = ""
+	resizeableViews = []string{"namespace", "service", "deployment", "pod"}
 )
 
 func leftSideWidth(maxWidth int) int {
@@ -18,22 +20,6 @@ func usableSpace(maxHeight int) int {
 
 func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	_, maxHeight := gui.Size()
-	currView := gui.CurrentView()
-	currentCyclebleView := gui.PeekPreviousView()
-	if currView != nil {
-		viewName := currView.Name
-		usePreviouseView := true
-		for _, view := range []string{"namespace", "service", "deployment", "pod"} {
-			if view == viewName {
-				currentCyclebleView = viewName
-				usePreviouseView = false
-				break
-			}
-		}
-		if usePreviouseView {
-			currentCyclebleView = gui.PeekPreviousView()
-		}
-	}
 
 	space := usableSpace(maxHeight)
 
@@ -49,13 +35,13 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 	currentView := gui.CurrentView()
 	if currentView != nil {
-
-		if currentView.Name != "detail" {
-			viewHeights[currentView.Name] += space % tallPanels
-		} else {
-			previousView := gui.PeekPreviousView()
-			viewHeights[previousView] += space % tallPanels
+		for _, viewName := range resizeableViews {
+			if currentView.Name == viewName {
+				resizeView = viewName
+			}
 		}
+
+		viewHeights[resizeView] += space % tallPanels
 	}
 
 	if maxHeight < 28 {
@@ -73,7 +59,7 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 			"option":      defaultHeight,
 		}
 
-		viewHeights[currentCyclebleView] = maxHeight - defaultHeight*tallPanels - 1
+		viewHeights[resizeView] = maxHeight - defaultHeight*tallPanels - 1
 	}
 
 	viewHeights["clusterInfo"] -= 1
@@ -82,4 +68,8 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	}
 	height := viewHeights[view.Name]
 	return height
+}
+
+func migrateTopFunc(gui *gui.Gui, view *gui.View) int {
+	return 1
 }

@@ -13,6 +13,7 @@ type App struct {
 	Service     *gui.View
 	Deployment  *gui.View
 	Pod         *gui.View
+	Navigation  *gui.View
 	Detail      *gui.View
 	Option      *gui.View
 	Gui         *gui.Gui
@@ -25,6 +26,7 @@ func NewApp() *App {
 		Service:     Service,
 		Deployment:  Deployment,
 		Pod:         Pod,
+		Navigation:  Navigation,
 		Detail:      Detail,
 		Option:      Option,
 	}
@@ -33,7 +35,8 @@ func NewApp() *App {
 	conf := config.GuiConfig{
 		Highlight:  true,
 		SelFgColor: gocui.ColorGreen,
-		Mouse: true,
+		FgColor:    gocui.ColorWhite,
+		Mouse:      true,
 	}
 	app.Gui = gui.NewGui(
 		conf,
@@ -44,6 +47,7 @@ func NewApp() *App {
 		app.Service,
 		app.Deployment,
 		app.Pod,
+		app.Navigation,
 		app.Detail,
 		app.Option,
 	)
@@ -62,7 +66,7 @@ func (app *App) Stop() {
 
 func (app *App) Render(gui *gui.Gui) error {
 	if gui.CurrentView() == nil {
-		return gui.FocusView(app.Namespace.Name, false)	
+		return gui.FocusView(app.Namespace.Name, false)
 	}
 	return nil
 }

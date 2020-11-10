@@ -36,6 +36,12 @@ type View struct {
 	Highlight             bool
 	NoFrame               bool
 	FgColor               gocui.Attribute
+	BgColor               gocui.Attribute
+	SelBgColor            gocui.Attribute
+	SelFgColor            gocui.Attribute
+
+	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
+	CanNotReturn bool
 
 	Render        func(gui *Gui, view *View) error
 	RenderOptions func(gui *Gui, view *View) error
@@ -62,6 +68,9 @@ func (view *View) InitView() {
 		view.v.Highlight = view.Highlight
 		view.v.Frame = !view.NoFrame
 		view.v.FgColor = view.FgColor
+		view.v.BgColor = view.BgColor
+		view.v.SelBgColor = view.SelBgColor
+		view.v.SelFgColor = view.SelFgColor
 	}
 }
 

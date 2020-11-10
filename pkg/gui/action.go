@@ -8,7 +8,7 @@ import (
 var (
 	Quit = &Action{
 		Name: "Quit",
-		Key: gocui.KeyCtrlC,
+		Key:  gocui.KeyCtrlC,
 		Handler: func(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 			return func(*gocui.Gui, *gocui.View) error {
 				return gocui.ErrQuit
@@ -26,7 +26,7 @@ var (
 )
 
 type Action struct {
-	Name string
+	Name    string
 	Key     interface{}
 	Handler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
 	Mod     gocui.Modifier
@@ -40,9 +40,14 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 		log.Logger.Debugf("ViewClickHandler view '%s' on click.", viewName)
 
 		currentView := gui.CurrentView()
+		canReturn := true
 
-		if currentView != nil && currentView.Name == viewName {
-			return nil
+		if currentView != nil {
+			if currentView.Name == viewName {
+				return nil
+			}
+
+			canReturn = !currentView.CanNotReturn
 		}
 
 		view, err := gui.GetView(viewName)
@@ -53,10 +58,9 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 			return err
 		}
 
-		if err := gui.FocusView(viewName, true); err != nil {
+		if err := gui.FocusView(viewName, canReturn); err != nil {
 			return err
 		}
-
 
 		if view.OnClick != nil {
 			return view.OnClick(gui, view)

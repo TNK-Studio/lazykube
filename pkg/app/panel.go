@@ -6,16 +6,6 @@ import (
 )
 
 var (
-	ClusterInfo *gui.View
-	Deployment *gui.View
-	Detail *gui.View
-	Namespace *gui.View
-	Option *gui.View
-	Pod *gui.View
-	Service *gui.View
-)
-
-func init() {
 	ClusterInfo = &gui.View{
 		Name:      "clusterInfo",
 		Title:     "Cluster Info",
@@ -28,29 +18,35 @@ func init() {
 	}
 
 	Deployment = &gui.View{
-		Name:    "deployment",
-		Title:   "Deployments",
-		FgColor: gocui.ColorDefault,
+		Name:      "deployment",
+		Title:     "Deployments",
+		FgColor:   gocui.ColorDefault,
 		Clickable: true,
 		DimensionFunc: gui.BeneathView(
 			"service",
 			reactiveHeight,
-			1,
+			migrateTopFunc,
 		),
 	}
 
+	Navigation = &gui.View{
+		Name:         "navigation",
+		Title:        "Navigation",
+		Clickable:    true,
+		CanNotReturn: true,
+		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
+			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
+		},
+	}
+
 	Detail = &gui.View{
-		Name:  "detail",
-		Title: "",
-		Clickable: true,
-		UpperLeftPointXFunc: func(gui *gui.Gui, view *gui.View) int {
-			return leftSideWidth(gui.MaxWidth()) + 1
-		},
-		LowerRightPointXFunc: func(gui *gui.Gui, view *gui.View) int {
-			return gui.MaxWidth() - 1
-		},
-		LowerRightPointYFunc: func(gui *gui.Gui, view *gui.View) int {
-			return gui.MaxHeight() - 2
+		Name:       "detail",
+		Title:      "",
+		Clickable:  true,
+		FgColor:    gocui.ColorGreen,
+		SelFgColor: gocui.ColorBlack | gocui.ColorRed | gocui.AttrBold,
+		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
+			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
 	}
 
@@ -63,7 +59,7 @@ func init() {
 		DimensionFunc: gui.BeneathView(
 			"clusterInfo",
 			reactiveHeight,
-			1,
+			migrateTopFunc,
 		),
 	}
 
@@ -86,7 +82,7 @@ func init() {
 		DimensionFunc: gui.BeneathView(
 			"deployment",
 			reactiveHeight,
-			1,
+			migrateTopFunc,
 		),
 	}
 
@@ -99,7 +95,7 @@ func init() {
 		DimensionFunc: gui.BeneathView(
 			"namespace",
 			reactiveHeight,
-			1,
+			migrateTopFunc,
 		),
 	}
-}
+)
