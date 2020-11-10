@@ -68,56 +68,6 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 	str := strings.Join(colorfulOptions, OptSeparator)
 	fmt.Fprint(view, str)
 
-	//separator := " - "
-	//charIndex := 0
-	//currentTabStart := -1
-	//currentTabEnd := -1
-	//for i, opt := range options {
-	//	if i == navigationIndex {
-	//		currentTabStart = charIndex
-	//		currentTabEnd = charIndex + len(opt)
-	//		break
-	//	}
-	//	charIndex += len(opt)
-	//	if i < len(opt)-1 {
-	//		charIndex += len(separator)
-	//	}
-	//}
-	//
-	//str := strings.Join(options, separator)
-	//fgColor, bgColor := gui.ViewColors(view)
-	//x0, y0, x1, _ := view.GetDimensions()
-	//
-	//for i, ch := range str {
-	//	x := x0 + i + 2
-	//	if x < 0 {
-	//		continue
-	//	} else if x > x1 || x >= gui.MaxWidth() {
-	//		log.Logger.Warningf("navigationRender - str '%s' is over width.", str)
-	//	}
-	//
-	//	currentFgColor := fgColor
-	//	currentBgColor := bgColor
-	//	// if you are the current view and you have multiple tabs, de-highlight the non-selected tabs
-	//	if view == gui.CurrentView() && len(options) > 0 {
-	//		currentFgColor = view.FgColor
-	//		currentBgColor = view.BgColor
-	//	}
-	//
-	//	if i >= currentTabStart && i <= currentTabEnd {
-	//		currentFgColor = view.SelFgColor
-	//		if view != gui.CurrentView() {
-	//			currentFgColor -= gocui.AttrBold
-	//		}
-	//		if view == gui.CurrentView() {
-	//			currentBgColor = view.SelBgColor
-	//		}
-	//	}
-	//	if err := gui.SetRune(x+1, y0+2, ch, currentFgColor, currentBgColor); err != nil {
-	//		return err
-	//	}
-	//}
-
 	return nil
 }
 
