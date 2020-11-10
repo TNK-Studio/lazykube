@@ -12,6 +12,7 @@ type Gui struct {
 	Render        func(gui *Gui) error
 	RenderOptions func(gui *Gui) error
 
+	// Todo: Previous views size limit
 	// History of focused views name.
 	previousViews *stack.Stack
 
@@ -30,7 +31,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	g, err := gocui.NewGui(gocui.OutputNormal)
 
 	if err != nil {
-		log.Logger.Panicln(err)
+		log.Logger.Panicf("%+v", err)
 	}
 
 	gui.g = g
@@ -52,6 +53,7 @@ func (gui *Gui) Configure(config config.GuiConfig) {
 	gui.g.Highlight = config.Highlight
 	gui.g.Cursor = config.Cursor
 	gui.g.SelFgColor = config.SelFgColor
+	gui.g.Mouse = config.Mouse
 
 	gui.config = config
 }
@@ -74,26 +76,31 @@ func (gui *Gui) GetViews() []*View {
 	return gui.views
 }
 
-func (gui *Gui) BindAction(viewName string, action *Action) {
-
-	if viewName != "" {
-		_, err := gui.g.View("v2")
-		if err != nil {
-			log.Logger.Panicln(err)
-		}
-	}
-
+func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifier, handler func(*gocui.Gui, *gocui.View) error) {
 	if err := gui.g.SetKeybinding(
 		viewName,
-		action.Key,
-		action.Mod,
-		action.Handler(gui),
+		key,
+		mod,
+		handler,
 	); err != nil {
-		log.Logger.Panicln(err)
+		log.Logger.Panicf("%+v", err)
 	}
 }
 
-func (gui *Gui) layout(g *gocui.Gui) error {
+func (gui *Gui) BindAction(viewName string, action *Action) {
+	//view, err := gui.GetView(viewName)
+	//if err == gocui.ErrUnknownView && viewName != "" {
+	//	log.Logger.Warningf("BindAction action '%s', view '%s' not found.", action.Name, viewName)
+	//}
+	handler := action.Handler(gui)
+	gui.SetKeybinding(viewName,
+		action.Key,
+		action.Mod,
+		handler,
+	)
+}
+
+func (gui *Gui) layout(*gocui.Gui) error {
 	if err := gui.Clear(); err != nil {
 		return err
 	}
@@ -135,8 +142,14 @@ func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
 }
 
 func (gui *Gui) Run() {
+	for _, view := range gui.views {
+		if view.Clickable {
+			gui.BindAction(view.Name, ClickView)
+		}
+	}
+
 	if err := gui.g.MainLoop(); err != nil && err != gocui.ErrQuit {
-		log.Logger.Panicln(err)
+		log.Logger.Panicf("%+v", err)
 	}
 }
 
@@ -280,7 +293,8 @@ func (gui *Gui) SetCurrentView(name string) (*View, error) {
 	if _, err := gui.g.SetCurrentView(name); err != nil {
 		return nil, err
 	}
-	return gui.getView(name), nil
+	view := gui.getView(name)
+	return view, nil
 }
 
 func (gui *Gui) SetViewOnTop(name string) (*View, error) {
@@ -301,7 +315,9 @@ func (gui *Gui) getView(name string) *View {
 
 func (gui *Gui) popPreviousView() string {
 	if gui.previousViews.Len() > 0 {
-		return gui.previousViews.Pop().(string)
+		viewName := gui.previousViews.Pop().(string)
+		log.Logger.Debugf("popPreviousView pop '%s', previousViews '%+v'", viewName, gui.previousViews)
+		return viewName
 	}
 
 	return ""
@@ -317,40 +333,40 @@ func (gui *Gui) PeekPreviousView() string {
 
 func (gui *Gui) pushPreviousView(name string) {
 	gui.previousViews.Push(name)
+	log.Logger.Debugf("pushPreviousView push '%s', previousViews '%+v'", name, gui.previousViews)
 }
 
-func (gui *Gui) FocusView(name string) error {
-	if _, err := gui.g.SetCurrentView(name); err != nil {
+func (gui *Gui) FocusView(name string, canReturn bool) error {
+	currentView := gui.CurrentView()
+
+	if currentView != nil && currentView.Name != "" && canReturn {
+		gui.pushPreviousView(currentView.Name)
+	}
+
+	return gui.focusView(name)
+}
+
+func (gui *Gui) focusView(name string) error {
+	if _, err := gui.SetCurrentView(name); err != nil {
 		return err
 	}
-	if _, err := gui.g.SetViewOnTop(name); err != nil {
+	if _, err := gui.SetViewOnTop(name); err != nil {
 		return err
 	}
 	return nil
 }
 
-// pass in oldView = nil if you don't want to be able to return to your old view
-// TODO: move some of this logic into our onFocusLost and onFocus hooks
-func (gui *Gui) SwitchFocus(oldViewName, newViewName string, returning bool) error {
-	// we assume we'll never want to return focus to a popup panel i.e.
-	// we should never stack popup panels
-	//if oldView != nil && !gui.isPopupPanel(oldView.Name()) && !returning {
-	//	gui.pushPreviousView(oldView.Name())
-	//}
-	if oldViewName != "" && !returning {
-		gui.pushPreviousView(oldViewName)
-	}
-
-	//gui.Log.Info("setting highlight to true for view " + newView.Name())
-	//gui.Log.Info("new focused view is " + newView.Name())
-	if err := gui.FocusView(newViewName); err != nil {
+func (gui *Gui) ReturnPreviousView() error {
+	previousViewName := gui.popPreviousView()
+	previousView, err := gui.GetView(previousViewName)
+	if err != nil {
+		if err == gocui.ErrUnknownView {
+			log.Logger.Warningf("ReturnPreviousView view '%s' not found", previousViewName)
+			return nil
+		}
 		return err
 	}
-
-	//g.Cursor = newView.Editable
-
-	//return gui.newLineFocused(newView)
-	return nil
+	return gui.focusView(previousView.Name)
 }
 
 func (gui *Gui) renderOptions() error {

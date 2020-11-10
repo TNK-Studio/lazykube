@@ -26,6 +26,9 @@ type View struct {
 	Name  string
 	Title string
 
+	Clickable bool
+	OnClick   func(gui *Gui, view *View) error
+
 	Editable              bool
 	Wrap                  bool
 	Autoscroll            bool
