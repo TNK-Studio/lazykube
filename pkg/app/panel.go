@@ -20,12 +20,12 @@ var (
 	ClusterInfo = &gui.View{
 		Name:      clusterInfoViewName,
 		Title:     "Cluster Info",
-		Highlight: true,
 		Clickable: true,
 		LowerRightPointXFunc: func(gui *gui.Gui, view *gui.View) int {
 			return leftSideWidth(gui.MaxWidth())
 		},
 		LowerRightPointYFunc: reactiveHeight,
+		Render:               renderClusterInfo,
 	}
 
 	Deployment = &gui.View{

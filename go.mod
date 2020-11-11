@@ -11,5 +11,10 @@ require (
 	github.com/nsf/termbox-go v0.0.0-20200418040025-38ba6e5628f1 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spkg/bom v1.0.0
-	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
+	google.golang.org/appengine v1.6.5
+	k8s.io/api v0.19.3
+	k8s.io/apimachinery v0.19.3
+	k8s.io/cli-runtime v0.19.3
+	k8s.io/client-go v0.19.3
+	k8s.io/kubectl v0.19.3
 )

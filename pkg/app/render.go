@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/gookit/color"
 	"strings"
@@ -100,6 +101,28 @@ func navigationOnClick(gui *gui.Gui, view *gui.View) error {
 	}
 
 	log.Logger.Debugf("navigationOnClick - selected '%s'", selected)
+
+	return nil
+}
+
+func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	currentContext, err := kubecli.Cli.CurrentContext()
+	if err != nil {
+		return nil
+	}
+
+	if _, err := fmt.Fprintf(view, "Current Context: %s", color.Green.Sprint(currentContext)); err != nil {
+		return err
+	}
+
+	//clusterInfo, err := kubecli.Cli.ClusterInfo()
+	//if err != nil {
+	//	return nil
+	//}
+	//if _, err := fmt.Fprintln(view, clusterInfo); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
