@@ -7,30 +7,37 @@ import (
 var (
 	viewHeights     = map[string]int{}
 	resizeView      = ""
-	resizeableViews = []string{"namespace", "service", "deployment", "pod"}
+	resizeableViews = []string{namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 )
 
 func leftSideWidth(maxWidth int) int {
 	return maxWidth / 3
 }
 
-func usableSpace(maxHeight int) int {
-	return maxHeight - 4
+func usableSpace(gui *gui.Gui, maxHeight int) int {
+	if maxHeight < 28 {
+		if currentView := gui.CurrentView(); currentView != nil && currentView.Name == podViewName {
+			return maxHeight
+		}
+
+		return maxHeight - 2
+	}
+	return maxHeight - 8
 }
 
 func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	_, maxHeight := gui.Size()
 
-	space := usableSpace(maxHeight)
+	space := usableSpace(gui, maxHeight)
 
 	tallPanels := 4
 	viewHeights = map[string]int{
-		"clusterInfo": 3,
-		"namespace":   space / tallPanels,
-		"service":     space / tallPanels,
-		"deployment":  space / tallPanels,
-		"pod":         space / tallPanels,
-		"option":      1,
+		clusterInfoViewName: 2,
+		namespaceViewName:   space / tallPanels,
+		serviceViewName:     space / tallPanels,
+		deploymentViewName:  space / tallPanels,
+		podViewName:         space / tallPanels,
+		optionViewName:      1,
 	}
 
 	currentView := gui.CurrentView()
@@ -45,32 +52,41 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 		viewHeights[resizeView] += space % tallPanels
 	}
 
-	if maxHeight < 28 {
-		defaultHeight := 3
-		// Todo: Folding panel
-		if maxHeight < 21 {
-			defaultHeight = 1
-		}
-		viewHeights = map[string]int{
-			"clusterInfo": defaultHeight,
-			"namespace":   defaultHeight,
-			"service":     defaultHeight,
-			"deployment":  defaultHeight,
-			"pod":         defaultHeight,
-			"option":      defaultHeight,
-		}
+	//if maxHeight < 28 {
+	//	currentView := gui.CurrentView()
+	//	if currentView != nil {
+	//		for i, viewName := range functionViews {
+	//			if currentView.Name == viewName {
+	//				index := i + 1
+	//				if index < len(functionViews) {
+	//					viewHeights[functionViews[index]] = 2
+	//					break
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 
-		viewHeights[resizeView] = maxHeight - defaultHeight*tallPanels - 1
-	}
-
-	viewHeights["clusterInfo"] -= 1
-	if viewHeights["clusterInfo"] == 0 {
-		viewHeights["clusterInfo"] = 1
-	}
 	height := viewHeights[view.Name]
 	return height
 }
 
 func migrateTopFunc(gui *gui.Gui, view *gui.View) int {
+	if gui.MaxHeight() < 28 {
+		currentView := gui.CurrentView()
+		if currentView != nil {
+			for i, viewName := range functionViews {
+				if currentView.Name == viewName {
+					index := i + 1
+					if index < len(functionViews) && functionViews[index] == view.Name {
+						return 1
+					}
+				}
+			}
+		}
+	}
+	if gui.MaxHeight() < 28 {
+		return -1
+	}
 	return 1
 }

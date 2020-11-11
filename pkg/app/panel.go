@@ -5,32 +5,43 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
+const (
+	clusterInfoViewName = "clusterInfo"
+	deploymentViewName  = "deployment"
+	navigationViewName  = "navigation"
+	detailViewName      = "detail"
+	namespaceViewName   = "namespace"
+	optionViewName      = "option"
+	podViewName         = "pod"
+	serviceViewName     = "service"
+)
+
 var (
 	ClusterInfo = &gui.View{
-		Name:      "clusterInfo",
+		Name:      clusterInfoViewName,
 		Title:     "Cluster Info",
-		Highlight: true,
 		Clickable: true,
 		LowerRightPointXFunc: func(gui *gui.Gui, view *gui.View) int {
 			return leftSideWidth(gui.MaxWidth())
 		},
 		LowerRightPointYFunc: reactiveHeight,
+		Render:               renderClusterInfo,
 	}
 
 	Deployment = &gui.View{
-		Name:      "deployment",
+		Name:      deploymentViewName,
 		Title:     "Deployments",
 		FgColor:   gocui.ColorDefault,
 		Clickable: true,
 		DimensionFunc: gui.BeneathView(
-			"service",
+			serviceViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
 	}
 
 	Navigation = &gui.View{
-		Name:         "navigation",
+		Name:         navigationViewName,
 		Title:        "Navigation",
 		Clickable:    true,
 		CanNotReturn: true,
@@ -44,7 +55,7 @@ var (
 	}
 
 	Detail = &gui.View{
-		Name:      "detail",
+		Name:      detailViewName,
 		Title:     "",
 		Clickable: true,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
@@ -53,49 +64,49 @@ var (
 	}
 
 	Namespace = &gui.View{
-		Name:      "namespace",
+		Name:      namespaceViewName,
 		Title:     "Namespaces",
 		Highlight: true,
 		Clickable: true,
 		FgColor:   gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
-			"clusterInfo",
+			clusterInfoViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
 	}
 
 	Option = &gui.View{
-		Name: "option",
+		Name: optionViewName,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
-			return 0, maxHeight - 2, maxWidth / 3, maxHeight
+			return 0, maxHeight - 2, maxWidth, maxHeight
 		},
 		NoFrame: true,
 		FgColor: gocui.ColorBlue,
 	}
 
 	Pod = &gui.View{
-		Name:      "pod",
+		Name:      podViewName,
 		Title:     "Pods",
 		Highlight: true,
 		Clickable: true,
 		FgColor:   gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
-			"deployment",
+			deploymentViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
 	}
 
 	Service = &gui.View{
-		Name:      "service",
+		Name:      serviceViewName,
 		Title:     "Services",
 		Highlight: true,
 		Clickable: true,
 		FgColor:   gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
-			"namespace",
+			namespaceViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),

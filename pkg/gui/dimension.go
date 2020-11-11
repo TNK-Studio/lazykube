@@ -9,7 +9,7 @@ func BeneathView(aboveViewName string, heightFunc func(*Gui, *View) int, marginT
 
 		y0 := aboveY1 + marginTopFunc(gui, view)
 
-		y1 := y0 + heightFunc(gui, view) - 1
+		y1 := y0 + heightFunc(gui, view)
 		if y1 < 0 {
 			y1 = 0
 		}

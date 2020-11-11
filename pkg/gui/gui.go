@@ -3,7 +3,6 @@ package gui
 import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	"github.com/TNK-Studio/lazykube/pkg/log"
-	"github.com/golang-collections/collections/stack"
 	"github.com/jroimartin/gocui"
 )
 
@@ -12,9 +11,9 @@ type Gui struct {
 	Render        func(gui *Gui) error
 	RenderOptions func(gui *Gui) error
 
-	// Todo: Previous views size limit
 	// History of focused views name.
-	previousViews *stack.Stack
+	previousViews      TowHeadQueue
+	previousViewsLimit int
 
 	g      *gocui.Gui
 	views  []*View
@@ -24,8 +23,9 @@ type Gui struct {
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
 
 	gui := &Gui{
-		State:         &StateMap{state: make(map[string]interface{}, 0)},
-		previousViews: stack.New(),
+		State:              NewStateMap(),
+		previousViews:      NewQueue(),
+		previousViewsLimit: 20,
 	}
 	gui.views = make([]*View, 0)
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -90,6 +90,7 @@ func (gui *Gui) Configure(config config.GuiConfig) {
 	gui.g.FgColor = config.FgColor
 	gui.g.BgColor = config.BgColor
 	gui.g.Mouse = config.Mouse
+	gui.g.InputEsc = config.InputEsc
 	gui.config = config
 }
 
@@ -123,16 +124,25 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 }
 
 func (gui *Gui) BindAction(viewName string, action *Action) {
-	//view, err := gui.GetView(viewName)
-	//if err == gocui.ErrUnknownView && viewName != "" {
-	//	log.Logger.Warningf("BindAction action '%s', view '%s' not found.", action.Name, viewName)
-	//}
 	handler := action.Handler(gui)
-	gui.SetKeybinding(viewName,
-		action.Key,
-		action.Mod,
-		handler,
-	)
+
+	if action.Key != nil {
+		gui.SetKeybinding(viewName,
+			action.Key,
+			action.Mod,
+			handler,
+		)
+	}
+
+	if action.Keys != nil {
+		for _, k := range action.Keys {
+			gui.SetKeybinding(viewName,
+				k,
+				action.Mod,
+				handler,
+			)
+		}
+	}
 }
 
 func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
@@ -341,7 +351,7 @@ func (gui *Gui) getView(name string) *View {
 }
 
 func (gui *Gui) popPreviousView() string {
-	if gui.previousViews.Len() > 0 {
+	if !gui.previousViews.IsEmpty() {
 		viewName := gui.previousViews.Pop().(string)
 		log.Logger.Debugf("popPreviousView pop '%s', previousViews '%+v'", viewName, gui.previousViews)
 		return viewName
@@ -351,7 +361,7 @@ func (gui *Gui) popPreviousView() string {
 }
 
 func (gui *Gui) PeekPreviousView() string {
-	if gui.previousViews.Len() > 0 {
+	if !gui.previousViews.IsEmpty() {
 		return gui.previousViews.Peek().(string)
 	}
 
@@ -363,10 +373,16 @@ func (gui *Gui) pushPreviousView(name string) {
 		return
 	}
 	gui.previousViews.Push(name)
+	if gui.previousViews.Len() > gui.previousViewsLimit {
+		tail := gui.previousViews.PopTail()
+		log.Logger.Debugf("pushPreviousView - previousViews over limit, pop tail '%s'", tail)
+	}
+
 	log.Logger.Debugf("pushPreviousView push '%s', previousViews '%+v'", name, gui.previousViews)
 }
 
 func (gui *Gui) FocusView(name string, canReturn bool) error {
+	log.Logger.Debugf("FocusView - name: %s canReturn: %+v", name, canReturn)
 	currentView := gui.CurrentView()
 
 	if currentView != nil && canReturn {
@@ -386,6 +402,10 @@ func (gui *Gui) focusView(name string) error {
 	return nil
 }
 
+func (gui *Gui) HasPreviousView() bool {
+	return !gui.previousViews.IsEmpty()
+}
+
 func (gui *Gui) ReturnPreviousView() error {
 	previousViewName := gui.popPreviousView()
 	previousView, err := gui.GetView(previousViewName)
@@ -396,6 +416,7 @@ func (gui *Gui) ReturnPreviousView() error {
 		}
 		return err
 	}
+	log.Logger.Debugf("ReturnPreviousView - gui.focusView(%s)", previousView.Name)
 	return gui.focusView(previousView.Name)
 }
 

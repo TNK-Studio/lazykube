@@ -3,9 +3,14 @@ package app
 import (
 	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/gookit/color"
 	"strings"
+)
+
+const (
+	OptSeparator = "   "
 )
 
 var (
@@ -14,16 +19,14 @@ var (
 
 	navigationIndex int
 
-	functionViews     = []string{"clusterInfo", "namespace", "service", "deployment", "pod"}
+	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
-		"clusterInfo": []string{"Nodes", "Top Nodes"},
-		"namespace":   []string{"Config", "Deployments", "Pods"},
-		"service":     []string{"Config", "Pods Log"},
-		"deployment":  []string{"Config", "Describe", "Pods Log", "Top Pods"},
-		"pod":         []string{"Config", "Describe", "Log", "Top"},
+		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
+		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
+		serviceViewName:     []string{"Config", "Pods Log"},
+		deploymentViewName:  []string{"Config", "Describe", "Pods Log", "Top Pods"},
+		podViewName:         []string{"Config", "Describe", "Log", "Top"},
 	}
-
-	OptSeparator = "   "
 )
 
 func navigationRender(gui *gui.Gui, view *gui.View) error {
@@ -43,7 +46,7 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 
 	if activeView == nil {
 		if gui.CurrentView() == nil {
-			if err := gui.FocusView("namespace", false); err != nil {
+			if err := gui.FocusView(namespaceViewName, false); err != nil {
 				log.Logger.Println(err)
 			}
 		}
@@ -98,6 +101,28 @@ func navigationOnClick(gui *gui.Gui, view *gui.View) error {
 	}
 
 	log.Logger.Debugf("navigationOnClick - selected '%s'", selected)
+
+	return nil
+}
+
+func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	currentContext, err := kubecli.Cli.CurrentContext()
+	if err != nil {
+		return nil
+	}
+
+	if _, err := fmt.Fprintf(view, "Current Context: %s", color.Green.Sprint(currentContext)); err != nil {
+		return err
+	}
+
+	//clusterInfo, err := kubecli.Cli.ClusterInfo()
+	//if err != nil {
+	//	return nil
+	//}
+	//if _, err := fmt.Fprintln(view, clusterInfo); err != nil {
+	//	return err
+	//}
 
 	return nil
 }

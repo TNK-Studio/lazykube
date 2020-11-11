@@ -28,6 +28,7 @@ var (
 type Action struct {
 	Name    string
 	Key     interface{}
+	Keys    []interface{}
 	Handler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
 	Mod     gocui.Modifier
 }
@@ -37,7 +38,7 @@ type ActionHandler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
 func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		viewName := v.Name()
-		log.Logger.Debugf("ViewClickHandler view '%s' on click.", viewName)
+		log.Logger.Debugf("ViewClickHandler - view '%s' on click.", viewName)
 
 		currentView := gui.CurrentView()
 		canReturn := true
@@ -63,6 +64,8 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 			return err
 		}
 
+		cx, cy := view.Cursor()
+		log.Logger.Debugf("ViewClickHandler - cx %d cy %d", cx, cy)
 		if view.OnClick != nil {
 			return view.OnClick(gui, view)
 		}
