@@ -10,4 +10,5 @@ type GuiConfig struct {
 	SelBgColor gocui.Attribute
 	SelFgColor gocui.Attribute
 	Mouse      bool
+	InputEsc   bool
 }

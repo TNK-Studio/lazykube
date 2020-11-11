@@ -37,6 +37,7 @@ func NewApp() *App {
 		SelFgColor: gocui.ColorGreen,
 		FgColor:    gocui.ColorWhite,
 		Mouse:      true,
+		InputEsc:   true,
 	}
 	app.Gui = gui.NewGui(
 		conf,
@@ -57,6 +58,15 @@ func NewApp() *App {
 }
 
 func (app *App) Run() {
+	for _, act := range actions {
+		app.Gui.BindAction("", act)
+	}
+
+	for viewName, actArr := range viewActionsMap {
+		for _, act := range actArr {
+			app.Gui.BindAction(viewName, act)
+		}
+	}
 	app.Gui.Run()
 }
 
@@ -73,9 +83,10 @@ func (app *App) RenderOptions(gui *gui.Gui) error {
 		app.Option.Name,
 		utils.OptionsMapToString(
 			map[string]string{
-				"PgUp/PgDn": "scroll",
 				"← → ↑ ↓":   "navigate",
-				"esc/q":     "close",
+				"Ctrl+c":    "close",
+				"Esc":       "back",
+				"PgUp/PgDn": "scroll",
 			}),
 	)
 }

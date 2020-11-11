@@ -7,7 +7,7 @@ import (
 var (
 	viewHeights     = map[string]int{}
 	resizeView      = ""
-	resizeableViews = []string{"namespace", "service", "deployment", "pod"}
+	resizeableViews = []string{namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 )
 
 func leftSideWidth(maxWidth int) int {
@@ -25,12 +25,12 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 	tallPanels := 4
 	viewHeights = map[string]int{
-		"clusterInfo": 3,
-		"namespace":   space / tallPanels,
-		"service":     space / tallPanels,
-		"deployment":  space / tallPanels,
-		"pod":         space / tallPanels,
-		"option":      1,
+		clusterInfoViewName: 3,
+		namespaceViewName:   space / tallPanels,
+		serviceViewName:     space / tallPanels,
+		deploymentViewName:  space / tallPanels,
+		podViewName:         space / tallPanels,
+		optionViewName:      1,
 	}
 
 	currentView := gui.CurrentView()
@@ -52,20 +52,20 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 			defaultHeight = 1
 		}
 		viewHeights = map[string]int{
-			"clusterInfo": defaultHeight,
-			"namespace":   defaultHeight,
-			"service":     defaultHeight,
-			"deployment":  defaultHeight,
-			"pod":         defaultHeight,
-			"option":      defaultHeight,
+			clusterInfoViewName: defaultHeight,
+			namespaceViewName:   defaultHeight,
+			serviceViewName:     defaultHeight,
+			deploymentViewName:  defaultHeight,
+			podViewName:         defaultHeight,
+			optionViewName:      defaultHeight,
 		}
 
 		viewHeights[resizeView] = maxHeight - defaultHeight*tallPanels - 1
 	}
 
-	viewHeights["clusterInfo"] -= 1
-	if viewHeights["clusterInfo"] == 0 {
-		viewHeights["clusterInfo"] = 1
+	viewHeights[clusterInfoViewName] -= 1
+	if viewHeights[clusterInfoViewName] == 0 {
+		viewHeights[clusterInfoViewName] = 1
 	}
 	height := viewHeights[view.Name]
 	return height

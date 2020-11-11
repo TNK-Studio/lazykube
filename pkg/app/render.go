@@ -8,22 +8,24 @@ import (
 	"strings"
 )
 
+const (
+	OptSeparator = "   "
+)
+
 var (
 	// Todo: use state to control.
 	activeView *gui.View
 
 	navigationIndex int
 
-	functionViews     = []string{"clusterInfo", "namespace", "service", "deployment", "pod"}
+	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
-		"clusterInfo": []string{"Nodes", "Top Nodes"},
-		"namespace":   []string{"Config", "Deployments", "Pods"},
-		"service":     []string{"Config", "Pods Log"},
-		"deployment":  []string{"Config", "Describe", "Pods Log", "Top Pods"},
-		"pod":         []string{"Config", "Describe", "Log", "Top"},
+		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
+		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
+		serviceViewName:     []string{"Config", "Pods Log"},
+		deploymentViewName:  []string{"Config", "Describe", "Pods Log", "Top Pods"},
+		podViewName:         []string{"Config", "Describe", "Log", "Top"},
 	}
-
-	OptSeparator = "   "
 )
 
 func navigationRender(gui *gui.Gui, view *gui.View) error {
@@ -43,7 +45,7 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 
 	if activeView == nil {
 		if gui.CurrentView() == nil {
-			if err := gui.FocusView("namespace", false); err != nil {
+			if err := gui.FocusView(namespaceViewName, false); err != nil {
 				log.Logger.Println(err)
 			}
 		}
