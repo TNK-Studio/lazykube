@@ -4,6 +4,7 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
+	"math"
 )
 
 var (
@@ -42,6 +43,18 @@ var (
 
 	actions = []*gui.Action{
 		backToPreviousView,
+		&gui.Action{
+			Name:    "scrollUp",
+			Key:     gocui.KeyPgup,
+			Handler: scrollUpHandler,
+			Mod:     gocui.ModNone,
+		},
+		&gui.Action{
+			Name:    "scrollDown",
+			Key:     gocui.KeyPgdn,
+			Handler: scrollDownHandler,
+			Mod:     gocui.ModNone,
+		},
 	}
 
 	viewActionsMap = map[string][]*gui.Action{
@@ -176,21 +189,47 @@ func toNavigationHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 func navigationArrowRightHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, view *gocui.View) error {
 		options := viewNavigationMap[activeView.Name]
-		navigationIndex += 1
-		if navigationIndex >= len(options) {
-			navigationIndex = len(options) - 1
+		if navigationIndex+1 >= len(options) {
+			return nil
 		}
+		switchNavigation(navigationIndex + 1)
 		return nil
 	}
 }
 
 func navigationArrowLeftHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, view *gocui.View) error {
-		navigationIndex -= 1
-		if navigationIndex < 0 {
-			navigationIndex = 0
+		if navigationIndex-1 < 0 {
 			return gui.ReturnPreviousView()
 		}
+		switchNavigation(navigationIndex - 1)
 		return nil
+	}
+}
+
+func scrollUpHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		v.Autoscroll = false
+		ox, oy := v.Origin()
+		newOy := int(math.Max(0, float64(oy-2)))
+		return v.SetOrigin(ox, newOy)
+	}
+}
+
+func scrollDownHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		v.Autoscroll = false
+		ox, oy := v.Origin()
+
+		reservedLines := 0
+		_, sizeY := v.Size()
+		reservedLines = sizeY
+
+		totalLines := len(v.ViewBufferLines())
+		if oy+reservedLines >= totalLines {
+			return nil
+		}
+
+		return v.SetOrigin(ox, oy+2)
 	}
 }

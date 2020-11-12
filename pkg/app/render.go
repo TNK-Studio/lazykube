@@ -6,28 +6,57 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/gookit/color"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	"strings"
 )
 
 const (
-	OptSeparator = "   "
+	OptSeparator       = "   "
+	navigationPathJoin = " + "
 )
 
 var (
 	// Todo: use state to control.
 	activeView *gui.View
 
-	navigationIndex int
+	navigationIndex     int
+	activeNavigationOpt string
 
 	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
 		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
-		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
-		serviceViewName:     []string{"Config", "Pods Log"},
-		deploymentViewName:  []string{"Config", "Describe", "Pods Log", "Top Pods"},
-		podViewName:         []string{"Config", "Describe", "Log", "Top"},
+		namespaceViewName:   []string{"Deployments", "Pods", "Config"},
+		serviceViewName:     []string{"Pods Log", "Config"},
+		deploymentViewName:  []string{"Pods Log", "Config", "Describe", "Top Pods"},
+		podViewName:         []string{"Log", "Top", "Config", "Describe"},
+	}
+
+	detailRenderMap = map[string]func(gui *gui.Gui, view *gui.View) error{
+		navigationPath(clusterInfoViewName, "Nodes"):     clusterNodesRender,
+		navigationPath(clusterInfoViewName, "Top Nodes"): topNodesRender,
 	}
 )
+
+func navigationPath(args ...string) string {
+	return strings.Join(args, navigationPathJoin)
+}
+
+func switchNavigation(index int) string {
+	if index < 0 {
+		return ""
+	}
+
+	if activeView != nil {
+		if index >= len(viewNavigationMap[activeView.Name]) {
+			return ""
+		}
+		navigationIndex = index
+		activeNavigationOpt = viewNavigationMap[activeView.Name][index]
+		return activeNavigationOpt
+	}
+	return ""
+}
 
 func navigationRender(gui *gui.Gui, view *gui.View) error {
 	currentView := gui.CurrentView()
@@ -55,7 +84,7 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 
 	options := viewNavigationMap[activeView.Name]
 	if changeNavigation {
-		navigationIndex = 0
+		switchNavigation(0)
 	}
 
 	colorfulOptions := make([]string, 0)
@@ -94,8 +123,7 @@ func navigationOnClick(gui *gui.Gui, view *gui.View) error {
 
 		if cx >= left-halfSep && cx <= right+halfSep {
 			log.Logger.Debugf("navigationOnClick - cx %d in selection[%d, %d]", cx, left, right)
-			navigationIndex = i
-			selected = options[i]
+			selected = switchNavigation(i)
 			break
 		}
 	}
@@ -124,5 +152,41 @@ func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
 	//	return err
 	//}
 
+	return nil
+}
+
+func detailRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if activeView == nil {
+		return nil
+	}
+	renderFunc := detailRenderMap[navigationPath(activeView.Name, activeNavigationOpt)]
+	if renderFunc != nil {
+		return renderFunc(gui, view)
+	}
+	return nil
+}
+
+func viewStreams(view *gui.View) genericclioptions.IOStreams {
+	return genericclioptions.IOStreams{
+		In:     os.Stdin,
+		Out:    view,
+		ErrOut: view,
+	}
+}
+
+func clusterNodesRender(gui *gui.Gui, view *gui.View) error {
+	kubecli.Cli.Get(viewStreams(view), "nodes")
+	return nil
+}
+
+func topNodesRender(gui *gui.Gui, view *gui.View) error {
+	kubecli.Cli.TopNode(viewStreams(view), nil, "")
+	return nil
+}
+
+func namespaceRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	kubecli.Cli.Get(viewStreams(view), "namespaces")
 	return nil
 }

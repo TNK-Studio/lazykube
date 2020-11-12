@@ -175,5 +175,9 @@ func (view *View) Cursor() (int, int) {
 	return view.v.Cursor()
 }
 
+func (view *View) ViewBufferLines() []string {
+	return view.v.ViewBufferLines()
+}
+
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)
 type ViewPointFunc func(gui *Gui, view *View) int

@@ -58,6 +58,7 @@ var (
 		Name:      detailViewName,
 		Title:     "",
 		Clickable: true,
+		Render:    detailRender,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
@@ -68,6 +69,7 @@ var (
 		Title:     "Namespaces",
 		Highlight: true,
 		Clickable: true,
+		Render:    namespaceRender,
 		FgColor:   gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
 			clusterInfoViewName,

@@ -31,14 +31,12 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	space := usableSpace(gui, maxHeight)
 
 	tallPanels := 4
-	viewHeights = map[string]int{
-		clusterInfoViewName: 2,
-		namespaceViewName:   space / tallPanels,
-		serviceViewName:     space / tallPanels,
-		deploymentViewName:  space / tallPanels,
-		podViewName:         space / tallPanels,
-		optionViewName:      1,
-	}
+	viewHeights[clusterInfoViewName] = 2
+	viewHeights[namespaceViewName] = space / tallPanels
+	viewHeights[serviceViewName] = space / tallPanels
+	viewHeights[deploymentViewName] = space / tallPanels
+	viewHeights[podViewName] = space / tallPanels
+	viewHeights[optionViewName] = 1
 
 	currentView := gui.CurrentView()
 	if currentView != nil {
@@ -51,21 +49,6 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 		viewHeights[resizeView] += space % tallPanels
 	}
-
-	//if maxHeight < 28 {
-	//	currentView := gui.CurrentView()
-	//	if currentView != nil {
-	//		for i, viewName := range functionViews {
-	//			if currentView.Name == viewName {
-	//				index := i + 1
-	//				if index < len(functionViews) {
-	//					viewHeights[functionViews[index]] = 2
-	//					break
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
 
 	height := viewHeights[view.Name]
 	return height
