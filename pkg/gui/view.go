@@ -23,11 +23,13 @@ func init() {
 }
 
 type View struct {
+	State State
 	Name  string
 	Title string
 
-	Clickable bool
-	OnClick   func(gui *Gui, view *View) error
+	Clickable   bool
+	OnClick     func(gui *Gui, view *View) error
+	OnLineClick func(gui *Gui, view *View, cy int, lineString string) error
 
 	Editable              bool
 	Wrap                  bool
@@ -60,6 +62,9 @@ type View struct {
 }
 
 func (view *View) InitView() {
+	if view.State == nil {
+		view.State = NewStateMap()
+	}
 	if view.v != nil {
 		view.v.Title = view.Title
 		view.v.Wrap = view.Wrap
@@ -177,6 +182,14 @@ func (view *View) Cursor() (int, int) {
 
 func (view *View) ViewBufferLines() []string {
 	return view.v.ViewBufferLines()
+}
+
+func (view *View) Line(y int) (string, error) {
+	return view.v.Line(y)
+}
+
+func (view *View) MoveCursor(dx, dy int, writeMode bool) {
+	view.v.MoveCursor(dx, dy, writeMode)
 }
 
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)

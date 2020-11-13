@@ -43,8 +43,6 @@ func NewApp() *App {
 		conf,
 		app.ClusterInfo,
 		app.Namespace,
-		app.ClusterInfo,
-		app.Namespace,
 		app.Service,
 		app.Deployment,
 		app.Pod,
@@ -100,6 +98,7 @@ func (app *App) RenderOptions(gui *gui.Gui) error {
 				"Ctrl+c":    "close",
 				"Esc":       "back",
 				"PgUp/PgDn": "scroll",
+				"Home/End":  "Top/Bottom",
 			}),
 	)
 }

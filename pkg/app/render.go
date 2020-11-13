@@ -1,11 +1,13 @@
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/gookit/color"
+	"io"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"strings"
@@ -35,6 +37,9 @@ var (
 	detailRenderMap = map[string]func(gui *gui.Gui, view *gui.View) error{
 		navigationPath(clusterInfoViewName, "Nodes"):     clusterNodesRender,
 		navigationPath(clusterInfoViewName, "Top Nodes"): topNodesRender,
+		navigationPath(namespaceViewName, "Deployments"): deploymentRender,
+		navigationPath(namespaceViewName, "Pods"):        podRender,
+		navigationPath(namespaceViewName, "Config"):      namespaceConfigRender,
 	}
 )
 
@@ -60,6 +65,7 @@ func switchNavigation(index int) string {
 
 func navigationRender(gui *gui.Gui, view *gui.View) error {
 	currentView := gui.CurrentView()
+	// Change navigation render
 	var changeNavigation bool
 	if currentView != nil {
 		for _, viewName := range functionViews {
@@ -75,7 +81,7 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 
 	if activeView == nil {
 		if gui.CurrentView() == nil {
-			if err := gui.FocusView(namespaceViewName, false); err != nil {
+			if err := gui.FocusView(clusterInfoViewName, false); err != nil {
 				log.Logger.Println(err)
 			}
 		}
@@ -83,6 +89,9 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 	}
 
 	options := viewNavigationMap[activeView.Name]
+	if activeNavigationOpt == "" {
+		activeNavigationOpt = options[navigationIndex]
+	}
 	if changeNavigation {
 		switchNavigation(0)
 	}
@@ -143,15 +152,6 @@ func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
 	if _, err := fmt.Fprintf(view, "Current Context: %s", color.Green.Sprint(currentContext)); err != nil {
 		return err
 	}
-
-	//clusterInfo, err := kubecli.Cli.ClusterInfo()
-	//if err != nil {
-	//	return nil
-	//}
-	//if _, err := fmt.Fprintln(view, clusterInfo); err != nil {
-	//	return err
-	//}
-
 	return nil
 }
 
@@ -176,17 +176,99 @@ func viewStreams(view *gui.View) genericclioptions.IOStreams {
 }
 
 func clusterNodesRender(gui *gui.Gui, view *gui.View) error {
-	kubecli.Cli.Get(viewStreams(view), "nodes")
+	kubecli.Cli.Get(viewStreams(view), "nodes").Run()
 	return nil
 }
 
 func topNodesRender(gui *gui.Gui, view *gui.View) error {
-	kubecli.Cli.TopNode(viewStreams(view), nil, "")
+	kubecli.Cli.TopNode(viewStreams(view), nil, "").Run()
 	return nil
 }
 
 func namespaceRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
-	kubecli.Cli.Get(viewStreams(view), "namespaces")
+	streams := newStream()
+	kubecli.Cli.Get(streams, "namespaces").Run()
+	renderHighlightSelected(view, streamToString(streams))
+	return nil
+}
+
+func serviceRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	streams := newStream()
+	if kubecli.Cli.Namespace() == "" {
+		kubecli.Cli.Get(streams, "services").SetFlag("all-namespaces", "true").Run()
+		renderHighlightSelected(view, streamToString(streams))
+		return nil
+	}
+	kubecli.Cli.Get(streams, "services").Run()
+	renderHighlightSelected(view, streamToString(streams))
+	return nil
+}
+
+func deploymentRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	streams := newStream()
+	if kubecli.Cli.Namespace() == "" {
+		kubecli.Cli.Get(streams, "deployments").SetFlag("all-namespaces", "true").Run()
+		renderHighlightSelected(view, streamToString(streams))
+		return nil
+	}
+	kubecli.Cli.Get(viewStreams(view), "deployments").Run()
+	renderHighlightSelected(view, streamToString(streams))
+	return nil
+}
+
+func podRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	streams := newStream()
+	if kubecli.Cli.Namespace() == "" {
+		kubecli.Cli.Get(streams, "pods").SetFlag("all-namespaces", "true").Run()
+		renderHighlightSelected(view, streamToString(streams))
+		return nil
+	}
+	kubecli.Cli.Get(streams, "pods").Run()
+	renderHighlightSelected(view, streamToString(streams))
+	return nil
+}
+
+func newStream() genericclioptions.IOStreams {
+	return genericclioptions.IOStreams{
+		In:     &bytes.Buffer{},
+		Out:    &bytes.Buffer{},
+		ErrOut: &bytes.Buffer{},
+	}
+}
+
+func streamCopyTo(streams genericclioptions.IOStreams, writer io.Writer) {
+	if _, err := io.Copy(writer, (streams.Out).(io.Reader)); err != nil {
+		log.Logger.Warningf("streamCopyTo - streams.Out copy error %s", err)
+	}
+	if _, err := io.Copy(writer, (streams.ErrOut).(io.Reader)); err != nil {
+		log.Logger.Warningf("streamCopyTo - streams.ErrOut copy error %s", err)
+	}
+}
+
+func streamToString(streams genericclioptions.IOStreams) string {
+	buf := new(strings.Builder)
+	streamCopyTo(streams, buf)
+	// check errors
+	return buf.String()
+}
+
+func renderHighlightSelected(view *gui.View, content string) {
+	selected, _ := view.State.Get(selectedViewLine)
+	if selected != nil {
+		highlightString := selected.(string)
+		content = strings.Replace(content, highlightString, color.Green.Sprint(highlightString), 1)
+		fmt.Fprint(view, content)
+		return
+	}
+	fmt.Fprint(view, content)
+}
+
+func namespaceConfigRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	kubecli.Cli.Get(viewStreams(view), "namespaces").SetFlag("output", "yaml").Run()
 	return nil
 }
