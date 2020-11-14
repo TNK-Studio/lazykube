@@ -47,17 +47,19 @@ var (
 	}
 
 	previousLine = &gui.Action{
-		Name:    "previousLine",
-		Key:     gocui.KeyArrowUp,
-		Handler: previousLineHandler,
-		Mod:     gocui.ModNone,
+		Name:     "previousLine",
+		Key:      gocui.KeyArrowUp,
+		Handler:  previousLineHandler,
+		Mod:      gocui.ModNone,
+		ReRender: true,
 	}
 
 	nextLine = &gui.Action{
-		Name:    "nextLine",
-		Key:     gocui.KeyArrowDown,
-		Handler: nextLineHandler,
-		Mod:     gocui.ModNone,
+		Name:     "nextLine",
+		Key:      gocui.KeyArrowDown,
+		Handler:  nextLineHandler,
+		Mod:      gocui.ModNone,
+		ReRender: true,
 	}
 
 	actions = []*gui.Action{
@@ -97,16 +99,18 @@ var (
 	viewActionsMap = map[string][]*gui.Action{
 		navigationViewName: []*gui.Action{
 			&gui.Action{
-				Name:    "navigationArrowLeft",
-				Key:     gocui.KeyArrowLeft,
-				Handler: navigationArrowLeftHandler,
-				Mod:     gocui.ModNone,
+				Name:     "navigationArrowLeft",
+				Key:      gocui.KeyArrowLeft,
+				Handler:  navigationArrowLeftHandler,
+				Mod:      gocui.ModNone,
+				ReRender: true,
 			},
 			&gui.Action{
-				Name:    "navigationArrowRight",
-				Key:     gocui.KeyArrowRight,
-				Handler: navigationArrowRightHandler,
-				Mod:     gocui.ModNone,
+				Name:     "navigationArrowRight",
+				Key:      gocui.KeyArrowRight,
+				Handler:  navigationArrowRightHandler,
+				Mod:      gocui.ModNone,
+				ReRender: true,
 			},
 			&gui.Action{
 				Name: "navigationDown",
@@ -117,7 +121,8 @@ var (
 						return nil
 					}
 				},
-				Mod: gocui.ModNone,
+				Mod:      gocui.ModNone,
+				ReRender: true,
 			},
 		},
 		detailViewName: []*gui.Action{
@@ -130,7 +135,8 @@ var (
 						return nil
 					}
 				},
-				Mod: gocui.ModNone,
+				Mod:      gocui.ModNone,
+				ReRender: true,
 			},
 		},
 		clusterInfoViewName: []*gui.Action{
@@ -306,6 +312,11 @@ func scrollBottomHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 }
 
 func viewLineClickHandler(gui *gui.Gui, view *gui.View, cy int, lineString string) error {
+	detailView, _ := gui.GetView(detailViewName)
+	if detailView != nil {
+		detailView.SetOrigin(0, 0)
+	}
+
 	if cy == 0 {
 		selected := formatSelectedName(lineString, 0)
 		if selected == "NAME" || selected == "NAMESPACE" {

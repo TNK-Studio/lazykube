@@ -8,6 +8,7 @@ import (
 
 type Gui struct {
 	State           State
+	reRendered      bool
 	OnRender        func(gui *Gui) error
 	OnRenderOptions func(gui *Gui) error
 
@@ -18,6 +19,9 @@ type Gui struct {
 	g      *gocui.Gui
 	views  []*View
 	config config.GuiConfig
+
+	preHeight int
+	preWidth  int
 }
 
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
@@ -49,7 +53,21 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	return gui
 }
 
+func (gui *Gui) ReRender() {
+	gui.reRendered = false
+	for _, view := range gui.views {
+		view.ReRender()
+	}
+}
+
 func (gui *Gui) layout(*gocui.Gui) error {
+	height, width := gui.Size()
+	if gui.preHeight != height || gui.preWidth != width {
+		gui.preHeight = height
+		gui.preWidth = width
+		gui.ReRender()
+	}
+
 	if err := gui.Clear(); err != nil {
 		return err
 	}
@@ -69,7 +87,8 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if gui.OnRender != nil {
+	if gui.OnRender != nil && !gui.reRendered {
+		gui.reRendered = true
 		if err := gui.OnRender(gui); err != nil {
 			return nil
 		}
@@ -124,7 +143,18 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 }
 
 func (gui *Gui) BindAction(viewName string, action *Action) {
-	handler := action.Handler(gui)
+	var handler func(g *gocui.Gui, v *gocui.View) error
+	if action.ReRender {
+		handler = func(g *gocui.Gui, v *gocui.View) error {
+			if err := action.Handler(gui)(g, v); err != nil {
+				return err
+			}
+			gui.ReRender()
+			return nil
+		}
+	} else {
+		handler = action.Handler(gui)
+	}
 
 	if action.Key != nil {
 		gui.SetKeybinding(viewName,

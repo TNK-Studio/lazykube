@@ -18,19 +18,21 @@ var (
 	}
 
 	ClickView = &Action{
-		Name:    "clickView",
-		Key:     gocui.MouseLeft,
-		Handler: ViewClickHandler,
-		Mod:     gocui.ModNone,
+		Name:     "clickView",
+		Key:      gocui.MouseLeft,
+		Handler:  ViewClickHandler,
+		Mod:      gocui.ModNone,
+		ReRender: true,
 	}
 )
 
 type Action struct {
-	Name    string
-	Key     interface{}
-	Keys    []interface{}
-	Handler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
-	Mod     gocui.Modifier
+	Name     string
+	Key      interface{}
+	Keys     []interface{}
+	ReRender bool
+	Handler  func(gui *Gui) func(*gocui.Gui, *gocui.View) error
+	Mod      gocui.Modifier
 }
 
 type ActionHandler func(gui *Gui) func(*gocui.Gui, *gocui.View) error

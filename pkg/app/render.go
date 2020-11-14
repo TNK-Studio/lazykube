@@ -47,7 +47,7 @@ var (
 		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
 		navigationPath(serviceViewName, "Top Pods"):      topPodsRender,
 		navigationPath(deploymentViewName, "Config"):     configRender,
-		navigationPath(serviceViewName, "Pods"):          labelsPodsRender,
+		navigationPath(deploymentViewName, "Pods"):       labelsPodsRender,
 		navigationPath(deploymentViewName, "Describe"):   describeRender,
 		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
 		navigationPath(deploymentViewName, "Top Pods"):   topPodsRender,
@@ -203,6 +203,7 @@ func clusterNodesRender(gui *gui.Gui, view *gui.View) error {
 
 func topNodesRender(gui *gui.Gui, view *gui.View) error {
 	kubecli.Cli.TopNode(viewStreams(view), nil, "").Run()
+	view.ReRender()
 	return nil
 }
 
@@ -424,6 +425,7 @@ func describeRender(gui *gui.Gui, view *gui.View) error {
 	}
 
 	kubecli.Cli.WithNamespace(namespace).Describe(viewStreams(view), resource, selectedName).Run()
+	view.ReRender()
 	return nil
 }
 
@@ -458,6 +460,7 @@ func podLogsRender(gui *gui.Gui, view *gui.View) error {
 			return nil
 		}
 		kubecli.Cli.Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		view.ReRender()
 		return nil
 	}
 
@@ -469,6 +472,7 @@ func podLogsRender(gui *gui.Gui, view *gui.View) error {
 	}
 
 	kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+	view.ReRender()
 	return nil
 }
 
@@ -476,10 +480,9 @@ func podsLogsRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
-		for _, label := range labelsArr {
-			cmd.SetFlag("selector", label)
-		}
+		cmd.SetFlag("selector", strings.Join(labelsArr, ","))
 		cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		view.ReRender()
 		return nil
 	})(gui, view); err != nil {
 		return err
@@ -491,11 +494,10 @@ func labelsPodsRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), "pods")
-		for _, label := range labelsArr {
-			cmd.SetFlag("selector", label)
-		}
+		cmd.SetFlag("selector", strings.Join(labelsArr, ","))
 		cmd.SetFlag("output", "wide")
 		cmd.Run()
+		view.ReRender()
 		return nil
 	})(gui, view); err != nil {
 		return err
@@ -507,10 +509,9 @@ func topPodsRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).TopPod(viewStreams(view), nil)
-		for _, label := range labelsArr {
-			cmd.SetFlag("selector", label)
-		}
+		cmd.SetFlag("selector", strings.Join(labelsArr, ","))
 		cmd.Run()
+		view.ReRender()
 		return nil
 	})(gui, view); err != nil {
 		return err
