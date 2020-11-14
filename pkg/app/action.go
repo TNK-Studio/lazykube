@@ -334,16 +334,29 @@ func previousLineHandler(gui *gui.Gui) func(gui *gocui.Gui, view *gocui.View) er
 		}
 
 		_, cy := v.Cursor()
+		ox, oy := v.Origin()
+		var lineStr string
+		var err error
 		if cy-1 < 0 {
-			return nil
+			if err := v.SetOrigin(ox, int(math.Max(0, float64(oy-1)))); err != nil {
+				return err
+			}
+			v.MoveCursor(0, -1, false)
+			_, newCy := v.Cursor()
+			lineStr, err = v.Line(newCy)
+			if err != nil {
+				log.Logger.Warningf("previousLineHandler - v.Line(cy - 1)", cy)
+			}
+		} else {
+			lineStr, err = v.Line(cy - 1)
+			if err != nil {
+				log.Logger.Warningf("previousLineHandler - v.Line(cy - 1)", cy)
+			}
+			v.MoveCursor(0, -1, false)
 		}
-		lineStr, err := v.Line(cy - 1)
-		if err != nil {
-			log.Logger.Warningf("previousLineHandler - v.Line(cy - 1)", cy)
-		}
-		v.MoveCursor(0, -1, false)
 
-		if cy-1 != 0 {
+		formatted := formatSelectedName(lineStr, 0)
+		if formatted != "NAME" && formatted != "NAMESPACE" {
 			if currentView.Name == namespaceViewName {
 				namespace := formatSelectedNamespace(lineStr)
 				log.Logger.Debugf("previousLineHandler - switch namespace to %s", namespace)
@@ -355,6 +368,7 @@ func previousLineHandler(gui *gui.Gui) func(gui *gocui.Gui, view *gocui.View) er
 			namespace := ""
 			log.Logger.Debugf("previousLineHandler - switch namespace to %s", namespace)
 			kubecli.Cli.SetNamespace(namespace)
+			return currentView.State.Set(selectedViewLine, nil)
 		}
 		return currentView.State.Set(selectedViewLine, lineStr)
 	}
@@ -368,20 +382,21 @@ func nextLineHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 		}
 
 		_, cy := v.Cursor()
-		if cy+1 >= len(v.ViewBufferLines()) {
-			return nil
-		}
 		lineStr, err := v.Line(cy + 1)
 		if err != nil {
 			log.Logger.Warningf("nextLineHandler - v.Line(%d + 1)", cy)
 		}
 		v.MoveCursor(0, 1, false)
-
 		if currentView.Name == namespaceViewName {
 			namespace := formatSelectedNamespace(lineStr)
 			log.Logger.Debugf("nextLineHandler - switch namespace to %s", namespace)
 			kubecli.Cli.SetNamespace(namespace)
 		}
+
+		if lineStr == "" {
+			return currentView.State.Set(selectedViewLine, nil)
+		}
+
 		return currentView.State.Set(selectedViewLine, lineStr)
 	}
 }

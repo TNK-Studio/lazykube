@@ -236,11 +236,11 @@ func podRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
 	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(streams, "pods").SetFlag("all-namespaces", "true").Run()
+		kubecli.Cli.Get(streams, "pods").SetFlag("all-namespaces", "true").SetFlag("output", "wide").Run()
 		renderHighlightSelected(view, streamToString(streams))
 		return nil
 	}
-	kubecli.Cli.Get(streams, "pods").Run()
+	kubecli.Cli.Get(streams, "pods").SetFlag("output", "wide").Run()
 	renderHighlightSelected(view, streamToString(streams))
 	return nil
 }
@@ -293,6 +293,11 @@ func namespaceConfigRender(gui *gui.Gui, view *gui.View) error {
 	selected, _ := namespaceView.State.Get(selectedViewLine)
 	if selected != nil {
 		namespace := formatSelectedNamespace(selected.(string))
+		if namespace == "" {
+			showPleaseSelected(view, namespaceViewName)
+			return nil
+		}
+
 		kubecli.Cli.Get(viewStreams(view), "namespaces", namespace).SetFlag("output", "yaml").Run()
 		return nil
 	}
