@@ -16,6 +16,7 @@ import (
 const (
 	OptSeparator       = "   "
 	navigationPathJoin = " + "
+	logsTail           = "200"
 )
 
 var (
@@ -42,7 +43,10 @@ var (
 		navigationPath(namespaceViewName, "Config"):      configRender,
 		navigationPath(serviceViewName, "Config"):        configRender,
 		navigationPath(deploymentViewName, "Config"):     configRender,
+		navigationPath(deploymentViewName, "Describe"):   describeRender,
 		navigationPath(podViewName, "Config"):            configRender,
+		navigationPath(podViewName, "Log"):               podLogsRender,
+		navigationPath(podViewName, "Describe"):          describeRender,
 	}
 )
 
@@ -159,7 +163,13 @@ func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
 }
 
 func detailRender(gui *gui.Gui, view *gui.View) error {
-	view.Clear()
+	detailView, err := gui.GetView(detailViewName)
+	if err != nil {
+		return err
+	}
+
+	detailView.Clear()
+
 	if activeView == nil {
 		return nil
 	}
@@ -349,6 +359,61 @@ func configRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
+func describeRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if activeView == nil {
+		return nil
+	}
+	if activeView == Namespace {
+		return namespaceConfigRender(gui, view)
+	}
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return nil
+	}
+
+	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
+	selected, _ := activeView.State.Get(selectedViewLine)
+	resource := ""
+	switch activeView.Name {
+	case deploymentViewName:
+		resource = "deployment"
+		break
+	case podViewName:
+		resource = "pod"
+		break
+	}
+
+	if resource == "" {
+		return nil
+	}
+
+	if selected == nil {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	if selectedNamespace != nil {
+		selectedName := formatSelectedName(selected.(string), 0)
+		if selectedName == "" {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+		kubecli.Cli.Describe(viewStreams(view), resource, selectedName).Run()
+		return nil
+	}
+
+	namespace := formatSelectedName(selected.(string), 0)
+	selectedName := formatSelectedName(selected.(string), 1)
+	if selectedName == "" {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	kubecli.Cli.WithNamespace(namespace).Describe(viewStreams(view), resource, selectedName).Run()
+	return nil
+}
+
 func onFocusClearSelected(gui *gui.Gui, view *gui.View) error {
 	for _, functionViewName := range functionViews {
 		if functionViewName == view.Name || functionViewName == namespaceViewName {
@@ -361,5 +426,35 @@ func onFocusClearSelected(gui *gui.Gui, view *gui.View) error {
 		}
 		functionView.State.Set(selectedViewLine, nil)
 	}
+	return nil
+}
+
+func podLogsRender(gui *gui.Gui, view *gui.View) error {
+	selectedNamespace, _ := Namespace.State.Get(selectedViewLine)
+	selected, _ := Pod.State.Get(selectedViewLine)
+	resource := "pod"
+	if selected == nil {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	if selectedNamespace != nil {
+		selectedName := formatSelectedName(selected.(string), 0)
+		if selectedName == "" {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+		kubecli.Cli.Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		return nil
+	}
+
+	namespace := formatSelectedName(selected.(string), 0)
+	selectedName := formatSelectedName(selected.(string), 1)
+	if selectedName == "" {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 	return nil
 }

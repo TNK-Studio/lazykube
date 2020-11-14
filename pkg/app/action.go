@@ -63,14 +63,20 @@ var (
 	actions = []*gui.Action{
 		backToPreviousView,
 		&gui.Action{
-			Name:    "scrollUp",
-			Key:     gocui.KeyPgup,
+			Name: "scrollUp",
+			Keys: []interface{}{
+				gocui.KeyPgup,
+				gocui.MouseWheelUp,
+			},
 			Handler: scrollUpHandler,
 			Mod:     gocui.ModNone,
 		},
 		&gui.Action{
-			Name:    "scrollDown",
-			Key:     gocui.KeyPgdn,
+			Name: "scrollDown",
+			Keys: []interface{}{
+				gocui.KeyPgdn,
+				gocui.MouseWheelDown,
+			},
 			Handler: scrollDownHandler,
 			Mod:     gocui.ModNone,
 		},
@@ -301,11 +307,14 @@ func scrollBottomHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 
 func viewLineClickHandler(gui *gui.Gui, view *gui.View, cy int, lineString string) error {
 	if cy == 0 {
-		log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, view.State.Set(selectedViewLine, nil)", view.Name)
-		if view.Name == namespaceViewName {
-			kubecli.Cli.SetNamespace("")
+		selected := formatSelectedName(lineString, 0)
+		if selected == "NAME" || selected == "NAMESPACE" {
+			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, view.State.Set(selectedViewLine, nil)", view.Name)
+			if view.Name == namespaceViewName {
+				kubecli.Cli.SetNamespace("")
+			}
+			return view.State.Set(selectedViewLine, nil)
 		}
-		return view.State.Set(selectedViewLine, nil)
 	}
 
 	log.Logger.Debugf("viewLineClickHandler - view: '%s' view.State.Set(selectedViewLine, \"%s\")", view.Name, lineString)
