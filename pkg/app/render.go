@@ -31,8 +31,8 @@ var (
 	viewNavigationMap = map[string][]string{
 		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
 		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
-		serviceViewName:     []string{"Config", "Pods Log"},
-		deploymentViewName:  []string{"Config", "Pods Log", "Describe", "Top Pods"},
+		serviceViewName:     []string{"Config", "Pods", "Pods Log", "Top Pods"},
+		deploymentViewName:  []string{"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
 		podViewName:         []string{"Log", "Config", "Top", "Describe"},
 	}
 
@@ -43,10 +43,14 @@ var (
 		navigationPath(namespaceViewName, "Pods"):        podRender,
 		navigationPath(namespaceViewName, "Config"):      configRender,
 		navigationPath(serviceViewName, "Config"):        configRender,
+		navigationPath(serviceViewName, "Pods"):          labelsPodsRender,
 		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
+		navigationPath(serviceViewName, "Top Pods"):      topPodsRender,
 		navigationPath(deploymentViewName, "Config"):     configRender,
+		navigationPath(serviceViewName, "Pods"):          labelsPodsRender,
 		navigationPath(deploymentViewName, "Describe"):   describeRender,
 		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
+		navigationPath(deploymentViewName, "Top Pods"):   topPodsRender,
 		navigationPath(podViewName, "Config"):            configRender,
 		navigationPath(podViewName, "Log"):               podLogsRender,
 		navigationPath(podViewName, "Describe"):          describeRender,
@@ -470,79 +474,124 @@ func podLogsRender(gui *gui.Gui, view *gui.View) error {
 
 func podsLogsRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
-	if activeView == nil {
-		return nil
-	}
-	if activeView == Namespace {
-		return namespaceConfigRender(gui, view)
-	}
-	namespaceView, err := gui.GetView(namespaceViewName)
-	if err != nil {
-		return nil
-	}
-
-	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
-	selected, _ := activeView.State.Get(selectedViewLine)
-	var resource string
-	var jsonPath string
-	switch activeView.Name {
-	case serviceViewName:
-		resource = "service"
-		jsonPath = "jsonpath='{.spec.selector}'"
-		break
-	case deploymentViewName:
-		resource = "deployment"
-		jsonPath = "jsonpath='{.spec.selector.matchLabels}'"
-		break
-	}
-
-	if resource == "" {
-		return nil
-	}
-
-	if selected == nil {
-		showPleaseSelected(view, resource)
-		return nil
-	}
-
-	output := newStream()
-	var namespace string
-	if selectedNamespace != nil {
-		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
-			showPleaseSelected(view, resource)
-			return nil
+	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
+		cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
+		for _, label := range labelsArr {
+			cmd.SetFlag("selector", label)
 		}
-		kubecli.Cli.Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
-	} else {
-		namespace = formatSelectedName(selected.(string), 0)
-		selectedName := formatSelectedName(selected.(string), 1)
-		if selectedName == "" {
-			showPleaseSelected(view, resource)
-			return nil
-		}
-		kubecli.Cli.WithNamespace(namespace).Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
-	}
-
-	labelJson := streamToString(output)
-	if labelJson == "" {
-		fmt.Fprint(view, "Pods not found.")
+		cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 		return nil
+	})(gui, view); err != nil {
+		return err
 	}
-	labelsArr := utils.LabelsToStringArr(labelJson[1 : len(labelJson)-1])
-	if len(labelsArr) == 0 {
-		showPleaseSelected(view, resource)
-		return nil
-	}
-
-	if namespace == "" {
-		namespace = kubecli.Cli.Namespace()
-	}
-
-	cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
-	for _, label := range labelsArr {
-		cmd.SetFlag("selector", label)
-	}
-	cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 	return nil
+}
+
+func labelsPodsRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
+		cmd := kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), "pods")
+		for _, label := range labelsArr {
+			cmd.SetFlag("selector", label)
+		}
+		cmd.SetFlag("output", "wide")
+		cmd.Run()
+		return nil
+	})(gui, view); err != nil {
+		return err
+	}
+	return nil
+}
+
+func topPodsRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
+		cmd := kubecli.Cli.WithNamespace(namespace).TopPod(viewStreams(view), nil)
+		for _, label := range labelsArr {
+			cmd.SetFlag("selector", label)
+		}
+		cmd.Run()
+		return nil
+	})(gui, view); err != nil {
+		return err
+	}
+	return nil
+}
+
+func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string) error) func(gui *gui.Gui, view *gui.View) error {
+	return func(gui *gui.Gui, view *gui.View) error {
+		if activeView == nil {
+			return nil
+		}
+		if activeView == Namespace {
+			return namespaceConfigRender(gui, view)
+		}
+		namespaceView, err := gui.GetView(namespaceViewName)
+		if err != nil {
+			return nil
+		}
+
+		selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
+		selected, _ := activeView.State.Get(selectedViewLine)
+		var resource string
+		var jsonPath string
+		switch activeView.Name {
+		case serviceViewName:
+			resource = "service"
+			jsonPath = "jsonpath='{.spec.selector}'"
+			break
+		case deploymentViewName:
+			resource = "deployment"
+			jsonPath = "jsonpath='{.spec.selector.matchLabels}'"
+			break
+		}
+
+		if resource == "" {
+			return nil
+		}
+
+		if selected == nil {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+
+		output := newStream()
+		var namespace string
+		if selectedNamespace != nil {
+			selectedName := formatSelectedName(selected.(string), 0)
+			if selectedName == "" {
+				showPleaseSelected(view, resource)
+				return nil
+			}
+			kubecli.Cli.Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+		} else {
+			namespace = formatSelectedName(selected.(string), 0)
+			selectedName := formatSelectedName(selected.(string), 1)
+			if selectedName == "" {
+				showPleaseSelected(view, resource)
+				return nil
+			}
+			kubecli.Cli.WithNamespace(namespace).Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+		}
+
+		labelJson := streamToString(output)
+		if labelJson == "" {
+			fmt.Fprint(view, "Pods not found.")
+			return nil
+		}
+		labelsArr := utils.LabelsToStringArr(labelJson[1 : len(labelJson)-1])
+		if len(labelsArr) == 0 {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+
+		if namespace == "" {
+			namespace = kubecli.Cli.Namespace()
+		}
+
+		if err := cmdFunc(namespace, labelsArr); err != nil {
+			return err
+		}
+		return nil
+	}
 }
