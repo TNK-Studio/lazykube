@@ -25,7 +25,7 @@ var (
 			return leftSideWidth(gui.MaxWidth())
 		},
 		LowerRightPointYFunc: reactiveHeight,
-		Render:               renderClusterInfo,
+		OnRender:             renderClusterInfo,
 	}
 
 	Deployment = &gui.View{
@@ -36,8 +36,14 @@ var (
 		//Highlight:   true,
 		//SelFgColor:  gocui.ColorGreen,
 		//SelBgColor:  gocui.ColorDefault,
-		Render:      deploymentRender,
+		OnRender:    deploymentRender,
 		OnLineClick: viewLineClickHandler,
+		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
 		DimensionFunc: gui.BeneathView(
 			serviceViewName,
 			reactiveHeight,
@@ -52,18 +58,17 @@ var (
 		CanNotReturn: true,
 		OnClick:      navigationOnClick,
 		FgColor:      gocui.ColorGreen,
-		SelFgColor:   gocui.ColorBlack | gocui.ColorRed | gocui.AttrBold,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
-		Render: navigationRender,
+		OnRender: navigationRender,
 	}
 
 	Detail = &gui.View{
 		Name:      detailViewName,
 		Title:     "",
 		Clickable: true,
-		Render:    detailRender,
+		OnRender:  detailRender,
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
@@ -76,9 +81,15 @@ var (
 		//Highlight:   true,
 		//SelFgColor:  gocui.ColorGreen,
 		//SelBgColor:  gocui.ColorDefault,
-		Render:      namespaceRender,
+		OnRender:    namespaceRender,
 		OnLineClick: viewLineClickHandler,
-		FgColor:     gocui.ColorDefault,
+		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
+		FgColor: gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
 			clusterInfoViewName,
 			reactiveHeight,
@@ -103,9 +114,15 @@ var (
 		//Highlight:   true,
 		//SelFgColor:  gocui.ColorGreen,
 		//SelBgColor:  gocui.ColorDefault,
-		Render:      podRender,
+		OnRender:    podRender,
 		OnLineClick: viewLineClickHandler,
-		FgColor:     gocui.ColorDefault,
+		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
+		FgColor: gocui.ColorDefault,
 		DimensionFunc: gui.BeneathView(
 			deploymentViewName,
 			reactiveHeight,
@@ -120,8 +137,14 @@ var (
 		//Highlight:   true,
 		//SelFgColor:  gocui.ColorGreen,
 		//SelBgColor:  gocui.ColorDefault,
-		Render:      serviceRender,
+		OnRender:    serviceRender,
 		OnLineClick: viewLineClickHandler,
+		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
 		DimensionFunc: gui.BeneathView(
 			namespaceViewName,
 			reactiveHeight,

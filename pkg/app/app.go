@@ -50,8 +50,8 @@ func NewApp() *App {
 		app.Detail,
 		app.Option,
 	)
-	app.Gui.Render = app.Render
-	app.Gui.RenderOptions = app.RenderOptions
+	app.Gui.OnRender = app.OnRender
+	app.Gui.OnRenderOptions = app.OnRenderOptions
 	return app
 }
 
@@ -72,7 +72,7 @@ func (app *App) Stop() {
 	app.Gui.Close()
 }
 
-func (app *App) Render(gui *gui.Gui) error {
+func (app *App) OnRender(gui *gui.Gui) error {
 	if gui.MaxHeight() < 28 {
 		for _, viewName := range functionViews {
 			if _, err := gui.SetViewOnTop(viewName); err != nil {
@@ -89,7 +89,7 @@ func (app *App) Render(gui *gui.Gui) error {
 	return nil
 }
 
-func (app *App) RenderOptions(gui *gui.Gui) error {
+func (app *App) OnRenderOptions(gui *gui.Gui) error {
 	return gui.RenderString(
 		app.Option.Name,
 		utils.OptionsMapToString(

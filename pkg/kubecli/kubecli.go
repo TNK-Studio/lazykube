@@ -18,6 +18,8 @@ var Cli *KubeCLI
 
 func init() {
 	Cli = NewKubeCLI()
+	// To disable aws warnning
+	disableKlog()
 }
 
 type KubeCLI struct {
@@ -52,8 +54,6 @@ func NewKubeCLI() *KubeCLI {
 		factory:   util.NewFactory(matchVersionKubeConfigFlags),
 		namespace: &namespace,
 	}
-	// To disable aws warnning
-	disableKlog()
 	return k
 }
 
@@ -64,6 +64,21 @@ func (cli *KubeCLI) SetNamespace(namespace string) {
 	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
 	cli.factory = util.NewFactory(matchVersionKubeConfigFlags)
 	cli.namespace = &namespace
+}
+
+func (cli *KubeCLI) WithNamespace(namespace string) *KubeCLI {
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
+	kubeConfigFlags.Namespace = &namespace
+
+	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
+
+	k := &KubeCLI{
+		factory:   util.NewFactory(matchVersionKubeConfigFlags),
+		namespace: &namespace,
+	}
+	// To disable aws warnning
+	disableKlog()
+	return k
 }
 
 func (cli *KubeCLI) Namespace() string {

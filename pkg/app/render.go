@@ -28,10 +28,10 @@ var (
 	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
 		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
-		namespaceViewName:   []string{"Deployments", "Pods", "Config"},
-		serviceViewName:     []string{"Pods Log", "Config"},
-		deploymentViewName:  []string{"Pods Log", "Config", "Describe", "Top Pods"},
-		podViewName:         []string{"Log", "Top", "Config", "Describe"},
+		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
+		serviceViewName:     []string{"Config", "Pods Log"},
+		deploymentViewName:  []string{"Config", "Pods Log", "Describe", "Top Pods"},
+		podViewName:         []string{"Log", "Config", "Top", "Describe"},
 	}
 
 	detailRenderMap = map[string]func(gui *gui.Gui, view *gui.View) error{
@@ -39,7 +39,10 @@ var (
 		navigationPath(clusterInfoViewName, "Top Nodes"): topNodesRender,
 		navigationPath(namespaceViewName, "Deployments"): deploymentRender,
 		navigationPath(namespaceViewName, "Pods"):        podRender,
-		navigationPath(namespaceViewName, "Config"):      namespaceConfigRender,
+		navigationPath(namespaceViewName, "Config"):      configRender,
+		navigationPath(serviceViewName, "Config"):        configRender,
+		navigationPath(deploymentViewName, "Config"):     configRender,
+		navigationPath(podViewName, "Config"):            configRender,
 	}
 )
 
@@ -267,8 +270,96 @@ func renderHighlightSelected(view *gui.View, content string) {
 	fmt.Fprint(view, content)
 }
 
+func showPleaseSelected(view *gui.View, name string) {
+	fmt.Fprintf(view, "Please select a %s. ", name)
+}
+
 func namespaceConfigRender(gui *gui.Gui, view *gui.View) error {
 	view.Clear()
-	kubecli.Cli.Get(viewStreams(view), "namespaces").SetFlag("output", "yaml").Run()
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return nil
+	}
+	selected, _ := namespaceView.State.Get(selectedViewLine)
+	if selected != nil {
+		namespace := formatSelectedNamespace(selected.(string))
+		kubecli.Cli.Get(viewStreams(view), "namespaces", namespace).SetFlag("output", "yaml").Run()
+		return nil
+	}
+
+	showPleaseSelected(view, namespaceViewName)
+	return nil
+}
+
+func configRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if activeView == nil {
+		return nil
+	}
+	if activeView == Namespace {
+		return namespaceConfigRender(gui, view)
+	}
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return nil
+	}
+
+	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
+	selected, _ := activeView.State.Get(selectedViewLine)
+	resource := ""
+	switch activeView.Name {
+	case serviceViewName:
+		resource = "service"
+		break
+	case deploymentViewName:
+		resource = "deployment"
+		break
+	case podViewName:
+		resource = "pod"
+		break
+	}
+
+	if resource == "" {
+		return nil
+	}
+
+	if selected == nil {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	if selectedNamespace != nil {
+		selectedName := formatSelectedName(selected.(string), 0)
+		if selectedName == "" {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+		kubecli.Cli.Get(viewStreams(view), resource, selectedName).SetFlag("output", "yaml").Run()
+		return nil
+	}
+
+	namespace := formatSelectedName(selected.(string), 0)
+	selectedName := formatSelectedName(selected.(string), 1)
+	if selectedName == "" {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), resource, selectedName).SetFlag("output", "yaml").Run()
+	return nil
+}
+
+func onFocusClearSelected(gui *gui.Gui, view *gui.View) error {
+	for _, functionViewName := range functionViews {
+		if functionViewName == view.Name || functionViewName == namespaceViewName {
+			continue
+		}
+		functionView, err := gui.GetView(functionViewName)
+		if err != nil {
+			log.Logger.Warningf("onFocusClearSelected - view name %s gui.GetView(\"%s\") error %s", view.Name, functionView, err)
+			continue
+		}
+		functionView.State.Set(selectedViewLine, nil)
+	}
 	return nil
 }

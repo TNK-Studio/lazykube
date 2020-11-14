@@ -6,7 +6,6 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 	"math"
-	"strings"
 )
 
 const (
@@ -309,9 +308,9 @@ func viewLineClickHandler(gui *gui.Gui, view *gui.View, cy int, lineString strin
 		return view.State.Set(selectedViewLine, nil)
 	}
 
-	log.Logger.Debugf("viewLineClickHandler - view: '%s' view.State.Set(selectedViewLine, %s)", view.Name, lineString)
+	log.Logger.Debugf("viewLineClickHandler - view: '%s' view.State.Set(selectedViewLine, \"%s\")", view.Name, lineString)
 	if view.Name == namespaceViewName {
-		namespace := strings.Split(lineString, " ")[0]
+		namespace := formatSelectedNamespace(lineString)
 		log.Logger.Debugf("viewLineClickHandler - switch namespace to %s", namespace)
 		kubecli.Cli.SetNamespace(namespace)
 	}
@@ -337,7 +336,7 @@ func previousLineHandler(gui *gui.Gui) func(gui *gocui.Gui, view *gocui.View) er
 
 		if cy-1 != 0 {
 			if currentView.Name == namespaceViewName {
-				namespace := strings.Split(lineStr, " ")[0]
+				namespace := formatSelectedNamespace(lineStr)
 				log.Logger.Debugf("previousLineHandler - switch namespace to %s", namespace)
 				kubecli.Cli.SetNamespace(namespace)
 			}
@@ -370,7 +369,7 @@ func nextLineHandler(gui *gui.Gui) func(*gocui.Gui, *gocui.View) error {
 		v.MoveCursor(0, 1, false)
 
 		if currentView.Name == namespaceViewName {
-			namespace := strings.Split(lineStr, " ")[0]
+			namespace := formatSelectedNamespace(lineStr)
 			log.Logger.Debugf("nextLineHandler - switch namespace to %s", namespace)
 			kubecli.Cli.SetNamespace(namespace)
 		}
