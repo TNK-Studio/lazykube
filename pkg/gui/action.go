@@ -66,6 +66,18 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 
 		cx, cy := view.Cursor()
 		log.Logger.Debugf("ViewClickHandler - cx %d cy %d", cx, cy)
+		line, err := view.Line(cy)
+		if err != nil {
+			log.Logger.Warningf("ViewClickHandler - view.Line(%d) error %s", cy, err)
+		} else {
+			log.Logger.Debugf("ViewClickHandler - view.Line(%d) line %s", cy, line)
+			if view.OnLineClick != nil {
+				if err := view.OnLineClick(gui, view, cy, line); err != nil {
+					return err
+				}
+			}
+		}
+
 		if view.OnClick != nil {
 			return view.OnClick(gui, view)
 		}

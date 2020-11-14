@@ -7,9 +7,9 @@ import (
 )
 
 type Gui struct {
-	State         State
-	Render        func(gui *Gui) error
-	RenderOptions func(gui *Gui) error
+	State           State
+	OnRender        func(gui *Gui) error
+	OnRenderOptions func(gui *Gui) error
 
 	// History of focused views name.
 	previousViews      TowHeadQueue
@@ -69,8 +69,8 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if gui.Render != nil {
-		if err := gui.Render(gui); err != nil {
+	if gui.OnRender != nil {
+		if err := gui.OnRender(gui); err != nil {
 			return nil
 		}
 	}
@@ -181,7 +181,6 @@ func (gui *Gui) RenderView(view *View) error {
 	x0, y0, x1, y1 := view.GetDimensions()
 	if !gui.ViewDimensionValidated(x0, y0, x1, y1) {
 		log.Logger.Warningf("View '%s' has not enough space to render. x0: %d, y0: %d, x1: %d, y1: %d", view.Name, x0, y0, x1, y1)
-		view.v = nil
 		return ErrNotEnoughSpace
 	}
 	return gui.renderView(view, x0, y0, x1, y1)
@@ -190,7 +189,6 @@ func (gui *Gui) RenderView(view *View) error {
 func (gui *Gui) unRenderNotEnoughSpaceView() error {
 	v, _ := gui.g.View(NotEnoughSpace.Name)
 	if v != nil {
-		NotEnoughSpace.v = nil
 		return gui.g.DeleteView(NotEnoughSpace.Name)
 	}
 	return nil
@@ -243,8 +241,8 @@ func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
 		}
 	}
 
-	if view != nil && view.Render != nil {
-		if err := view.Render(gui, view); err != nil {
+	if view != nil {
+		if err := view.render(); err != nil {
 			return err
 		}
 	}
@@ -383,13 +381,35 @@ func (gui *Gui) pushPreviousView(name string) {
 
 func (gui *Gui) FocusView(name string, canReturn bool) error {
 	log.Logger.Debugf("FocusView - name: %s canReturn: %+v", name, canReturn)
+	previousView := gui.CurrentView()
+
+	if err := gui.focusView(name); err != nil {
+		return err
+	}
 	currentView := gui.CurrentView()
 
-	if currentView != nil && canReturn {
-		gui.pushPreviousView(currentView.Name)
+	if previousView != nil {
+		if canReturn {
+			gui.pushPreviousView(previousView.Name)
+		}
+		if previousView.Name != name {
+			if err := currentView.focus(); err != nil {
+				return err
+			}
+		}
+	} else if currentView.OnFocus != nil {
+		if err := currentView.focus(); err != nil {
+			return err
+		}
 	}
 
-	return gui.focusView(name)
+	if previousView != nil && previousView.Name != name {
+		if err := previousView.focusLost(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (gui *Gui) focusView(name string) error {
@@ -422,12 +442,16 @@ func (gui *Gui) ReturnPreviousView() error {
 
 func (gui *Gui) renderOptions() error {
 	currentView := gui.CurrentView()
-	if currentView != nil && currentView.RenderOptions != nil {
-		return currentView.RenderOptions(gui, currentView)
+	if gui.OnRenderOptions != nil {
+		if err := gui.OnRenderOptions(gui); err != nil {
+			return nil
+		}
 	}
 
-	if gui.RenderOptions != nil {
-		return gui.RenderOptions(gui)
+	if currentView != nil {
+		if err := currentView.renderOptions(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

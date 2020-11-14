@@ -23,11 +23,13 @@ func init() {
 }
 
 type View struct {
+	State State
 	Name  string
 	Title string
 
-	Clickable bool
-	OnClick   func(gui *Gui, view *View) error
+	Clickable   bool
+	OnClick     func(gui *Gui, view *View) error
+	OnLineClick func(gui *Gui, view *View, cy int, lineString string) error
 
 	Editable              bool
 	Wrap                  bool
@@ -43,8 +45,11 @@ type View struct {
 	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
 	CanNotReturn bool
 
-	Render        func(gui *Gui, view *View) error
-	RenderOptions func(gui *Gui, view *View) error
+	OnRender        func(gui *Gui, view *View) error
+	OnRenderOptions func(gui *Gui, view *View) error
+
+	OnFocus     func(gui *Gui, view *View) error
+	OnFocusLost func(gui *Gui, view *View) error
 
 	DimensionFunc DimensionFunc
 
@@ -60,6 +65,9 @@ type View struct {
 }
 
 func (view *View) InitView() {
+	if view.State == nil {
+		view.State = NewStateMap()
+	}
 	if view.v != nil {
 		view.v.Title = view.Title
 		view.v.Wrap = view.Wrap
@@ -173,6 +181,58 @@ func (view *View) Clear() {
 
 func (view *View) Cursor() (int, int) {
 	return view.v.Cursor()
+}
+
+func (view *View) ViewBufferLines() []string {
+	return view.v.ViewBufferLines()
+}
+
+func (view *View) Line(y int) (string, error) {
+	return view.v.Line(y)
+}
+
+func (view *View) MoveCursor(dx, dy int, writeMode bool) {
+	view.v.MoveCursor(dx, dy, writeMode)
+}
+
+func (view *View) render() error {
+	if view.OnRender != nil {
+		if err := view.OnRender(view.gui, view); err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (view *View) renderOptions() error {
+	if view.OnRenderOptions != nil {
+		if err := view.OnRenderOptions(view.gui, view); err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (view *View) focus() error {
+	log.Logger.Debugf("view.focus - view name :%s", view.Name)
+	if view.OnFocus != nil {
+		log.Logger.Debugf("view.OnFocus - view name :%s", view.Name)
+		if err := view.OnFocus(view.gui, view); err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (view *View) focusLost() error {
+	log.Logger.Debugf("view.focusLost - view name :%s", view.Name)
+	if view.OnFocusLost != nil {
+		log.Logger.Debugf("view.OnFocusLost - view name :%s", view.Name)
+		if err := view.OnFocusLost(view.gui, view); err != nil {
+			return nil
+		}
+	}
+	return nil
 }
 
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)

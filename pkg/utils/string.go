@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/spkg/bom"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -25,4 +26,18 @@ func OptionsMapToString(optionsMap map[string]string) string {
 	}
 	sort.Strings(optionsArray)
 	return strings.Join(optionsArray, ", ")
+}
+
+func DeleteExtraSpace(s string) string {
+	s1 := strings.Replace(s, "	", " ", -1)
+	regx := "\\s{2,}"
+	reg, _ := regexp.Compile(regx)
+	s2 := make([]byte, len(s1))
+	copy(s2, s1)
+	spcIndex := reg.FindStringIndex(string(s2))
+	for len(spcIndex) > 0 {
+		s2 = append(s2[:spcIndex[0]+1], s2[spcIndex[1]:]...)
+		spcIndex = reg.FindStringIndex(string(s2))
+	}
+	return string(s2)
 }

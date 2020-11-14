@@ -1,5 +1,11 @@
 package gui
 
+import "errors"
+
+var (
+	StateKeyError = errors.New("State key not existed. ")
+)
+
 type State interface {
 	Set(key string, val interface{}) error
 	Get(Ket string) (interface{}, error)
@@ -19,7 +25,12 @@ func (s *StateMap) Set(key string, val interface{}) error {
 }
 
 func (s *StateMap) Get(key string) (interface{}, error) {
-	return s.state[key], nil
+	val, ok := s.state[key]
+	if !ok {
+		return nil, StateKeyError
+	}
+
+	return val, nil
 }
 
 type TowHeadQueue interface {
