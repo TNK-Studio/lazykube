@@ -6,6 +6,7 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
+	"github.com/TNK-Studio/lazykube/pkg/utils"
 	"github.com/gookit/color"
 	"io"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -42,8 +43,10 @@ var (
 		navigationPath(namespaceViewName, "Pods"):        podRender,
 		navigationPath(namespaceViewName, "Config"):      configRender,
 		navigationPath(serviceViewName, "Config"):        configRender,
+		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
 		navigationPath(deploymentViewName, "Config"):     configRender,
 		navigationPath(deploymentViewName, "Describe"):   describeRender,
+		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
 		navigationPath(podViewName, "Config"):            configRender,
 		navigationPath(podViewName, "Log"):               podLogsRender,
 		navigationPath(podViewName, "Describe"):          describeRender,
@@ -55,6 +58,7 @@ func navigationPath(args ...string) string {
 }
 
 func switchNavigation(index int) string {
+	Detail.SetOrigin(0, 0)
 	if index < 0 {
 		return ""
 	}
@@ -461,5 +465,84 @@ func podLogsRender(gui *gui.Gui, view *gui.View) error {
 	}
 
 	kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+	return nil
+}
+
+func podsLogsRender(gui *gui.Gui, view *gui.View) error {
+	view.Clear()
+	if activeView == nil {
+		return nil
+	}
+	if activeView == Namespace {
+		return namespaceConfigRender(gui, view)
+	}
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return nil
+	}
+
+	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
+	selected, _ := activeView.State.Get(selectedViewLine)
+	var resource string
+	var jsonPath string
+	switch activeView.Name {
+	case serviceViewName:
+		resource = "service"
+		jsonPath = "jsonpath='{.spec.selector}'"
+		break
+	case deploymentViewName:
+		resource = "deployment"
+		jsonPath = "jsonpath='{.spec.selector.matchLabels}'"
+		break
+	}
+
+	if resource == "" {
+		return nil
+	}
+
+	if selected == nil {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	output := newStream()
+	var namespace string
+	if selectedNamespace != nil {
+		selectedName := formatSelectedName(selected.(string), 0)
+		if selectedName == "" {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+		kubecli.Cli.Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+	} else {
+		namespace = formatSelectedName(selected.(string), 0)
+		selectedName := formatSelectedName(selected.(string), 1)
+		if selectedName == "" {
+			showPleaseSelected(view, resource)
+			return nil
+		}
+		kubecli.Cli.WithNamespace(namespace).Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+	}
+
+	labelJson := streamToString(output)
+	if labelJson == "" {
+		fmt.Fprint(view, "Pods not found.")
+		return nil
+	}
+	labelsArr := utils.LabelsToStringArr(labelJson[1 : len(labelJson)-1])
+	if len(labelsArr) == 0 {
+		showPleaseSelected(view, resource)
+		return nil
+	}
+
+	if namespace == "" {
+		namespace = kubecli.Cli.Namespace()
+	}
+
+	cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
+	for _, label := range labelsArr {
+		cmd.SetFlag("selector", label)
+	}
+	cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 	return nil
 }
