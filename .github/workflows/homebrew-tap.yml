@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Update Homebrew Formula
-      uses: izumin5210/action-homebrew-tap@v1
+      uses: izumin5210/action-homebrew-tap@v0
       with:
         tap: TNK-Studio/lazykube
         token: ${{ secrets.GITHUB_TOKEN }}
