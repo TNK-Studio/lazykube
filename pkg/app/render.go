@@ -3,7 +3,7 @@ package app
 import (
 	"bytes"
 	"fmt"
-	"github.com/TNK-Studio/lazykube/pkg/gui"
+	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
@@ -22,7 +22,7 @@ const (
 
 var (
 	// Todo: use state to control.
-	activeView *gui.View
+	activeView *guilib.View
 
 	navigationIndex     int
 	activeNavigationOpt string
@@ -36,26 +36,34 @@ var (
 		podViewName:         []string{"Log", "Config", "Top", "Describe"},
 	}
 
-	detailRenderMap = map[string]func(gui *gui.Gui, view *gui.View) error{
-		navigationPath(clusterInfoViewName, "Nodes"):     clusterNodesRender,
-		navigationPath(clusterInfoViewName, "Top Nodes"): topNodesRender,
-		navigationPath(namespaceViewName, "Deployments"): deploymentRender,
-		navigationPath(namespaceViewName, "Pods"):        podRender,
-		navigationPath(namespaceViewName, "Config"):      configRender,
-		navigationPath(serviceViewName, "Config"):        configRender,
-		navigationPath(serviceViewName, "Pods"):          labelsPodsRender,
-		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
-		navigationPath(serviceViewName, "Top Pods"):      topPodsRender,
-		navigationPath(deploymentViewName, "Config"):     configRender,
-		navigationPath(deploymentViewName, "Pods"):       labelsPodsRender,
-		navigationPath(deploymentViewName, "Describe"):   describeRender,
-		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
-		navigationPath(deploymentViewName, "Top Pods"):   topPodsRender,
-		navigationPath(podViewName, "Config"):            configRender,
-		navigationPath(podViewName, "Log"):               podLogsRender,
-		navigationPath(podViewName, "Describe"):          describeRender,
+	detailRenderMap = map[string]func(gui *guilib.Gui, view *guilib.View) error{
+		navigationPath(clusterInfoViewName, "Nodes"):     renderAfterClear(clusterNodesRender),
+		navigationPath(clusterInfoViewName, "Top Nodes"): renderAfterClear(topNodesRender),
+		navigationPath(namespaceViewName, "Deployments"): renderAfterClear(deploymentRender),
+		navigationPath(namespaceViewName, "Pods"):        renderAfterClear(podRender),
+		navigationPath(namespaceViewName, "Config"):      renderAfterClear(configRender),
+		navigationPath(serviceViewName, "Config"):        renderAfterClear(configRender),
+		navigationPath(serviceViewName, "Pods"):          renderAfterClear(labelsPodsRender),
+		navigationPath(serviceViewName, "Pods Log"):      renderAfterClear(podsLogsRender),
+		navigationPath(serviceViewName, "Top Pods"):      renderAfterClear(topPodsRender),
+		navigationPath(deploymentViewName, "Config"):     renderAfterClear(configRender),
+		navigationPath(deploymentViewName, "Pods"):       renderAfterClear(labelsPodsRender),
+		navigationPath(deploymentViewName, "Describe"):   renderAfterClear(describeRender),
+		navigationPath(deploymentViewName, "Pods Log"):   renderAfterClear(podsLogsRender),
+		navigationPath(deploymentViewName, "Top Pods"):   renderAfterClear(topPodsRender),
+		navigationPath(podViewName, "Config"):            renderAfterClear(configRender),
+		navigationPath(podViewName, "Log"):               renderAfterClear(podLogsRender),
+		navigationPath(podViewName, "Describe"):          renderAfterClear(describeRender),
+		navigationPath(podViewName, "Top"):               podMetricsPlotRender,
 	}
 )
+
+func renderAfterClear(render func(gui *guilib.Gui, view *guilib.View) error) func(gui *guilib.Gui, view *guilib.View) error {
+	return func(gui *guilib.Gui, view *guilib.View) error {
+		view.Clear()
+		return render(gui, view)
+	}
+}
 
 func navigationPath(args ...string) string {
 	return strings.Join(args, navigationPathJoin)
@@ -78,7 +86,7 @@ func switchNavigation(index int) string {
 	return ""
 }
 
-func navigationRender(gui *gui.Gui, view *gui.View) error {
+func navigationRender(gui *guilib.Gui, view *guilib.View) error {
 	currentView := gui.CurrentView()
 	// Change navigation render
 	var changeNavigation bool
@@ -127,13 +135,13 @@ func navigationRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func navigationOnClick(gui *gui.Gui, view *gui.View) error {
+func navigationOnClick(gui *guilib.Gui, view *guilib.View) error {
 	cx, cy := view.Cursor()
 	log.Logger.Debugf("navigationOnClick - cx %d cy %d", cx, cy)
 
 	options := viewNavigationMap[activeView.Name]
 	sep := len(OptSeparator)
-	halfSep := sep / 2
+	sections := make([]int, 0)
 	preFix := 0
 
 	var selected string
@@ -143,21 +151,30 @@ func navigationOnClick(gui *gui.Gui, view *gui.View) error {
 		words := len([]rune(opt))
 
 		right := left + words - 1
-		preFix += words - 1
+		preFix += words
 
-		if cx >= left-halfSep && cx <= right+halfSep {
-			log.Logger.Debugf("navigationOnClick - cx %d in selection[%d, %d]", cx, left, right)
-			selected = switchNavigation(i)
+		sections = append(sections, left, right)
+	}
+
+	log.Logger.Debugf("navigationOnClick - sections %+v", sections)
+
+	for i := 0; i < len(sections); i += 2 {
+		left := sections[i]
+		right := sections[i+1]
+		if cx >= left && cx <= right {
+			optionIndex := i / 2
+			log.Logger.Debugf("navigationOnClick - cx %d in selection(%d)[%d, %d]", cx, optionIndex, left, right)
+			selected = switchNavigation(optionIndex)
 			break
 		}
 	}
 
-	log.Logger.Debugf("navigationOnClick - selected '%s'", selected)
+	log.Logger.Debugf("navigationOnClick - cx %d selected '%s'", cx, selected)
 
 	return nil
 }
 
-func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
+func renderClusterInfo(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	currentContext, err := kubecli.Cli.CurrentContext()
 	if err != nil {
@@ -170,14 +187,7 @@ func renderClusterInfo(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func detailRender(gui *gui.Gui, view *gui.View) error {
-	detailView, err := gui.GetView(detailViewName)
-	if err != nil {
-		return err
-	}
-
-	detailView.Clear()
-
+func detailRender(gui *guilib.Gui, view *guilib.View) error {
 	if activeView == nil {
 		return nil
 	}
@@ -188,7 +198,7 @@ func detailRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func viewStreams(view *gui.View) genericclioptions.IOStreams {
+func viewStreams(view *guilib.View) genericclioptions.IOStreams {
 	return genericclioptions.IOStreams{
 		In:     os.Stdin,
 		Out:    view,
@@ -196,18 +206,18 @@ func viewStreams(view *gui.View) genericclioptions.IOStreams {
 	}
 }
 
-func clusterNodesRender(gui *gui.Gui, view *gui.View) error {
+func clusterNodesRender(gui *guilib.Gui, view *guilib.View) error {
 	kubecli.Cli.Get(viewStreams(view), "nodes").Run()
 	return nil
 }
 
-func topNodesRender(gui *gui.Gui, view *gui.View) error {
+func topNodesRender(gui *guilib.Gui, view *guilib.View) error {
 	kubecli.Cli.TopNode(viewStreams(view), nil, "").Run()
 	view.ReRender()
 	return nil
 }
 
-func namespaceRender(gui *gui.Gui, view *gui.View) error {
+func namespaceRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	streams := newStream()
 	kubecli.Cli.Get(streams, "namespaces").Run()
@@ -215,7 +225,7 @@ func namespaceRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func serviceRender(gui *gui.Gui, view *gui.View) error {
+func serviceRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
@@ -228,7 +238,7 @@ func serviceRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func deploymentRender(gui *gui.Gui, view *gui.View) error {
+func deploymentRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
@@ -241,7 +251,7 @@ func deploymentRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func podRender(gui *gui.Gui, view *gui.View) error {
+func podRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
@@ -278,7 +288,7 @@ func streamToString(streams genericclioptions.IOStreams) string {
 	return buf.String()
 }
 
-func renderHighlightSelected(view *gui.View, content string) {
+func renderHighlightSelected(view *guilib.View, content string) {
 	selected, _ := view.State.Get(selectedViewLine)
 	if selected != nil {
 		highlightString := selected.(string)
@@ -289,11 +299,11 @@ func renderHighlightSelected(view *gui.View, content string) {
 	fmt.Fprint(view, content)
 }
 
-func showPleaseSelected(view *gui.View, name string) {
+func showPleaseSelected(view *guilib.View, name string) {
 	fmt.Fprintf(view, "Please select a %s. ", name)
 }
 
-func namespaceConfigRender(gui *gui.Gui, view *gui.View) error {
+func namespaceConfigRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	namespaceView, err := gui.GetView(namespaceViewName)
 	if err != nil {
@@ -315,7 +325,7 @@ func namespaceConfigRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func configRender(gui *gui.Gui, view *gui.View) error {
+func configRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if activeView == nil {
 		return nil
@@ -373,7 +383,7 @@ func configRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func describeRender(gui *gui.Gui, view *gui.View) error {
+func describeRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if activeView == nil {
 		return nil
@@ -429,7 +439,7 @@ func describeRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func onFocusClearSelected(gui *gui.Gui, view *gui.View) error {
+func onFocusClearSelected(gui *guilib.Gui, view *guilib.View) error {
 	for _, functionViewName := range functionViews {
 		if functionViewName == view.Name || functionViewName == namespaceViewName {
 			continue
@@ -444,7 +454,7 @@ func onFocusClearSelected(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func podLogsRender(gui *gui.Gui, view *gui.View) error {
+func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 	selectedNamespace, _ := Namespace.State.Get(selectedViewLine)
 	selected, _ := Pod.State.Get(selectedViewLine)
 	resource := "pod"
@@ -476,7 +486,7 @@ func podLogsRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func podsLogsRender(gui *gui.Gui, view *gui.View) error {
+func podsLogsRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
@@ -490,7 +500,7 @@ func podsLogsRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func labelsPodsRender(gui *gui.Gui, view *gui.View) error {
+func labelsPodsRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), "pods")
@@ -505,7 +515,7 @@ func labelsPodsRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func topPodsRender(gui *gui.Gui, view *gui.View) error {
+func topPodsRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
 		cmd := kubecli.Cli.WithNamespace(namespace).TopPod(viewStreams(view), nil)
@@ -519,8 +529,8 @@ func topPodsRender(gui *gui.Gui, view *gui.View) error {
 	return nil
 }
 
-func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string) error) func(gui *gui.Gui, view *gui.View) error {
-	return func(gui *gui.Gui, view *gui.View) error {
+func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string) error) func(gui *guilib.Gui, view *guilib.View) error {
+	return func(gui *guilib.Gui, view *guilib.View) error {
 		if activeView == nil {
 			return nil
 		}

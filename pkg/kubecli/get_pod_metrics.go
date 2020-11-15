@@ -53,7 +53,7 @@ func GetSingleResourceUsage(resourceType v1.ResourceName, quantity resource.Quan
 	}
 }
 
-func (cli *KubeCLI) GetTopMetrics(namespace, name string, allNamespaces bool, selector labels.Selector) (*metricsapi.PodMetricsList, error) {
+func (cli *KubeCLI) GetPodRawMetrics(namespace, name string, allNamespaces bool, selector labels.Selector) (*metricsapi.PodMetricsList, error) {
 	if selector == nil {
 		selector = labels.Everything()
 	}
@@ -90,5 +90,25 @@ func (cli *KubeCLI) GetTopMetrics(namespace, name string, allNamespaces bool, se
 	if err != nil {
 		return nil, err
 	}
+
 	return metrics, nil
+}
+
+func (cli *KubeCLI) GetPodMetrics(namespace, name string, allNamespaces bool, selector labels.Selector) ([]map[v1.ResourceName]int64, error) {
+	metrics, err := cli.GetPodRawMetrics(namespace, name, allNamespaces, selector)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]map[v1.ResourceName]int64, 0)
+	for _, metric := range metrics.Items {
+		podMetrics := GetPodMetrics(&metric)
+		metricsInfo := &metricsutil.ResourceMetricsInfo{
+			Name:      metric.Name,
+			Metrics:   podMetrics,
+			Available: v1.ResourceList{},
+		}
+		result = append(result, GetAllResourceUsages(metricsInfo))
+	}
+	return result, nil
 }

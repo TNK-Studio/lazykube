@@ -246,5 +246,9 @@ func (view *View) focusLost() error {
 	return nil
 }
 
+func (view *View) Size() (int, int) {
+	return view.v.Size()
+}
+
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)
 type ViewPointFunc func(gui *Gui, view *View) int
