@@ -6,7 +6,7 @@
 
 ## Installation
 
-### Homebrew
+### Mac Homebrew
 
 ```bash
 $ brew install tnk-studio/tools/lazykube
@@ -15,7 +15,7 @@ $ brew install tnk-studio/tools/lazykube
 ### Linux
 
 ```bash
-curl https://raw.githubusercontent.com/TNK-Studio/lazykube/main/scripts/install_update_linux.sh | bash
+$ curl https://raw.githubusercontent.com/TNK-Studio/lazykube/main/scripts/install_update_linux.sh | bash
 ```
 
 ### Windows
