@@ -11,3 +11,9 @@
 ```bash
 $ brew install tnk-studio/tools/lazykube
 ```
+
+### How to use
+
+```bash
+$ lazykube
+```
