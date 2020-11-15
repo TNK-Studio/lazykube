@@ -12,6 +12,22 @@
 $ brew install tnk-studio/tools/lazykube
 ```
 
+### Linux
+
+```bash
+curl https://raw.githubusercontent.com/TNK-Studio/lazykube/master/scripts/install_update_linux.sh | bash
+```
+
+### Windows
+
+Release page download [(link)](https://github.com/TNK-Studio/lazykube/releases/latest).
+
+### Go get
+
+```bash
+$ go get -u github.com/TNK-Studio/lazykube
+```
+
 ## How to use
 
 ```bash
