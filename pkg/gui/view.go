@@ -45,6 +45,8 @@ type View struct {
 	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
 	CanNotReturn bool
 
+	reRendered bool
+
 	OnRender        func(gui *Gui, view *View) error
 	OnRenderOptions func(gui *Gui, view *View) error
 
@@ -195,7 +197,16 @@ func (view *View) MoveCursor(dx, dy int, writeMode bool) {
 	view.v.MoveCursor(dx, dy, writeMode)
 }
 
+func (view *View) ReRender() {
+	view.reRendered = false
+}
+
 func (view *View) render() error {
+	if view.reRendered {
+		return nil
+	}
+	view.reRendered = true
+
 	if view.OnRender != nil {
 		if err := view.OnRender(view.gui, view); err != nil {
 			return nil
@@ -233,6 +244,10 @@ func (view *View) focusLost() error {
 		}
 	}
 	return nil
+}
+
+func (view *View) Size() (int, int) {
+	return view.v.Size()
 }
 
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)

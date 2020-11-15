@@ -98,7 +98,8 @@ func (app *App) OnRenderOptions(gui *gui.Gui) error {
 				"Ctrl+c":    "close",
 				"Esc":       "back",
 				"PgUp/PgDn": "scroll",
-				"Home/End":  "Top/Bottom",
+				"Home/End":  "top/bottom",
+				"Tab":       "next panel",
 			}),
 	)
 }

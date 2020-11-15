@@ -1,9 +1,10 @@
 package log
 
 import (
+	"github.com/pochard/logrotator"
 	"github.com/sirupsen/logrus"
-	"os"
 	"path/filepath"
+	"time"
 )
 
 var (
@@ -13,9 +14,9 @@ var (
 func init() {
 	Logger = logrus.New()
 	Logger.SetLevel(logrus.DebugLevel)
-	file, err := os.OpenFile(filepath.Join("./", "development.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	writer, err := logrotator.NewTimeBasedRotator(filepath.Join("./", "lazykube.log"), 1*time.Hour)
 	if err != nil {
 		panic("unable to log to file")
 	}
-	Logger.SetOutput(file)
+	Logger.SetOutput(writer)
 }

@@ -56,9 +56,16 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 func migrateTopFunc(gui *gui.Gui, view *gui.View) int {
 	maxHeight := gui.MaxHeight()
+
 	if maxHeight < 28 {
 		currentView := gui.CurrentView()
 		if currentView != nil {
+			if currentView.Name == navigationViewName || currentView.Name == detailViewName {
+				if view.Name == namespaceViewName {
+					return 1
+				}
+			}
+
 			for i, viewName := range functionViews {
 				if currentView.Name == viewName {
 					index := i + 1

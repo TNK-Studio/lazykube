@@ -66,9 +66,17 @@ var (
 
 	Detail = &gui.View{
 		Name:      detailViewName,
+		Wrap:      true,
 		Title:     "",
 		Clickable: true,
 		OnRender:  detailRender,
+		//OnFocusLost: func(gui *gui.Gui, view *gui.View) error {
+		//	if err := view.SetCursor(0, 0); err != nil {
+		//		return err
+		//	}
+		//
+		//	return nil
+		//},
 		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
