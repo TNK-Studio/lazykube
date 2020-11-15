@@ -6,10 +6,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Update Homebrew Formula
-      uses: izumin5210/action-homebrew-tap@v0
-      with:
-        tap: TNK-Studio/lazykube
-        token: ${{ secrets.GITHUB_TOKEN }}
-        tap-token: ${{ secrets.GITHUB_TOKEN }}
-      if: startsWith(github.ref, 'refs/tags/')
+      - uses: softprops/action-gh-release@v1
+          with:
+            files: './dist/*'
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if: startsWith(github.ref, 'refs/tags/')
+
+      - uses: izumin5210/action-homebrew-tap@v1.0.0
+        with:
+          tap: TNK-Studio/lazykube
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tap-token: ${{ secrets.GITHUB_TOKEN }}
+        if: startsWith(github.ref, 'refs/tags/')
