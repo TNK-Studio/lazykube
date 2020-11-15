@@ -49,6 +49,11 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		showPleaseSelected(view, resource)
 		return nil
 	}
+
+	metrics, err := kubecli.Cli.GetPodMetrics(namespace, selectedName, false, nil)
+	if err != nil {
+		log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, selectedName, err)
+	}
 	fmt.Fprintln(view)
 	cpuPlot := getPlot(
 		gui,
@@ -57,6 +62,16 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		"CPU: %0.0fm (%v)",
 		namespace,
 		selectedName,
+		func() []float64 {
+			data := make([]float64, 0)
+			if metrics == nil {
+				return data
+			}
+			for _, m := range metrics {
+				data = append(data, float64(m[v1.ResourceCPU]))
+			}
+			return data
+		},
 		v1.ResourceCPU,
 		color.Blue.Sprintf,
 	)
@@ -69,6 +84,16 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		"Memory: %0.0fMi (%v)",
 		namespace,
 		selectedName,
+		func() []float64 {
+			data := make([]float64, 0)
+			if metrics == nil {
+				return data
+			}
+			for _, m := range metrics {
+				data = append(data, float64(m[v1.ResourceMemory]))
+			}
+			return data
+		},
 		v1.ResourceMemory,
 		color.Green.Sprintf,
 	)
@@ -93,7 +118,7 @@ func canRenderPlot(gui *guilib.Gui, view *guilib.View) bool {
 	return false
 }
 
-func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, namespace, name string, resourceName v1.ResourceName, colorSprintf func(format string, args ...interface{}) string) *guilib.Plot {
+func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, namespace, name string, dataGetter func() []float64, resourceName v1.ResourceName, colorSprintf func(format string, args ...interface{}) string) *guilib.Plot {
 	var plot *guilib.Plot
 	plotName := fmt.Sprintf("%s - %s", namespace, name)
 	val, _ := view.State.Get(plotStateKey)
@@ -110,7 +135,7 @@ func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, na
 	if newCPUPlot {
 		plot = guilib.NewPlot(
 			plotName,
-			podMetricsDataGetter(namespace, name, resourceName),
+			dataGetter,
 			podPlotHeight(gui, view),
 			podPlotWidth(gui, view),
 			podPlotMax(gui, view),
@@ -123,24 +148,6 @@ func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, na
 		view.State.Set(plotStateKey, plot)
 	}
 	return plot
-}
-
-func podMetricsDataGetter(namespace, name string, resourceName v1.ResourceName) func() []float64 {
-	return func() []float64 {
-		data := make([]float64, 0)
-
-		metrics, err := kubecli.Cli.GetPodMetrics(namespace, name, false, nil)
-		if err != nil {
-			log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, name, err)
-			return data
-		}
-
-		for _, m := range metrics {
-			data = append(data, float64(m[resourceName]))
-		}
-
-		return data
-	}
 }
 
 func podPlotHeight(gui *guilib.Gui, view *guilib.View) func(*guilib.Plot) int {
