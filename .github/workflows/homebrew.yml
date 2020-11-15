@@ -1,6 +1,7 @@
-on:
-  push:
-    tags: 'v*'
+on: 
+  release:
+      types:
+        - published
 
 jobs:
   homebrew:
