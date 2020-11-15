@@ -1,0 +1,15 @@
+on: 
+  release:
+      types:
+        - published
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update Homebrew Formula
+      uses: izumin5210/action-homebrew-tap@v1
+      with:
+        tap: TNK-Studio/lazykube
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tap-token: ${{ secrets.GITHUB_TOKEN }}
+      if: startsWith(github.ref, 'refs/tags/')
