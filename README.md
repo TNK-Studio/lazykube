@@ -12,7 +12,7 @@
 $ brew install tnk-studio/tools/lazykube
 ```
 
-### How to use
+## How to use
 
 ```bash
 $ lazykube
