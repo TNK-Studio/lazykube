@@ -9,5 +9,5 @@
 ### Homebrew
 
 ```bash
-$ brew install brew install tnk-studio/tools/lazykube
+$ brew install tnk-studio/tools/lazykube
 ```
