@@ -1,0 +1,72 @@
+name: Build release
+on: 
+  release:
+      types:
+        - published
+jobs:
+  release-linux-386:
+    name: release linux/386
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: "386"
+        GOOS: linux
+  release-linux-amd64:
+    name: release linux/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: amd64
+        GOOS: linux
+  release-darwin-386:
+    name: release darwin/386
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: "386"
+        GOOS: darwin
+  release-darwin-amd64:
+    name: release darwin/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: amd64
+        GOOS: darwin
+  release-windows-386:
+    name: release windows/386
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: "386"
+        GOOS: windows
+  release-windows-amd64:
+    name: release windows/amd64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: compile and release
+      uses: elfgzp/go-release.action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        GOARCH: amd64
+        GOOS: windows
