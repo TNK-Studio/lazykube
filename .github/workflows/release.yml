@@ -13,6 +13,7 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: "386"
         GOOS: linux
   release-linux-amd64:
@@ -24,6 +25,7 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: amd64
         GOOS: linux
   release-darwin-386:
@@ -35,6 +37,7 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: "386"
         GOOS: darwin
   release-darwin-amd64:
@@ -46,6 +49,7 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: amd64
         GOOS: darwin
   release-windows-386:
@@ -57,6 +61,7 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: "386"
         GOOS: windows
   release-windows-amd64:
@@ -68,5 +73,6 @@ jobs:
       uses: elfgzp/go-release.action@master
       env:
         GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        MAIN_GO_PATH: cmd/lazykube/lazykube.go
         GOARCH: amd64
         GOOS: windows
