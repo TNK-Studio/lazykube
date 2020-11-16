@@ -1,0 +1,20 @@
+on: push
+name: Gitee Mirror
+jobs:
+  run:
+    name: Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source codes
+        uses: actions/checkout@v1
+      - name: Mirror Github to Gitee
+        uses: ./.
+        with:
+          src: github/TNK-Studio
+          dst: gitee/TNK-Studio
+          dst_key: ${{ secrets.GITEE_PRIVATE_KEY }}
+          dst_token: ${{ secrets.GITEE_TOKEN }}
+          account_type: org
+          white_list: 'lazykube'
+          force_update: true
+          debug: true
