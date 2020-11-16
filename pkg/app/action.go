@@ -177,7 +177,7 @@ var (
 
 func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	kubecli.Cli.SetNamespace(selectedNamespaceLine)
-	for _, viewName := range functionViews {
+	for _, viewName := range []string{serviceViewName, deploymentViewName, podViewName} {
 		view, err := gui.GetView(viewName)
 		if err != nil {
 			return
@@ -337,10 +337,10 @@ func viewLineClickHandler(gui *guilib.Gui, view *guilib.View, cy int, lineString
 
 	if cy == 0 {
 		selected := formatSelectedName(lineString, 0)
-		if selected == "NAME" || selected == "NAMESPACE" {
+		if notResourceSelected(selected) {
 			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, view.State.Set(selectedViewLine, nil)", view.Name)
 			if view.Name == namespaceViewName {
-				kubecli.Cli.SetNamespace("")
+				switchNamespace(gui, "")
 			}
 			return view.State.Set(selectedViewLine, nil)
 		}

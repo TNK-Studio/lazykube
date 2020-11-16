@@ -44,19 +44,26 @@ var (
 		navigationPath(namespaceViewName, "Config"):      renderAfterClear(configRender),
 		navigationPath(serviceViewName, "Config"):        renderAfterClear(configRender),
 		navigationPath(serviceViewName, "Pods"):          renderAfterClear(labelsPodsRender),
-		navigationPath(serviceViewName, "Pods Log"):      renderAfterClear(podsLogsRender),
+		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
 		navigationPath(serviceViewName, "Top Pods"):      renderAfterClear(topPodsRender),
 		navigationPath(deploymentViewName, "Config"):     renderAfterClear(configRender),
 		navigationPath(deploymentViewName, "Pods"):       renderAfterClear(labelsPodsRender),
 		navigationPath(deploymentViewName, "Describe"):   renderAfterClear(describeRender),
-		navigationPath(deploymentViewName, "Pods Log"):   renderAfterClear(podsLogsRender),
+		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
 		navigationPath(deploymentViewName, "Top Pods"):   renderAfterClear(topPodsRender),
 		navigationPath(podViewName, "Config"):            renderAfterClear(configRender),
-		navigationPath(podViewName, "Log"):               renderAfterClear(podLogsRender),
+		navigationPath(podViewName, "Log"):               podLogsRender,
 		navigationPath(podViewName, "Describe"):          renderAfterClear(describeRender),
 		navigationPath(podViewName, "Top"):               podMetricsPlotRender,
 	}
 )
+
+func notResourceSelected(selectedName string) bool {
+	if selectedName == "" || selectedName == "NAME" || selectedName == "NAMESPACE" {
+		return true
+	}
+	return false
+}
 
 func renderAfterClear(render func(gui *guilib.Gui, view *guilib.View) error) func(gui *guilib.Gui, view *guilib.View) error {
 	return func(gui *guilib.Gui, view *guilib.View) error {
@@ -364,7 +371,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
@@ -374,7 +381,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
@@ -419,7 +426,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
@@ -429,7 +436,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
@@ -465,33 +472,40 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
-		kubecli.Cli.Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		streams := newStream()
+		kubecli.Cli.Logs(streams, selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		view.Clear()
+		streamCopyTo(streams, view)
 		view.ReRender()
 		return nil
 	}
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view), selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+	streams := newStream()
+	kubecli.Cli.WithNamespace(namespace).Logs(streams, selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+	streamCopyTo(streams, view)
 	view.ReRender()
 	return nil
 }
 
 func podsLogsRender(gui *guilib.Gui, view *guilib.View) error {
-	view.Clear()
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
-		cmd := kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view))
+		streams := newStream()
+		cmd := kubecli.Cli.WithNamespace(namespace).Logs(streams)
 		cmd.SetFlag("selector", strings.Join(labelsArr, ","))
 		cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		view.Clear()
+		streamCopyTo(streams, view)
 		view.ReRender()
 		return nil
 	})(gui, view); err != nil {
@@ -570,7 +584,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		var namespace string
 		if selectedNamespace != nil {
 			selectedName := formatSelectedName(selected.(string), 0)
-			if selectedName == "" {
+			if notResourceSelected(selectedName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
@@ -578,7 +592,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		} else {
 			namespace = formatSelectedName(selected.(string), 0)
 			selectedName := formatSelectedName(selected.(string), 1)
-			if selectedName == "" {
+			if notResourceSelected(selectedName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
