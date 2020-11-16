@@ -337,7 +337,7 @@ func viewLineClickHandler(gui *guilib.Gui, view *guilib.View, cy int, lineString
 
 	if cy == 0 {
 		selected := formatSelectedName(lineString, 0)
-		if selected == "NAME" || selected == "NAMESPACE" {
+		if notResourceSelected(selected) {
 			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, view.State.Set(selectedViewLine, nil)", view.Name)
 			if view.Name == namespaceViewName {
 				kubecli.Cli.SetNamespace("")

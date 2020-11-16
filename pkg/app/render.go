@@ -58,6 +58,13 @@ var (
 	}
 )
 
+func notResourceSelected(selectedName string) bool {
+	if selectedName == "" || selectedName == "NAME" || selectedName == "NAMESPACE" {
+		return true
+	}
+	return false
+}
+
 func renderAfterClear(render func(gui *guilib.Gui, view *guilib.View) error) func(gui *guilib.Gui, view *guilib.View) error {
 	return func(gui *guilib.Gui, view *guilib.View) error {
 		view.Clear()
@@ -364,7 +371,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
@@ -374,7 +381,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
@@ -419,7 +426,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
@@ -429,7 +436,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
@@ -465,7 +472,7 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if selectedNamespace != nil {
 		selectedName := formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+		if notResourceSelected(selectedName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
@@ -476,7 +483,7 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace := formatSelectedName(selected.(string), 0)
 	selectedName := formatSelectedName(selected.(string), 1)
-	if selectedName == "" {
+	if notResourceSelected(selectedName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
@@ -570,7 +577,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		var namespace string
 		if selectedNamespace != nil {
 			selectedName := formatSelectedName(selected.(string), 0)
-			if selectedName == "" {
+			if notResourceSelected(selectedName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
@@ -578,7 +585,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		} else {
 			namespace = formatSelectedName(selected.(string), 0)
 			selectedName := formatSelectedName(selected.(string), 1)
-			if selectedName == "" {
+			if notResourceSelected(selectedName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
