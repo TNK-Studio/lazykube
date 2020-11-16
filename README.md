@@ -33,3 +33,9 @@ $ go get -u github.com/TNK-Studio/lazykube
 ```bash
 $ lazykube
 ```
+
+## FAQ
+
+* When using iterm2 as a terminal, mouse clicks cannot be used ?
+
+![iterm2-enable-mouse-reporting](./docs/iterm2-enable-mouse-reporting.png)
