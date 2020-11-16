@@ -6,9 +6,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source codes
-        uses: actions/checkout@v1
+      - uses: actions/checkout@v2.3.4
       - name: Mirror Github to Gitee
-        uses: ./.
+        uses: Yikun/hub-mirror-action@v0.11
         with:
           src: github/TNK-Studio
           dst: gitee/TNK-Studio
