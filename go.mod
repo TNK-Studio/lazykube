@@ -2,6 +2,8 @@ module github.com/TNK-Studio/lazykube
 
 go 1.14
 
+replace github.com/jroimartin/gocui v0.4.0 => github.com/elfgzp/gocui v0.4.1-0.20201117132342-726b87d9ad85
+
 require (
 	github.com/buger/goterm v0.0.0-20200322175922-2f3e71b85129
 	github.com/golang-collections/collections v0.0.0-20130729185459-604e922904d3

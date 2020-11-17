@@ -1,13 +1,17 @@
 package app
 
 import (
+	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
+	"strings"
 )
 
 const (
 	filterInputViewName = "filterInput"
 	filteredViewName    = "filtered"
+	filteredNoResource  = "No Resource."
 )
 
 var (
@@ -40,6 +44,54 @@ var (
 )
 
 func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) error {
+	resourceList := resourceView.ViewBufferLines()
+	if len(resourceList) == 0 {
+		return nil
+	}
+
+	confirmFilterInput := &guilib.Action{
+		Name: "confirmFilterInput",
+		Key:  gocui.KeyEnter,
+		Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+			return func(*gocui.Gui, *gocui.View) error {
+				filteredView, err := gui.GetView(filteredViewName)
+
+				if err != nil {
+					return err
+				}
+
+				_, cy := filteredView.Cursor()
+				filtered, _ := filteredView.Line(cy)
+				if filtered == "" || filtered == filteredNoResource {
+					return nil
+				}
+
+				y := resourceView.WhichLine(filtered)
+				if y < 0 {
+					if err := resourceView.ResetCursorOrigin(); err != nil {
+						return err
+					}
+				} else {
+					if err := setViewSelectedLine(gui, resourceView, filtered); err != nil {
+						return err
+					}
+					if err := resourceView.SetOrigin(0, y); err != nil {
+						return err
+					}
+				}
+				if err := closeFilterDialog(gui); err != nil {
+					return err
+				}
+				if err := gui.ReturnPreviousView(); err != nil {
+					return err
+				}
+				gui.ReRender()
+				return nil
+			}
+		},
+		Mod: gocui.ModNone,
+	}
+
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,
 		Title:        title,
@@ -47,6 +99,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 		AlwaysOnTop:  true,
 		Clickable:    true,
 		Editable:     true,
+		MouseDisable: true,
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			quarterWidth, quarterHeight := maxWidth/4, maxHeight/4
@@ -58,42 +111,75 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 		},
 		Actions: []*guilib.Action{
 			toFilteredView,
+			confirmFilterInput,
 		},
 		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = false
 			gui.Configure()
-			return clearFilterDialog(gui, view)
+			return filterDialogFocusLost(gui, view)
 		},
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = true
 			gui.Configure()
 			return nil
 		},
-		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
-			cx, _ := view.Cursor()
-			cx = 0
+		OnEditedChange: func(gui *guilib.Gui, view *guilib.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+			var value string
 			bufferLines := view.ViewBufferLines()
-			filterStr := make([]rune, 0)
 			if len(bufferLines) > 0 {
-				filterStr = []rune(bufferLines[0])
-				cx = len(filterStr) + 1
+				value = view.ViewBufferLines()[0]
+			}
+			filteredView, err := gui.GetView(filteredViewName)
+
+			if err != nil {
+				log.Logger.Warningf("OnEditedChange - gui.GetView(%s) error %s", filteredViewName, err)
+				return
 			}
 
-			if err := view.SetCursor(cx, 0); err != nil {
-				return err
+			filteredView.Clear()
+			if err := filteredView.ResetCursorOrigin(); err != nil {
+				log.Logger.Warningf("OnEditedChange filteredView.ResetCursorOrigin() error %s", err)
+				return
 			}
-			view.ReRender()
-			return nil
+
+			if value == "" {
+				fmt.Fprint(filteredView, strings.Join(resourceList[1:], "\n"))
+				return
+			}
+
+			filtered := make([]string, 0)
+			value = strings.ToLower(value)
+			for _, resource := range resourceList[1:] {
+				if strings.Index(strings.ToLower(resource), value) > -1 {
+					filtered = append(filtered, resource)
+				}
+			}
+
+			if len(filtered) == 0 {
+				fmt.Fprint(filteredView, filteredNoResource)
+				return
+			}
+
+			fmt.Fprint(filteredView, strings.Join(filtered, "\n"))
 		},
 	}
 	filtered := &guilib.View{
 		Name:         filteredViewName,
+		Clickable:    true,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
-		Clickable:    true,
+		Highlight:    true,
+		SelFgColor:   gocui.ColorBlack,
+		SelBgColor:   gocui.ColorWhite,
 		Actions: []*guilib.Action{
 			toFilterInputView,
+			confirmFilterInput,
 		},
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+			return nil
+		},
+		OnFocusLost: filterDialogFocusLost,
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			quarterWidth, quarterHeight := maxWidth/4, maxHeight/4
@@ -103,7 +189,6 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 			y1 := quarterHeight * 3
 			return x0, y0, x1, y1
 		},
-		OnFocusLost: clearFilterDialog,
 	}
 
 	if err := gui.AddView(filterInput); err != nil {
@@ -125,18 +210,27 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 	return nil
 }
 
-func clearFilterDialog(gui *guilib.Gui, view *guilib.View) error {
+func filterDialogFocusLost(gui *guilib.Gui, view *guilib.View) error {
 	currentView := gui.CurrentView()
 
 	if currentView != nil && (currentView.Name == filterInputViewName || currentView.Name == filteredViewName) {
 		return nil
 	}
 
+	if err := closeFilterDialog(gui); err != nil {
+		return err
+	}
+	return nil
+}
+
+func closeFilterDialog(gui *guilib.Gui) error {
 	if err := gui.DeleteView(filterInputViewName); err != nil {
 		return err
 	}
 	if err := gui.DeleteView(filteredViewName); err != nil {
 		return err
 	}
+	gui.Config.Cursor = false
+	gui.Configure()
 	return nil
 }

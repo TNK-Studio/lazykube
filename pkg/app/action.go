@@ -340,21 +340,13 @@ func viewLineClickHandler(gui *guilib.Gui, view *guilib.View, cy int, lineString
 	if cy == 0 {
 		selected := formatSelectedName(lineString, 0)
 		if notResourceSelected(selected) {
-			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, view.State.Set(selectedViewLine, nil)", view.Name)
-			if view.Name == namespaceViewName {
-				switchNamespace(gui, "")
-			}
-			return view.State.Set(selectedViewLine, nil)
+			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, setViewSelectedLine(gui, view, \"\")", view.Name)
+			return setViewSelectedLine(gui, view, "")
 		}
 	}
 
-	log.Logger.Debugf("viewLineClickHandler - view: '%s' view.State.Set(selectedViewLine, \"%s\")", view.Name, lineString)
-	if view.Name == namespaceViewName {
-		namespace := formatSelectedNamespace(lineString)
-		log.Logger.Debugf("viewLineClickHandler - switch namespace to %s", namespace)
-		switchNamespace(gui, namespace)
-	}
-	return view.State.Set(selectedViewLine, lineString)
+	log.Logger.Debugf("viewLineClickHandler - view: '%s' setViewSelectedLine(gui, %s, \"%s\")", view.Name, lineString)
+	return setViewSelectedLine(gui, view, lineString)
 }
 
 func previousLineHandler(gui *guilib.Gui) func(gui *gocui.Gui, view *gocui.View) error {
@@ -386,22 +378,7 @@ func previousLineHandler(gui *guilib.Gui) func(gui *gocui.Gui, view *gocui.View)
 			v.MoveCursor(0, -1, false)
 		}
 
-		formatted := formatSelectedName(lineStr, 0)
-		if formatted != "NAME" && formatted != "NAMESPACE" {
-			if currentView.Name == namespaceViewName {
-				namespace := formatSelectedNamespace(lineStr)
-				log.Logger.Debugf("previousLineHandler - switch namespace to %s", namespace)
-				switchNamespace(gui, namespace)
-			}
-			return currentView.State.Set(selectedViewLine, lineStr)
-		}
-		if currentView.Name == namespaceViewName {
-			namespace := ""
-			log.Logger.Debugf("previousLineHandler - switch namespace to %s", namespace)
-			switchNamespace(gui, namespace)
-			return currentView.State.Set(selectedViewLine, nil)
-		}
-		return currentView.State.Set(selectedViewLine, lineStr)
+		return setViewSelectedLine(gui, currentView, lineStr)
 	}
 }
 
@@ -424,11 +401,7 @@ func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 			switchNamespace(gui, namespace)
 		}
 
-		if lineStr == "" {
-			return currentView.State.Set(selectedViewLine, nil)
-		}
-
-		return currentView.State.Set(selectedViewLine, lineStr)
+		return setViewSelectedLine(gui, currentView, lineStr)
 	}
 }
 
@@ -440,7 +413,7 @@ func newFilterAction(viewName string, resourceName string) *guilib.Action {
 			return func(g *gocui.Gui, v *gocui.View) error {
 				view, err := gui.GetView(viewName)
 				if err != nil {
-					log.Logger.Panic(err)
+					return err
 				}
 				if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, view); err != nil {
 					return err

@@ -41,6 +41,7 @@ type View struct {
 	BgColor               gocui.Attribute
 	SelBgColor            gocui.Attribute
 	SelFgColor            gocui.Attribute
+	MouseDisable          bool
 
 	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
 	CanNotReturn bool
@@ -56,6 +57,8 @@ type View struct {
 
 	OnFocus     func(gui *Gui, view *View) error
 	OnFocusLost func(gui *Gui, view *View) error
+
+	OnEditedChange func(gui *Gui, view *View, key gocui.Key, ch rune, mod gocui.Modifier)
 
 	DimensionFunc DimensionFunc
 
@@ -85,7 +88,10 @@ func (view *View) InitView() {
 		view.v.BgColor = view.BgColor
 		view.v.SelBgColor = view.SelBgColor
 		view.v.SelFgColor = view.SelFgColor
+		view.v.MouseDisable = view.MouseDisable
 	}
+
+	view.v.Editor = NewViewEditor(view.gui, view)
 }
 
 func (view *View) BindGui(gui *Gui) {
@@ -201,6 +207,16 @@ func (view *View) Line(y int) (string, error) {
 	return view.v.Line(y)
 }
 
+func (view *View) WhichLine(s string) int {
+	y := -1
+	for index, line := range view.v.ViewBufferLines() {
+		if line == s {
+			return index
+		}
+	}
+	return y
+}
+
 func (view *View) MoveCursor(dx, dy int, writeMode bool) {
 	view.v.MoveCursor(dx, dy, writeMode)
 }
@@ -256,6 +272,18 @@ func (view *View) focusLost() error {
 
 func (view *View) Size() (int, int) {
 	return view.v.Size()
+}
+
+func (view *View) ResetCursorOrigin() error {
+	if err := view.v.SetCursor(0, 0); err != nil {
+		return err
+	}
+
+	if err := view.v.SetOrigin(0, 0); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)
