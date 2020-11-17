@@ -7,8 +7,5 @@ import (
 
 func (cli *KubeCLI) Logs(streams genericclioptions.IOStreams, args ...string) *Cmd {
 	cmd := logs.NewCmdLogs(cli.factory, streams)
-	return &Cmd{
-		cmd:  cmd,
-		args: args,
-	}
+	return NewCmd(cmd, args, streams)
 }

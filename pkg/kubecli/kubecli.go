@@ -2,6 +2,7 @@ package kubecli
 
 import (
 	"flag"
+	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli/clusterinfo"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli/config"
 	"github.com/TNK-Studio/lazykube/pkg/log"
@@ -26,11 +27,23 @@ type KubeCLI struct {
 }
 
 type Cmd struct {
-	cmd  *cobra.Command
-	args []string
+	cmd     *cobra.Command
+	args    []string
+	streams genericclioptions.IOStreams
+}
+
+func NewCmd(cmd *cobra.Command, args []string, streams genericclioptions.IOStreams) *Cmd {
+	return &Cmd{
+		cmd:     cmd,
+		args:    args,
+		streams: streams,
+	}
 }
 
 func (c *Cmd) Run() {
+	util.BehaviorOnFatal(func(s string, i int) {
+		fmt.Fprint(c.streams.ErrOut, s)
+	})
 	c.cmd.Run(c.cmd, c.args)
 }
 

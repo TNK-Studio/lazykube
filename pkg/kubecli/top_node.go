@@ -7,8 +7,5 @@ import (
 
 func (cli *KubeCLI) TopNode(streams genericclioptions.IOStreams, o *top.TopNodeOptions, args ...string) *Cmd {
 	cmd := top.NewCmdTopNode(cli.factory, o, streams)
-	return &Cmd{
-		cmd:  cmd,
-		args: args,
-	}
+	return NewCmd(cmd, args, streams)
 }
