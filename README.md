@@ -8,8 +8,15 @@
 
 ### Mac Homebrew
 
+#### Install
+
 ```bash
 $ brew install tnk-studio/tools/lazykube
+```
+#### Upgrade
+
+```bash
+$ brew upgrade tnk-studio/tools/lazykube
 ```
 
 ### Linux
