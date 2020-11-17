@@ -7,8 +7,5 @@ import (
 
 func (cli *KubeCLI) TopPod(streams genericclioptions.IOStreams, o *top.TopPodOptions, args ...string) *Cmd {
 	cmd := top.NewCmdTopPod(cli.factory, o, streams)
-	return &Cmd{
-		cmd:  cmd,
-		args: args,
-	}
+	return NewCmd(cmd, args, streams)
 }
