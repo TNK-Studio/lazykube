@@ -47,6 +47,10 @@ type View struct {
 
 	reRendered bool
 
+	AlwaysOnTop bool
+
+	Actions []*Action
+
 	OnRender        func(gui *Gui, view *View) error
 	OnRenderOptions func(gui *Gui, view *View) error
 
@@ -164,6 +168,10 @@ func (view *View) SetOrigin(x, y int) error {
 		return view.v.SetOrigin(x, y)
 	}
 	return nil
+}
+
+func (view *View) Origin() (int, int) {
+	return view.v.Origin()
 }
 
 func (view *View) SetCursor(x, y int) error {

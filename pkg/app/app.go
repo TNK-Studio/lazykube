@@ -100,6 +100,8 @@ func (app *App) OnRenderOptions(gui *gui.Gui) error {
 				"PgUp/PgDn": "scroll",
 				"Home/End":  "top/bottom",
 				"Tab":       "next panel",
+				"F4":        "filter",
+				"m":         "menu",
 			}),
 	)
 }

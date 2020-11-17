@@ -29,11 +29,11 @@ var (
 
 	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
-		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
-		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
-		serviceViewName:     []string{"Config", "Pods", "Pods Log", "Top Pods"},
-		deploymentViewName:  []string{"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
-		podViewName:         []string{"Log", "Config", "Top", "Describe"},
+		clusterInfoViewName: {"Nodes", "Top Nodes"},
+		namespaceViewName:   {"Config", "Deployments", "Pods"},
+		serviceViewName:     {"Config", "Pods", "Pods Log", "Top Pods"},
+		deploymentViewName:  {"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
+		podViewName:         {"Log", "Config", "Top", "Describe"},
 	}
 
 	detailRenderMap = map[string]func(gui *guilib.Gui, view *guilib.View) error{

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
@@ -97,7 +98,7 @@ var (
 	}
 
 	viewActionsMap = map[string][]*guilib.Action{
-		navigationViewName: []*guilib.Action{
+		navigationViewName: {
 			&guilib.Action{
 				Name:     "navigationArrowLeft",
 				Key:      gocui.KeyArrowLeft,
@@ -125,7 +126,7 @@ var (
 				ReRender: true,
 			},
 		},
-		detailViewName: []*guilib.Action{
+		detailViewName: {
 			&guilib.Action{
 				Name: "detailArrowUp",
 				Key:  gocui.KeyArrowUp,
@@ -139,33 +140,34 @@ var (
 				ReRender: true,
 			},
 		},
-		clusterInfoViewName: []*guilib.Action{
+		clusterInfoViewName: {
 			toNavigation,
 			nextCyclicView,
 			//previousCyclicView,
 		},
-		namespaceViewName: []*guilib.Action{
+		namespaceViewName: {
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(namespaceViewName, "namespaces"),
+		},
+		serviceViewName: {
 			toNavigation,
 			nextCyclicView,
 			//previousCyclicView,
 			previousLine,
 			nextLine,
 		},
-		serviceViewName: []*guilib.Action{
+		deploymentViewName: {
 			toNavigation,
 			nextCyclicView,
 			//previousCyclicView,
 			previousLine,
 			nextLine,
 		},
-		deploymentViewName: []*guilib.Action{
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-			previousLine,
-			nextLine,
-		},
-		podViewName: []*guilib.Action{
+		podViewName: {
 			toNavigation,
 			nextCyclicView,
 			//previousCyclicView,
@@ -427,5 +429,25 @@ func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 		}
 
 		return currentView.State.Set(selectedViewLine, lineStr)
+	}
+}
+
+func newFilterAction(viewName string, resourceName string) *guilib.Action {
+	return &guilib.Action{
+		Name: fmt.Sprintf("%sFilterAction", viewName),
+		Key:  gocui.KeyF4,
+		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
+			return func(g *gocui.Gui, v *gocui.View) error {
+				view, err := gui.GetView(viewName)
+				if err != nil {
+					log.Logger.Panic(err)
+				}
+				if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, view); err != nil {
+					return err
+				}
+				return nil
+			}
+		},
+		Mod: gocui.ModNone,
 	}
 }

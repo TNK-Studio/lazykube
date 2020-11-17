@@ -11,14 +11,14 @@ type Gui struct {
 	reRendered      bool
 	OnRender        func(gui *Gui) error
 	OnRenderOptions func(gui *Gui) error
+	Config          config.GuiConfig
 
 	// History of focused views name.
 	previousViews      TowHeadQueue
 	previousViewsLimit int
 
-	g      *gocui.Gui
-	views  []*View
-	config config.GuiConfig
+	g     *gocui.Gui
+	views []*View
 
 	preHeight int
 	preWidth  int
@@ -30,6 +30,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 		State:              NewStateMap(),
 		previousViews:      NewQueue(),
 		previousViewsLimit: 20,
+		Config:             config,
 	}
 	gui.views = make([]*View, 0)
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -39,7 +40,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	}
 
 	gui.g = g
-	gui.Configure(config)
+	gui.Configure()
 
 	gui.g.SetManagerFunc(gui.layout)
 
@@ -98,19 +99,33 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
+	if err := gui.setTopViews(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (gui *Gui) Configure(config config.GuiConfig) {
-	gui.g.Highlight = config.Highlight
-	gui.g.Cursor = config.Cursor
-	gui.g.SelFgColor = config.SelFgColor
-	gui.g.SelBgColor = config.SelBgColor
-	gui.g.FgColor = config.FgColor
-	gui.g.BgColor = config.BgColor
-	gui.g.Mouse = config.Mouse
-	gui.g.InputEsc = config.InputEsc
-	gui.config = config
+func (gui *Gui) setTopViews() error {
+	for _, view := range gui.views {
+		if view.AlwaysOnTop {
+			if _, err := gui.SetViewOnTop(view.Name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (gui *Gui) Configure() {
+	gui.g.Highlight = gui.Config.Highlight
+	gui.g.Cursor = gui.Config.Cursor
+	gui.g.SelFgColor = gui.Config.SelFgColor
+	gui.g.SelBgColor = gui.Config.SelBgColor
+	gui.g.FgColor = gui.Config.FgColor
+	gui.g.BgColor = gui.Config.BgColor
+	gui.g.Mouse = gui.Config.Mouse
+	gui.g.InputEsc = gui.Config.InputEsc
 }
 
 func (gui *Gui) Size() (int, int) {
@@ -187,6 +202,11 @@ func (gui *Gui) Run() {
 	for _, view := range gui.views {
 		if view.Clickable {
 			gui.BindAction(view.Name, ClickView)
+		}
+		if view.Actions != nil {
+			for _, act := range view.Actions {
+				gui.BindAction(view.Name, act)
+			}
 		}
 	}
 
@@ -281,10 +301,10 @@ func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
 }
 
 func (gui *Gui) ViewColors(view *View) (gocui.Attribute, gocui.Attribute) {
-	if gui.config.Highlight && view == gui.CurrentView() {
-		return gui.config.SelFgColor, gui.config.SelBgColor
+	if gui.Config.Highlight && view == gui.CurrentView() {
+		return gui.Config.SelFgColor, gui.Config.SelBgColor
 	}
-	return gui.config.FgColor, gui.config.BgColor
+	return gui.Config.FgColor, gui.Config.BgColor
 }
 
 func (gui *Gui) CurrentView() *View {
@@ -295,9 +315,29 @@ func (gui *Gui) CurrentView() *View {
 	return gui.getView(v.Name())
 }
 
-func (gui *Gui) AddView(view *View) {
+func (gui *Gui) AddView(view *View) error {
 	// Todo: Check if view existed
 	gui.views = append(gui.views, view)
+	view.gui = gui
+	err := gui.RenderView(view)
+	if err == ErrNotEnoughSpace {
+		if err := gui.renderNotEnoughSpaceView(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if view.Clickable {
+		gui.BindAction(view.Name, ClickView)
+	}
+
+	if view.Actions != nil {
+		for _, act := range view.Actions {
+			gui.BindAction(view.Name, act)
+		}
+	}
+
+	return nil
 }
 
 func (gui *Gui) DeleteView(name string) error {
@@ -314,6 +354,8 @@ func (gui *Gui) DeleteView(name string) error {
 			gui.views = append(gui.views[:index], gui.views[index+1:]...)
 		}
 	}
+
+	gui.g.DeleteKeybindings(name)
 
 	return nil
 }
@@ -467,7 +509,7 @@ func (gui *Gui) ReturnPreviousView() error {
 		return err
 	}
 	log.Logger.Debugf("ReturnPreviousView - gui.focusView(%s)", previousView.Name)
-	return gui.focusView(previousView.Name)
+	return gui.FocusView(previousView.Name, false)
 }
 
 func (gui *Gui) renderOptions() error {
