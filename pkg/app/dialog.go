@@ -72,7 +72,7 @@ var (
 	}
 )
 
-func NewConfirmFilterInput(resourceViewName string) *guilib.Action {
+func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 	confirmFilterInput := &guilib.Action{
 		Name: "confirmFilterInput",
 		Key:  gocui.KeyEnter,
@@ -123,7 +123,7 @@ func NewConfirmFilterInput(resourceViewName string) *guilib.Action {
 
 func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) error {
 
-	confirmFilterInput := NewConfirmFilterInput(resourceViewName)
+	confirmFilterInput := newConfirmFilterInput(resourceViewName)
 
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,

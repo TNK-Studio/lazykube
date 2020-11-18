@@ -31,29 +31,6 @@ func nextCyclicViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error 
 	}
 }
 
-func previousCyclicViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-
-		currentView := gui.CurrentView()
-		if currentView == nil {
-			return nil
-		}
-
-		for index, viewName := range cyclicViews {
-			if currentView.Name == viewName {
-				nextIndex := index - 1
-				if nextIndex < 0 {
-					nextIndex = len(cyclicViews) - 1
-				}
-				previousViewName := cyclicViews[nextIndex]
-				log.Logger.Debugf("previousCyclicViewHandler - previousViewName: %s", previousViewName)
-				return gui.FocusView(cyclicViews[nextIndex], true)
-			}
-		}
-		return nil
-	}
-}
-
 func backToPreviousViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, view *gocui.View) error {
 		if gui.HasPreviousView() {
@@ -166,24 +143,6 @@ func scrollBottomHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func viewLineClickHandler(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
-	detailView, _ := gui.GetView(detailViewName)
-	if detailView != nil {
-		detailView.SetOrigin(0, 0)
-	}
-
-	if cy == 0 {
-		selected := formatResourceName(lineString, 0)
-		if notResourceSelected(selected) {
-			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, setViewSelectedLine(gui, view, \"\")", view.Name)
-			return setViewSelectedLine(gui, view, "")
-		}
-	}
-
-	log.Logger.Debugf("viewLineClickHandler - view: '%s' setViewSelectedLine(gui, %s, \"%s\")", view.Name, lineString)
-	return setViewSelectedLine(gui, view, lineString)
-}
-
 func previousLineHandler(gui *guilib.Gui) func(gui *gocui.Gui, view *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		currentView := gui.CurrentView()
@@ -242,15 +201,6 @@ func newFilterAction(viewName string, resourceName string) *guilib.Action {
 		},
 		Mod: gocui.ModNone,
 	}
-}
-
-func viewCursorChangeHandler(gui *guilib.Gui, view *guilib.View, x, y int) error {
-	selectedLine, _ := view.Line(y)
-	if err := setViewSelectedLine(gui, view, selectedLine); err != nil {
-		return err
-	}
-	gui.ReRenderViews(view.Name, navigationViewName, detailViewName)
-	return nil
 }
 
 func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, selectedLine string) error {

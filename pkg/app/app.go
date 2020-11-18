@@ -7,6 +7,7 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
+// App lazykube application
 type App struct {
 	ClusterInfo *guilib.View
 	Namespace   *guilib.View
@@ -19,6 +20,7 @@ type App struct {
 	Gui         *guilib.Gui
 }
 
+// NewApp new lazykube application
 func NewApp() *App {
 	app := &App{
 		ClusterInfo: ClusterInfo,
@@ -56,14 +58,17 @@ func NewApp() *App {
 	return app
 }
 
+// Run run
 func (app *App) Run() {
 	app.Gui.Run()
 }
 
+// Stop stop
 func (app *App) Stop() {
 	app.Gui.Close()
 }
 
+// OnRender OnRender
 func (app *App) OnRender(gui *guilib.Gui) error {
 	if gui.MaxHeight() < 28 {
 		for _, viewName := range functionViews {
@@ -81,6 +86,7 @@ func (app *App) OnRender(gui *guilib.Gui) error {
 	return nil
 }
 
+// OnRenderOptions OnRenderOptions
 func (app *App) OnRenderOptions(gui *guilib.Gui) error {
 	return gui.RenderString(
 		app.Option.Name,

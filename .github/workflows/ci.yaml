@@ -1,0 +1,30 @@
+
+name: Go Report Card
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - uses: actions/checkout@v2.3.4
+      - run: go mod download
+      - name: Build
+        run: go build -v .
+      - name: Lint
+        uses: Jerome1337/golint-action@v1.0.2
+        with:
+          golint-path: ./
+      - name: Go report card
+        # You may pin to the exact commit or the version.
+        # uses: creekorful/goreportcard-action@1f35ced8cdac2cba28c9a2f2288a16aacfd507f9
+        uses: creekorful/goreportcard-action@v1.0

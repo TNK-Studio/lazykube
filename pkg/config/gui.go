@@ -2,6 +2,7 @@ package config
 
 import "github.com/jroimartin/gocui"
 
+// GuiConfig GuiConfig
 type GuiConfig struct {
 	Highlight  bool
 	Cursor     bool

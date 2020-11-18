@@ -6,10 +6,6 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
-const (
-	selectedViewLine = "selectedViewLine"
-)
-
 var (
 	cyclicViews = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 
@@ -19,13 +15,6 @@ var (
 		Handler: nextCyclicViewHandler,
 		Mod:     gocui.ModNone,
 	}
-
-	//previousCyclicView = &guilib.Action{
-	//	Name:    "previousCyclicView",
-	//	Key:     gocui.KeyArrowUp,
-	//	Handler: previousCyclicViewHandler,
-	//	Mod:     gocui.ModNone,
-	//}
 
 	backToPreviousView = &guilib.Action{
 		Name:    "backToPreviousView",

@@ -29,7 +29,6 @@ var (
 		Actions: []*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-			//previousCyclicView,
 		},
 	}
 
@@ -56,7 +55,6 @@ var (
 		Actions: []*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-			//previousCyclicView,
 			previousLine,
 			nextLine,
 			newFilterAction(deploymentViewName, "deployments"),
@@ -132,7 +130,6 @@ var (
 		Title:     "Namespaces",
 		Clickable: true,
 		OnRender:  namespaceRender,
-		//OnLineClick: viewLineClickHandler,
 		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
 			formatted := formatResourceName(selectedLine, 0)
 			if notResourceSelected(formatted) {
@@ -164,7 +161,6 @@ var (
 		Actions: []*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-			//previousCyclicView,
 			previousLine,
 			nextLine,
 			newFilterAction(namespaceViewName, "namespaces"),
@@ -204,7 +200,6 @@ var (
 		Actions: []*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-			//previousCyclicView,
 			previousLine,
 			nextLine,
 			newFilterAction(podViewName, "pods"),
@@ -233,7 +228,6 @@ var (
 		Actions: []*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-			//previousCyclicView,
 			previousLine,
 			nextLine,
 			newFilterAction(serviceViewName, "services"),

@@ -1,5 +1,6 @@
 package gui
 
+// BeneathView BeneathView
 func BeneathView(aboveViewName string, heightFunc func(*Gui, *View) int, marginTopFunc func(*Gui, *View) int) func(gui *Gui, view *View) (int, int, int, int) {
 	return func(gui *Gui, view *View) (int, int, int, int) {
 		aboveX0, _, aboveX1, aboveY1, err := gui.g.ViewPosition(aboveViewName)

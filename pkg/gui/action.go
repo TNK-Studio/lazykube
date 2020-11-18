@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	// Quit Quit
 	Quit = &Action{
 		Name: "Quit",
 		Key:  gocui.KeyCtrlC,
@@ -17,6 +18,7 @@ var (
 		Mod: gocui.ModNone,
 	}
 
+	// ClickView ClickView
 	ClickView = &Action{
 		Name:    "clickView",
 		Key:     gocui.MouseLeft,
