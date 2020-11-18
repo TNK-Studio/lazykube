@@ -1,19 +1,19 @@
 # lazykube
-⎈ The lazier way to manage kubernetes.  ([English Document](README.md) | [中文文档](./docs/README_CN.md))
+⎈ 通过鼠标和命令行交互的方式来管理 K8s 集群  ([English Document](../README.md) | [中文文档](README_CN.md))
 [![Go Report Card](https://goreportcard.com/badge/github.com/TNK-Studio/lazykube)](https://goreportcard.com/report/github.com/TNK-Studio/lazykube) ![GitHub repo size](https://img.shields.io/github/repo-size/TNK-Studio/lazykube) ![GitHub all releases](https://img.shields.io/github/downloads/TNK-Studio/lazykube/total) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/TNK-Studio/lazykube)  
 
-![gif](./docs/lazykube.gif)
+![gif](./lazykube.gif)
 
-## Installation
+## 安装方式
 
 ### Mac Homebrew
 
-#### Install
+#### 安装
 
 ```bash
 $ brew install tnk-studio/tools/lazykube
 ```
-#### Upgrade
+#### 升级
 
 ```bash
 $ brew upgrade tnk-studio/tools/lazykube
@@ -27,7 +27,7 @@ $ curl https://raw.githubusercontent.com/TNK-Studio/lazykube/main/scripts/instal
 
 ### Windows
 
-Release page download [(link)](https://github.com/TNK-Studio/lazykube/releases/latest).
+通过下载页面下载并解压 [(link)](https://github.com/TNK-Studio/lazykube/releases/latest).
 
 ### Go get
 
@@ -35,18 +35,18 @@ Release page download [(link)](https://github.com/TNK-Studio/lazykube/releases/l
 $ go get -u github.com/TNK-Studio/lazykube
 ```
 
-## How to use
+## 如何使用
 
 ```bash
 $ lazykube
 ```
 
-## FAQ
+## 常见问题
 
-* When using iterm2 as a terminal, mouse clicks cannot be used ?
+* 当使用 iterm2 作为终端时鼠标无法交互 ?
 
-![iterm2-enable-mouse-reporting](./docs/iterm2-enable-mouse-reporting.png)
+![iterm2-enable-mouse-reporting](./iterm2-enable-mouse-reporting.png)
 
-## Change log
+## 更新日志
 
-[CHANGELOG](CHANGELOG.md)
+[更新日志](../CHANGELOG.md)
