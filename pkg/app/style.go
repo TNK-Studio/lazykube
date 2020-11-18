@@ -5,8 +5,18 @@ import (
 )
 
 var (
-	viewHeights = map[string]int{}
+	viewHeights     = map[string]int{}
+	resizeableViews = []string{namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 )
+
+func resizeAbleView(viewName string) bool {
+	for _, resizeableView := range resizeableViews {
+		if resizeableView == viewName {
+			return true
+		}
+	}
+	return false
+}
 
 func leftSideWidth(maxWidth int) int {
 	return maxWidth / 3
@@ -38,7 +48,7 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 
 	resizeView := namespaceViewName
 	currentView := gui.CurrentView()
-	if currentView != nil && currentView.Name != clusterInfoViewName && currentView.Name != navigationViewName && currentView.Name != detailViewName {
+	if currentView != nil && resizeAbleView(currentView.Name) {
 		resizeView = currentView.Name
 	} else if gui.PeekPreviousView() != "" && gui.PeekPreviousView() != clusterInfoViewName {
 		resizeView = gui.PeekPreviousView()
