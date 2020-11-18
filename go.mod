@@ -2,7 +2,10 @@ module github.com/TNK-Studio/lazykube
 
 go 1.14
 
-replace github.com/jroimartin/gocui v0.4.0 => github.com/elfgzp/gocui v0.4.1-0.20201118030412-21fac610f2e0
+replace (
+ 	github.com/jroimartin/gocui v0.4.0 => github.com/elfgzp/gocui v0.4.1-0.20201118030412-21fac610f2e0
+ 	golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
+)
 
 require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
