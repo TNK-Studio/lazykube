@@ -17,7 +17,7 @@ import (
 const (
 	OptSeparator       = "   "
 	navigationPathJoin = " + "
-	logsTail           = "200"
+	logsTail           = "500"
 )
 
 var (
@@ -29,11 +29,11 @@ var (
 
 	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
-		clusterInfoViewName: []string{"Nodes", "Top Nodes"},
-		namespaceViewName:   []string{"Config", "Deployments", "Pods"},
-		serviceViewName:     []string{"Config", "Pods", "Pods Log", "Top Pods"},
-		deploymentViewName:  []string{"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
-		podViewName:         []string{"Log", "Config", "Top", "Describe"},
+		clusterInfoViewName: {"Nodes", "Top Nodes"},
+		namespaceViewName:   {"Config", "Deployments", "Pods"},
+		serviceViewName:     {"Config", "Pods", "Pods Log", "Top Pods"},
+		deploymentViewName:  {"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
+		podViewName:         {"Log", "Config", "Top", "Describe"},
 	}
 
 	detailRenderMap = map[string]func(gui *guilib.Gui, view *guilib.View) error{
@@ -59,7 +59,7 @@ var (
 )
 
 func notResourceSelected(selectedName string) bool {
-	if selectedName == "" || selectedName == "NAME" || selectedName == "NAMESPACE" {
+	if selectedName == "" || selectedName == "NAME" || selectedName == "NAMESPACE" || selectedName == "No" {
 		return true
 	}
 	return false
@@ -78,6 +78,7 @@ func navigationPath(args ...string) string {
 
 func switchNavigation(index int) string {
 	Detail.SetOrigin(0, 0)
+	Detail.Clear()
 	if index < 0 {
 		return ""
 	}
@@ -172,6 +173,8 @@ func navigationOnClick(gui *guilib.Gui, view *guilib.View) error {
 			optionIndex := i / 2
 			log.Logger.Debugf("navigationOnClick - cx %d in selection(%d)[%d, %d]", cx, optionIndex, left, right)
 			selected = switchNavigation(optionIndex)
+			view.ReRender()
+			Detail.ReRender()
 			break
 		}
 	}
@@ -226,48 +229,37 @@ func topNodesRender(gui *guilib.Gui, view *guilib.View) error {
 
 func namespaceRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	streams := newStream()
-	kubecli.Cli.Get(streams, "namespaces").Run()
-	renderHighlightSelected(view, streamToString(streams))
+	kubecli.Cli.Get(viewStreams(view), "namespaces").Run()
 	return nil
 }
 
 func serviceRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(streams, "services").SetFlag("all-namespaces", "true").Run()
-		renderHighlightSelected(view, streamToString(streams))
+		kubecli.Cli.Get(viewStreams(view), "services").SetFlag("all-namespaces", "true").Run()
 		return nil
 	}
-	kubecli.Cli.Get(streams, "services").Run()
-	renderHighlightSelected(view, streamToString(streams))
+	kubecli.Cli.Get(viewStreams(view), "services").Run()
 	return nil
 }
 
 func deploymentRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(streams, "deployments").SetFlag("all-namespaces", "true").Run()
-		renderHighlightSelected(view, streamToString(streams))
+		kubecli.Cli.Get(viewStreams(view), "deployments").SetFlag("all-namespaces", "true").Run()
 		return nil
 	}
 	kubecli.Cli.Get(viewStreams(view), "deployments").Run()
-	renderHighlightSelected(view, streamToString(streams))
 	return nil
 }
 
 func podRender(gui *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	streams := newStream()
 	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(streams, "pods").SetFlag("all-namespaces", "true").SetFlag("output", "wide").Run()
-		renderHighlightSelected(view, streamToString(streams))
+		kubecli.Cli.Get(viewStreams(view), "pods").SetFlag("all-namespaces", "true").SetFlag("output", "wide").Run()
 		return nil
 	}
-	kubecli.Cli.Get(streams, "pods").SetFlag("output", "wide").Run()
-	renderHighlightSelected(view, streamToString(streams))
+	kubecli.Cli.Get(viewStreams(view), "pods").SetFlag("output", "wide").Run()
 	return nil
 }
 
@@ -295,17 +287,6 @@ func streamToString(streams genericclioptions.IOStreams) string {
 	return buf.String()
 }
 
-func renderHighlightSelected(view *guilib.View, content string) {
-	selected, _ := view.State.Get(selectedViewLine)
-	if selected != nil {
-		highlightString := selected.(string)
-		content = strings.Replace(content, highlightString, color.Green.Sprint(highlightString), 1)
-		fmt.Fprint(view, content)
-		return
-	}
-	fmt.Fprint(view, content)
-}
-
 func showPleaseSelected(view *guilib.View, name string) {
 	fmt.Fprintf(view, "Please select a %s. ", name)
 }
@@ -316,19 +297,13 @@ func namespaceConfigRender(gui *guilib.Gui, view *guilib.View) error {
 	if err != nil {
 		return nil
 	}
-	selected, _ := namespaceView.State.Get(selectedViewLine)
-	if selected != nil {
-		namespace := formatSelectedNamespace(selected.(string))
-		if namespace == "" {
-			showPleaseSelected(view, namespaceViewName)
-			return nil
-		}
-
-		kubecli.Cli.Get(viewStreams(view), "namespaces", namespace).SetFlag("output", "yaml").Run()
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	if notResourceSelected(namespace) {
+		showPleaseSelected(view, namespaceViewName)
 		return nil
 	}
 
-	showPleaseSelected(view, namespaceViewName)
+	kubecli.Cli.Get(viewStreams(view), "namespaces", namespace).SetFlag("output", "yaml").Run()
 	return nil
 }
 
@@ -337,16 +312,18 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 	if activeView == nil {
 		return nil
 	}
-	if activeView == Namespace {
-		return namespaceConfigRender(gui, view)
-	}
+
 	namespaceView, err := gui.GetView(namespaceViewName)
 	if err != nil {
 		return nil
 	}
 
-	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
-	selected, _ := activeView.State.Get(selectedViewLine)
+	if activeView == namespaceView {
+		return namespaceConfigRender(gui, view)
+	}
+
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	selected := activeView.SelectedLine
 	resource := ""
 	switch activeView.Name {
 	case serviceViewName:
@@ -364,29 +341,29 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 
-	if selected == nil {
+	if selected == "" {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	if selectedNamespace != nil {
-		selectedName := formatSelectedName(selected.(string), 0)
-		if notResourceSelected(selectedName) {
+	if !notResourceSelected(namespace) {
+		resourceName := formatResourceName(selected, 0)
+		if notResourceSelected(resourceName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
-		kubecli.Cli.Get(viewStreams(view), resource, selectedName).SetFlag("output", "yaml").Run()
+		kubecli.Cli.Get(viewStreams(view), resource, resourceName).SetFlag("output", "yaml").Run()
 		return nil
 	}
 
-	namespace := formatSelectedName(selected.(string), 0)
-	selectedName := formatSelectedName(selected.(string), 1)
-	if notResourceSelected(selectedName) {
+	namespace = formatResourceName(selected, 0)
+	resourceName := formatResourceName(selected, 1)
+	if notResourceSelected(resourceName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), resource, selectedName).SetFlag("output", "yaml").Run()
+	kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), resource, resourceName).SetFlag("output", "yaml").Run()
 	return nil
 }
 
@@ -403,8 +380,8 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 
-	selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
-	selected, _ := activeView.State.Get(selectedViewLine)
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	selected := activeView.SelectedLine
 	resource := ""
 	switch activeView.Name {
 	case deploymentViewName:
@@ -419,29 +396,29 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 
-	if selected == nil {
+	if notResourceSelected(selected) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	if selectedNamespace != nil {
-		selectedName := formatSelectedName(selected.(string), 0)
-		if notResourceSelected(selectedName) {
+	if !notResourceSelected(namespace) {
+		resourceName := formatResourceName(selected, 0)
+		if notResourceSelected(resourceName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
-		kubecli.Cli.Describe(viewStreams(view), resource, selectedName).Run()
+		kubecli.Cli.Describe(viewStreams(view), resource, resourceName).Run()
 		return nil
 	}
 
-	namespace := formatSelectedName(selected.(string), 0)
-	selectedName := formatSelectedName(selected.(string), 1)
-	if notResourceSelected(selectedName) {
+	namespace = formatResourceName(selected, 0)
+	resourceName := formatResourceName(selected, 1)
+	if notResourceSelected(resourceName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	kubecli.Cli.WithNamespace(namespace).Describe(viewStreams(view), resource, selectedName).Run()
+	kubecli.Cli.WithNamespace(namespace).Describe(viewStreams(view), resource, resourceName).Run()
 	view.ReRender()
 	return nil
 }
@@ -456,43 +433,59 @@ func onFocusClearSelected(gui *guilib.Gui, view *guilib.View) error {
 			log.Logger.Warningf("onFocusClearSelected - view name %s gui.GetView(\"%s\") error %s", view.Name, functionView, err)
 			continue
 		}
-		functionView.State.Set(selectedViewLine, nil)
+		if err := functionView.SetOrigin(0, 0); err != nil {
+			return err
+		}
+		if err := functionView.SetCursor(0, 0); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
-	selectedNamespace, _ := Namespace.State.Get(selectedViewLine)
-	selected, _ := Pod.State.Get(selectedViewLine)
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return err
+	}
+
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+
+	podView, err := gui.GetView(podViewName)
+	if err != nil {
+		return err
+	}
+
+	selected := podView.SelectedLine
 	resource := "pod"
-	if selected == nil {
+	if notResourceSelected(selected) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	if selectedNamespace != nil {
-		selectedName := formatSelectedName(selected.(string), 0)
-		if notResourceSelected(selectedName) {
+	if !notResourceSelected(namespace) {
+		resourceName := formatResourceName(selected, 0)
+		if notResourceSelected(resourceName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
 		streams := newStream()
-		kubecli.Cli.Logs(streams, selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+		kubecli.Cli.Logs(streams, resourceName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 		view.Clear()
 		streamCopyTo(streams, view)
 		view.ReRender()
 		return nil
 	}
 
-	namespace := formatSelectedName(selected.(string), 0)
-	selectedName := formatSelectedName(selected.(string), 1)
-	if notResourceSelected(selectedName) {
+	namespace = formatResourceName(selected, 0)
+	resourceName := formatResourceName(selected, 1)
+	if notResourceSelected(resourceName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
 	streams := newStream()
-	kubecli.Cli.WithNamespace(namespace).Logs(streams, selectedName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
+	kubecli.Cli.WithNamespace(namespace).Logs(streams, resourceName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
 	streamCopyTo(streams, view)
 	view.ReRender()
 	return nil
@@ -556,8 +549,8 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 			return nil
 		}
 
-		selectedNamespace, _ := namespaceView.State.Get(selectedViewLine)
-		selected, _ := activeView.State.Get(selectedViewLine)
+		namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+		selected := activeView.SelectedLine
 		var resource string
 		var jsonPath string
 		switch activeView.Name {
@@ -575,28 +568,27 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 			return nil
 		}
 
-		if selected == nil {
+		if notResourceSelected(selected) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
 
 		output := newStream()
-		var namespace string
-		if selectedNamespace != nil {
-			selectedName := formatSelectedName(selected.(string), 0)
-			if notResourceSelected(selectedName) {
+		if !notResourceSelected(namespace) {
+			resourceName := formatResourceName(selected, 0)
+			if notResourceSelected(resourceName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
-			kubecli.Cli.Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+			kubecli.Cli.Get(output, resource, resourceName).SetFlag("output", jsonPath).Run()
 		} else {
-			namespace = formatSelectedName(selected.(string), 0)
-			selectedName := formatSelectedName(selected.(string), 1)
-			if notResourceSelected(selectedName) {
+			namespace = formatResourceName(selected, 0)
+			resourceName := formatResourceName(selected, 1)
+			if notResourceSelected(resourceName) {
 				showPleaseSelected(view, resource)
 				return nil
 			}
-			kubecli.Cli.WithNamespace(namespace).Get(output, resource, selectedName).SetFlag("output", jsonPath).Run()
+			kubecli.Cli.WithNamespace(namespace).Get(output, resource, resourceName).SetFlag("output", jsonPath).Run()
 		}
 
 		labelJson := streamToString(output)

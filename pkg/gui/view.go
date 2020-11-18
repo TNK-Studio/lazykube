@@ -19,6 +19,12 @@ func init() {
 			maxWidth, maxHeight := gui.Size()
 			return 0, 0, maxWidth - 1, maxHeight - 1
 		},
+		OnRender: func(gui *Gui, view *View) error {
+			gui.Config.Cursor = false
+			gui.Configure()
+			view.ReRender()
+			return nil
+		},
 	}
 }
 
@@ -41,17 +47,29 @@ type View struct {
 	BgColor               gocui.Attribute
 	SelBgColor            gocui.Attribute
 	SelFgColor            gocui.Attribute
+	MouseDisable          bool
 
 	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
 	CanNotReturn bool
 
 	reRendered bool
 
+	AlwaysOnTop bool
+
+	Actions []*Action
+
 	OnRender        func(gui *Gui, view *View) error
 	OnRenderOptions func(gui *Gui, view *View) error
 
 	OnFocus     func(gui *Gui, view *View) error
 	OnFocusLost func(gui *Gui, view *View) error
+
+	OnCursorChange func(gui *Gui, view *View, x, y int) error
+
+	OnEditedChange func(gui *Gui, view *View, key gocui.Key, ch rune, mod gocui.Modifier)
+
+	SelectedLine         string
+	OnSelectedLineChange func(gui *Gui, view *View, selectedLine string) error
 
 	DimensionFunc DimensionFunc
 
@@ -81,7 +99,11 @@ func (view *View) InitView() {
 		view.v.BgColor = view.BgColor
 		view.v.SelBgColor = view.SelBgColor
 		view.v.SelFgColor = view.SelFgColor
+		view.v.MouseDisable = view.MouseDisable
 	}
+
+	view.v.Editor = NewViewEditor(view.gui, view)
+	view.v.OnCursorChange = view.onCursorChange
 }
 
 func (view *View) BindGui(gui *Gui) {
@@ -166,6 +188,10 @@ func (view *View) SetOrigin(x, y int) error {
 	return nil
 }
 
+func (view *View) Origin() (int, int) {
+	return view.v.Origin()
+}
+
 func (view *View) SetCursor(x, y int) error {
 	if view.Rendered() {
 		return view.v.SetCursor(x, y)
@@ -191,6 +217,16 @@ func (view *View) ViewBufferLines() []string {
 
 func (view *View) Line(y int) (string, error) {
 	return view.v.Line(y)
+}
+
+func (view *View) WhichLine(s string) int {
+	y := -1
+	for index, line := range view.v.ViewBufferLines() {
+		if line == s {
+			return index
+		}
+	}
+	return y
 }
 
 func (view *View) MoveCursor(dx, dy int, writeMode bool) {
@@ -248,6 +284,27 @@ func (view *View) focusLost() error {
 
 func (view *View) Size() (int, int) {
 	return view.v.Size()
+}
+
+func (view *View) ResetCursorOrigin() error {
+	if err := view.v.SetCursor(0, 0); err != nil {
+		return err
+	}
+
+	if err := view.v.SetOrigin(0, 0); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (view *View) onCursorChange(v *gocui.View, x, y int) error {
+	if view.OnCursorChange != nil {
+		if err := view.OnCursorChange(view.gui, view, x, y); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)

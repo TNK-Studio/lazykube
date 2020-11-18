@@ -6,30 +6,35 @@ import (
 	"github.com/jroimartin/gocui"
 )
 
+// Gui Gui
 type Gui struct {
 	State           State
 	reRendered      bool
 	OnRender        func(gui *Gui) error
 	OnRenderOptions func(gui *Gui) error
+	Config          config.GuiConfig
 
 	// History of focused views name.
 	previousViews      TowHeadQueue
 	previousViewsLimit int
 
-	g      *gocui.Gui
-	views  []*View
-	config config.GuiConfig
+	g     *gocui.Gui
+	views []*View
 
 	preHeight int
 	preWidth  int
+
+	Actions []*Action
 }
 
+// NewGui NewGui
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
 
 	gui := &Gui{
 		State:              NewStateMap(),
 		previousViews:      NewQueue(),
 		previousViewsLimit: 20,
+		Config:             config,
 	}
 	gui.views = make([]*View, 0)
 	g, err := gocui.NewGui(gocui.OutputNormal)
@@ -39,7 +44,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	}
 
 	gui.g = g
-	gui.Configure(config)
+	gui.Configure()
 
 	gui.g.SetManagerFunc(gui.layout)
 
@@ -53,6 +58,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	return gui
 }
 
+// ReRender ReRender
 func (gui *Gui) ReRender() {
 	gui.reRendered = false
 	for _, view := range gui.views {
@@ -72,6 +78,10 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 	for _, view := range gui.views {
+		if err := gui.updateSelectedViewLine(view); err != nil {
+			return err
+		}
+
 		err := gui.RenderView(view)
 		if err == nil {
 			continue
@@ -98,39 +108,77 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
+	if err := gui.setTopViews(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (gui *Gui) Configure(config config.GuiConfig) {
-	gui.g.Highlight = config.Highlight
-	gui.g.Cursor = config.Cursor
-	gui.g.SelFgColor = config.SelFgColor
-	gui.g.SelBgColor = config.SelBgColor
-	gui.g.FgColor = config.FgColor
-	gui.g.BgColor = config.BgColor
-	gui.g.Mouse = config.Mouse
-	gui.g.InputEsc = config.InputEsc
-	gui.config = config
+func (gui *Gui) updateSelectedViewLine(view *View) error {
+	if !view.Rendered() {
+		return nil
+	}
+
+	_, cy := view.Cursor()
+	selectedLine, _ := view.Line(cy)
+	if selectedLine != view.SelectedLine {
+		view.SelectedLine = selectedLine
+		if view.OnSelectedLineChange != nil {
+			if err := view.OnSelectedLineChange(gui, view, selectedLine); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
+func (gui *Gui) setTopViews() error {
+	for _, view := range gui.views {
+		if view.AlwaysOnTop {
+			if _, err := gui.SetViewOnTop(view.Name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Configure Configure
+func (gui *Gui) Configure() {
+	gui.g.Highlight = gui.Config.Highlight
+	gui.g.Cursor = gui.Config.Cursor
+	gui.g.SelFgColor = gui.Config.SelFgColor
+	gui.g.SelBgColor = gui.Config.SelBgColor
+	gui.g.FgColor = gui.Config.FgColor
+	gui.g.BgColor = gui.Config.BgColor
+	gui.g.Mouse = gui.Config.Mouse
+	gui.g.InputEsc = gui.Config.InputEsc
+}
+
+// Size Size
 func (gui *Gui) Size() (int, int) {
 	return gui.g.Size()
 }
 
+// MaxWidth MaxWidth
 func (gui *Gui) MaxWidth() int {
 	maxWidth, _ := gui.g.Size()
 	return maxWidth
 }
 
+// MaxHeight MaxHeight
 func (gui *Gui) MaxHeight() int {
 	_, maxHeight := gui.g.Size()
 	return maxHeight
 }
 
+// GetViews GetViews
 func (gui *Gui) GetViews() []*View {
 	return gui.views
 }
 
+// SetKeybinding SetKeybinding
 func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifier, handler func(*gocui.Gui, *gocui.View) error) {
 	if err := gui.g.SetKeybinding(
 		viewName,
@@ -142,9 +190,10 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 	}
 }
 
+// BindAction BindAction
 func (gui *Gui) BindAction(viewName string, action *Action) {
 	var handler func(g *gocui.Gui, v *gocui.View) error
-	if action.ReRender {
+	if action.ReRenderAllView {
 		handler = func(g *gocui.Gui, v *gocui.View) error {
 			if err := action.Handler(gui)(g, v); err != nil {
 				return err
@@ -175,6 +224,7 @@ func (gui *Gui) BindAction(viewName string, action *Action) {
 	}
 }
 
+// ViewDimensionValidated ViewDimensionValidated
 func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
 	if x0 >= x1 || y0 >= y1 {
 		return false
@@ -183,10 +233,22 @@ func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
 	return true
 }
 
+// Run Run
 func (gui *Gui) Run() {
+	if gui.Actions != nil {
+		for _, act := range gui.Actions {
+			gui.BindAction("", act)
+		}
+	}
+
 	for _, view := range gui.views {
 		if view.Clickable {
 			gui.BindAction(view.Name, ClickView)
+		}
+		if view.Actions != nil {
+			for _, act := range view.Actions {
+				gui.BindAction(view.Name, act)
+			}
 		}
 	}
 
@@ -195,10 +257,12 @@ func (gui *Gui) Run() {
 	}
 }
 
+// Close Close
 func (gui *Gui) Close() {
 	gui.g.Close()
 }
 
+// GetView GetView
 func (gui *Gui) GetView(name string) (*View, error) {
 	if err := gui.ViewExisted(name); err != nil {
 		return nil, err
@@ -207,6 +271,7 @@ func (gui *Gui) GetView(name string) (*View, error) {
 	return gui.getView(name), nil
 }
 
+// RenderView RenderView
 func (gui *Gui) RenderView(view *View) error {
 	x0, y0, x1, y1 := view.GetDimensions()
 	if !gui.ViewDimensionValidated(x0, y0, x1, y1) {
@@ -224,6 +289,7 @@ func (gui *Gui) unRenderNotEnoughSpaceView() error {
 	return nil
 }
 
+// Clear Clear
 func (gui *Gui) Clear() error {
 	if err := gui.unRenderNotEnoughSpaceView(); err != nil {
 		return err
@@ -240,6 +306,7 @@ func (gui *Gui) renderNotEnoughSpaceView() error {
 	return gui.renderView(NotEnoughSpace, x0, y0, x1, y1)
 }
 
+// SetView SetView
 func (gui *Gui) SetView(view *View, x0, y0, x1, y1 int) (*View, error) {
 	if v, err := gui.g.SetView(
 		view.Name,
@@ -280,13 +347,15 @@ func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
 	return nil
 }
 
+// ViewColors ViewColors
 func (gui *Gui) ViewColors(view *View) (gocui.Attribute, gocui.Attribute) {
-	if gui.config.Highlight && view == gui.CurrentView() {
-		return gui.config.SelFgColor, gui.config.SelBgColor
+	if gui.Config.Highlight && view == gui.CurrentView() {
+		return gui.Config.SelFgColor, gui.Config.SelBgColor
 	}
-	return gui.config.FgColor, gui.config.BgColor
+	return gui.Config.FgColor, gui.Config.BgColor
 }
 
+// CurrentView CurrentView
 func (gui *Gui) CurrentView() *View {
 	v := gui.g.CurrentView()
 	if v == nil {
@@ -295,11 +364,33 @@ func (gui *Gui) CurrentView() *View {
 	return gui.getView(v.Name())
 }
 
-func (gui *Gui) AddView(view *View) {
+// AddView AddView
+func (gui *Gui) AddView(view *View) error {
 	// Todo: Check if view existed
 	gui.views = append(gui.views, view)
+	view.gui = gui
+	err := gui.RenderView(view)
+	if err == ErrNotEnoughSpace {
+		if err := gui.renderNotEnoughSpaceView(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if view.Clickable {
+		gui.BindAction(view.Name, ClickView)
+	}
+
+	if view.Actions != nil {
+		for _, act := range view.Actions {
+			gui.BindAction(view.Name, act)
+		}
+	}
+
+	return nil
 }
 
+// DeleteView DeleteView
 func (gui *Gui) DeleteView(name string) error {
 	if err := gui.ViewExisted(name); err != nil {
 		return err
@@ -315,9 +406,12 @@ func (gui *Gui) DeleteView(name string) error {
 		}
 	}
 
+	gui.g.DeleteKeybindings(name)
+
 	return nil
 }
 
+// ViewExisted ViewExisted
 func (gui *Gui) ViewExisted(name string) error {
 	_, err := gui.g.View(name)
 	if err != nil {
@@ -326,6 +420,7 @@ func (gui *Gui) ViewExisted(name string) error {
 	return nil
 }
 
+// RenderString RenderString
 func (gui *Gui) RenderString(viewName, s string) error {
 	gui.Update(func(g *gocui.Gui) error {
 		view, err := gui.GetView(viewName)
@@ -350,10 +445,12 @@ func (gui *Gui) RenderString(viewName, s string) error {
 	return nil
 }
 
+// Update Update
 func (gui *Gui) Update(f func(*gocui.Gui) error) {
 	gui.g.Update(f)
 }
 
+// SetCurrentView SetCurrentView
 func (gui *Gui) SetCurrentView(name string) (*View, error) {
 	if _, err := gui.g.SetCurrentView(name); err != nil {
 		return nil, err
@@ -362,6 +459,7 @@ func (gui *Gui) SetCurrentView(name string) (*View, error) {
 	return view, nil
 }
 
+// SetViewOnTop SetViewOnTop
 func (gui *Gui) SetViewOnTop(name string) (*View, error) {
 	if _, err := gui.g.SetViewOnTop(name); err != nil {
 		return nil, err
@@ -452,10 +550,12 @@ func (gui *Gui) focusView(name string) error {
 	return nil
 }
 
+// HasPreviousView HasPreviousView
 func (gui *Gui) HasPreviousView() bool {
 	return !gui.previousViews.IsEmpty()
 }
 
+// ReturnPreviousView ReturnPreviousView
 func (gui *Gui) ReturnPreviousView() error {
 	previousViewName := gui.popPreviousView()
 	previousView, err := gui.GetView(previousViewName)
@@ -467,7 +567,7 @@ func (gui *Gui) ReturnPreviousView() error {
 		return err
 	}
 	log.Logger.Debugf("ReturnPreviousView - gui.focusView(%s)", previousView.Name)
-	return gui.focusView(previousView.Name)
+	return gui.FocusView(previousView.Name, false)
 }
 
 func (gui *Gui) renderOptions() error {
@@ -486,6 +586,20 @@ func (gui *Gui) renderOptions() error {
 	return nil
 }
 
+// SetRune SetRune
 func (gui *Gui) SetRune(x, y int, ch rune, fgColor, bgColor gocui.Attribute) error {
 	return gui.g.SetRune(x, y, ch, fgColor, bgColor)
+}
+
+// ReRenderViews ReRenderViews
+func (gui *Gui) ReRenderViews(viewNames ...string) {
+	for _, name := range viewNames {
+		view, err := gui.GetView(name)
+		if err != nil {
+			log.Logger.Warningf("ReRenderViews - view '%s' error %s", name, err)
+			continue
+		}
+
+		view.ReRender()
+	}
 }

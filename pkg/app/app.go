@@ -2,23 +2,25 @@ package app
 
 import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
-	"github.com/TNK-Studio/lazykube/pkg/gui"
+	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
 	"github.com/jroimartin/gocui"
 )
 
+// App lazykube application
 type App struct {
-	ClusterInfo *gui.View
-	Namespace   *gui.View
-	Service     *gui.View
-	Deployment  *gui.View
-	Pod         *gui.View
-	Navigation  *gui.View
-	Detail      *gui.View
-	Option      *gui.View
-	Gui         *gui.Gui
+	ClusterInfo *guilib.View
+	Namespace   *guilib.View
+	Service     *guilib.View
+	Deployment  *guilib.View
+	Pod         *guilib.View
+	Navigation  *guilib.View
+	Detail      *guilib.View
+	Option      *guilib.View
+	Gui         *guilib.Gui
 }
 
+// NewApp new lazykube application
 func NewApp() *App {
 	app := &App{
 		ClusterInfo: ClusterInfo,
@@ -39,7 +41,7 @@ func NewApp() *App {
 		Mouse:      true,
 		InputEsc:   true,
 	}
-	app.Gui = gui.NewGui(
+	app.Gui = guilib.NewGui(
 		conf,
 		app.ClusterInfo,
 		app.Namespace,
@@ -52,27 +54,22 @@ func NewApp() *App {
 	)
 	app.Gui.OnRender = app.OnRender
 	app.Gui.OnRenderOptions = app.OnRenderOptions
+	app.Gui.Actions = actions
 	return app
 }
 
+// Run run
 func (app *App) Run() {
-	for _, act := range actions {
-		app.Gui.BindAction("", act)
-	}
-
-	for viewName, actArr := range viewActionsMap {
-		for _, act := range actArr {
-			app.Gui.BindAction(viewName, act)
-		}
-	}
 	app.Gui.Run()
 }
 
+// Stop stop
 func (app *App) Stop() {
 	app.Gui.Close()
 }
 
-func (app *App) OnRender(gui *gui.Gui) error {
+// OnRender OnRender
+func (app *App) OnRender(gui *guilib.Gui) error {
 	if gui.MaxHeight() < 28 {
 		for _, viewName := range functionViews {
 			if _, err := gui.SetViewOnTop(viewName); err != nil {
@@ -89,17 +86,20 @@ func (app *App) OnRender(gui *gui.Gui) error {
 	return nil
 }
 
-func (app *App) OnRenderOptions(gui *gui.Gui) error {
+// OnRenderOptions OnRenderOptions
+func (app *App) OnRenderOptions(gui *guilib.Gui) error {
 	return gui.RenderString(
 		app.Option.Name,
 		utils.OptionsMapToString(
 			map[string]string{
 				"← → ↑ ↓":   "navigate",
-				"Ctrl+c":    "close",
+				"Ctrl+c":    "exit",
 				"Esc":       "back",
 				"PgUp/PgDn": "scroll",
 				"Home/End":  "top/bottom",
 				"Tab":       "next panel",
+				"F4":        "filter",
+				"m":         "menu",
 			}),
 	)
 }

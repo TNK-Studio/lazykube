@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	// Quit Quit
 	Quit = &Action{
 		Name: "Quit",
 		Key:  gocui.KeyCtrlC,
@@ -17,22 +18,22 @@ var (
 		Mod: gocui.ModNone,
 	}
 
+	// ClickView ClickView
 	ClickView = &Action{
-		Name:     "clickView",
-		Key:      gocui.MouseLeft,
-		Handler:  ViewClickHandler,
-		Mod:      gocui.ModNone,
-		ReRender: true,
+		Name:    "clickView",
+		Key:     gocui.MouseLeft,
+		Handler: ViewClickHandler,
+		Mod:     gocui.ModNone,
 	}
 )
 
 type Action struct {
-	Name     string
-	Key      interface{}
-	Keys     []interface{}
-	ReRender bool
-	Handler  func(gui *Gui) func(*gocui.Gui, *gocui.View) error
-	Mod      gocui.Modifier
+	Name            string
+	Key             interface{}
+	Keys            []interface{}
+	ReRenderAllView bool
+	Handler         func(gui *Gui) func(*gocui.Gui, *gocui.View) error
+	Mod             gocui.Modifier
 }
 
 type ActionHandler func(gui *Gui) func(*gocui.Gui, *gocui.View) error

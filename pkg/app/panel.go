@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/TNK-Studio/lazykube/pkg/gui"
+	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/jroimartin/gocui"
 )
 
@@ -17,97 +17,159 @@ const (
 )
 
 var (
-	ClusterInfo = &gui.View{
+	ClusterInfo = &guilib.View{
 		Name:      clusterInfoViewName,
 		Title:     "Cluster Info",
 		Clickable: true,
-		LowerRightPointXFunc: func(gui *gui.Gui, view *gui.View) int {
+		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
 			return leftSideWidth(gui.MaxWidth())
 		},
 		LowerRightPointYFunc: reactiveHeight,
 		OnRender:             renderClusterInfo,
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+		},
 	}
 
-	Deployment = &gui.View{
-		Name:      deploymentViewName,
-		Title:     "Deployments",
-		FgColor:   gocui.ColorDefault,
-		Clickable: true,
-		//Highlight:   true,
-		//SelFgColor:  gocui.ColorGreen,
-		//SelBgColor:  gocui.ColorDefault,
-		OnRender:    deploymentRender,
-		OnLineClick: viewLineClickHandler,
-		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+	Deployment = &guilib.View{
+		Name:                 deploymentViewName,
+		Title:                "Deployments",
+		FgColor:              gocui.ColorDefault,
+		Clickable:            true,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnRender:             deploymentRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
 			}
 			return nil
 		},
-		DimensionFunc: gui.BeneathView(
+		DimensionFunc: guilib.BeneathView(
 			serviceViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(deploymentViewName, "deployments"),
+		},
 	}
 
-	Navigation = &gui.View{
+	Navigation = &guilib.View{
 		Name:         navigationViewName,
 		Title:        "Navigation",
 		Clickable:    true,
 		CanNotReturn: true,
 		OnClick:      navigationOnClick,
 		FgColor:      gocui.ColorGreen,
-		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
 		OnRender: navigationRender,
+		Actions: []*guilib.Action{
+			{
+				Name:    "navigationArrowLeft",
+				Key:     gocui.KeyArrowLeft,
+				Handler: navigationArrowLeftHandler,
+				Mod:     gocui.ModNone,
+			},
+			{
+				Name:    "navigationArrowRight",
+				Key:     gocui.KeyArrowRight,
+				Handler: navigationArrowRightHandler,
+				Mod:     gocui.ModNone,
+			},
+			{
+				Name: "navigationDown",
+				Key:  gocui.KeyArrowDown,
+				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+					return func(*gocui.Gui, *gocui.View) error {
+						if err := gui.FocusView(detailViewName, false); err != nil {
+							return err
+						}
+						return nil
+					}
+				},
+				Mod: gocui.ModNone,
+			},
+		},
 	}
 
-	Detail = &gui.View{
+	Detail = &guilib.View{
 		Name:      detailViewName,
 		Wrap:      true,
 		Title:     "",
 		Clickable: true,
 		OnRender:  detailRender,
-		//OnFocusLost: func(gui *gui.Gui, view *gui.View) error {
-		//	if err := view.SetCursor(0, 0); err != nil {
-		//		return err
-		//	}
-		//
-		//	return nil
-		//},
-		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
+		},
+		Actions: []*guilib.Action{
+			{
+				Name: "detailArrowUp",
+				Key:  gocui.KeyArrowUp,
+				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+					return func(*gocui.Gui, *gocui.View) error {
+						gui.FocusView(navigationViewName, false)
+						return nil
+					}
+				},
+				Mod: gocui.ModNone,
+			},
 		},
 	}
 
-	Namespace = &gui.View{
+	Namespace = &guilib.View{
 		Name:      namespaceViewName,
 		Title:     "Namespaces",
 		Clickable: true,
-		//Highlight:   true,
-		//SelFgColor:  gocui.ColorGreen,
-		//SelBgColor:  gocui.ColorDefault,
-		OnRender:    namespaceRender,
-		OnLineClick: viewLineClickHandler,
-		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+		OnRender:  namespaceRender,
+		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
+			formatted := formatResourceName(selectedLine, 0)
+			if notResourceSelected(formatted) {
+				formatted = ""
+			}
+
+			if formatted == "" {
+				switchNamespace(gui, "")
+				return nil
+			} else {
+				switchNamespace(gui, formatSelectedNamespace(selectedLine))
+			}
+			return nil
+		},
+		Highlight:  true,
+		SelFgColor: gocui.ColorGreen,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
 			}
 			return nil
 		},
 		FgColor: gocui.ColorDefault,
-		DimensionFunc: gui.BeneathView(
+		DimensionFunc: guilib.BeneathView(
 			clusterInfoViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(namespaceViewName, "namespaces"),
+		},
 	}
 
-	Option = &gui.View{
+	Option = &guilib.View{
 		Name: optionViewName,
-		DimensionFunc: func(gui *gui.Gui, view *gui.View) (int, int, int, int) {
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			return 0, maxHeight - 2, maxWidth, maxHeight
 		},
@@ -115,48 +177,60 @@ var (
 		FgColor: gocui.ColorBlue,
 	}
 
-	Pod = &gui.View{
-		Name:      podViewName,
-		Title:     "Pods",
-		Clickable: true,
-		//Highlight:   true,
-		//SelFgColor:  gocui.ColorGreen,
-		//SelBgColor:  gocui.ColorDefault,
-		OnRender:    podRender,
-		OnLineClick: viewLineClickHandler,
-		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+	Pod = &guilib.View{
+		Name:                 podViewName,
+		Title:                "Pods",
+		Clickable:            true,
+		OnRender:             podRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
 			}
 			return nil
 		},
 		FgColor: gocui.ColorDefault,
-		DimensionFunc: gui.BeneathView(
+		DimensionFunc: guilib.BeneathView(
 			deploymentViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(podViewName, "pods"),
+		},
 	}
 
-	Service = &gui.View{
-		Name:      serviceViewName,
-		Title:     "Services",
-		Clickable: true,
-		//Highlight:   true,
-		//SelFgColor:  gocui.ColorGreen,
-		//SelBgColor:  gocui.ColorDefault,
-		OnRender:    serviceRender,
-		OnLineClick: viewLineClickHandler,
-		OnFocus: func(gui *gui.Gui, view *gui.View) error {
+	Service = &guilib.View{
+		Name:                 serviceViewName,
+		Title:                "Services",
+		Clickable:            true,
+		OnRender:             serviceRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
 			}
 			return nil
 		},
-		DimensionFunc: gui.BeneathView(
+		DimensionFunc: guilib.BeneathView(
 			namespaceViewName,
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(serviceViewName, "services"),
+		},
 	}
 )

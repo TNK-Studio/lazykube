@@ -25,34 +25,44 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 	}
 
 	view.Clear()
-	selectedNamespace, _ := Namespace.State.Get(selectedViewLine)
-	selected, _ := Pod.State.Get(selectedViewLine)
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return err
+	}
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+
+	podView, err := gui.GetView(podViewName)
+	if err != nil {
+		return err
+	}
+
+	selected := podView.SelectedLine
 	resource := "pod"
-	if selected == nil {
+	if notResourceSelected(selected) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	var namespace, selectedName string
-	if selectedNamespace != nil {
-		selectedName = formatSelectedName(selected.(string), 0)
-		if selectedName == "" {
+	var resourceName string
+	if !notResourceSelected(namespace) {
+		resourceName = formatResourceName(selected, 0)
+		if notResourceSelected(resourceName) {
 			showPleaseSelected(view, resource)
 			return nil
 		}
 		namespace = kubecli.Cli.Namespace()
 	} else {
-		namespace = formatSelectedName(selected.(string), 0)
-		selectedName = formatSelectedName(selected.(string), 1)
+		namespace = formatResourceName(selected, 0)
+		resourceName = formatResourceName(selected, 1)
 	}
-	if selectedName == "" {
+	if notResourceSelected(resourceName) {
 		showPleaseSelected(view, resource)
 		return nil
 	}
 
-	metrics, err := kubecli.Cli.GetPodMetrics(namespace, selectedName, false, nil)
+	metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)
 	if err != nil {
-		log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, selectedName, err)
+		log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, resourceName, err)
 	}
 	fmt.Fprintln(view)
 	cpuPlot := getPlot(
@@ -61,7 +71,7 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		cpuPlotStateKey,
 		"CPU: %0.0fm (%v)",
 		namespace,
-		selectedName,
+		resourceName,
 		func() []float64 {
 			data := make([]float64, 0)
 			if metrics == nil {
@@ -83,7 +93,7 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		memoryPlotStateKey,
 		"Memory: %0.0fMi (%v)",
 		namespace,
-		selectedName,
+		resourceName,
 		func() []float64 {
 			data := make([]float64, 0)
 			if metrics == nil {
