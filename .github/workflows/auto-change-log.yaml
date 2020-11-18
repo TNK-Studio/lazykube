@@ -15,6 +15,7 @@ jobs:
       - uses: actions/checkout@master
         with:
           fetch-depth: 0
+      - run: echo "branch ${{ github.GITHUB_REF }}"
       - name: Generate Auto Changelog
         uses: elfgzp/action-auto-changelog@master
         with:
