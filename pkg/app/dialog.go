@@ -315,3 +315,26 @@ func closeFilterDialog(gui *guilib.Gui) error {
 	gui.Configure()
 	return nil
 }
+
+func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*moreAction) error {
+	moreActionView := &guilib.View{
+		Title: title,
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			view.Clear()
+			for _, moreAct := range moreActions {
+				fmt.Fprintf(view, "%-7s %s", moreAct.keyName, moreAct.description)
+			}
+			return nil
+		},
+		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := gui.DeleteView(view.Name); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	if err := gui.AddView(moreActionView); err != nil {
+		return err
+	}
+	return nil
+}

@@ -92,14 +92,14 @@ func (app *App) OnRenderOptions(gui *guilib.Gui) error {
 		app.Option.Name,
 		utils.OptionsMapToString(
 			map[string]string{
-				"← → ↑ ↓":   "navigate",
+				"←→↑↓":      "navigate",
 				"Ctrl+c":    "exit",
 				"Esc":       "back",
 				"PgUp/PgDn": "scroll",
 				"Home/End":  "top/bottom",
 				"Tab":       "next panel",
-				"F4":        "filter",
-				"m":         "menu",
+				"f":         "filter",
+				"m":         "more action",
 			}),
 	)
 }

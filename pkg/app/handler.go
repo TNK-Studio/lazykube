@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
@@ -187,26 +186,16 @@ func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func newFilterAction(viewName string, resourceName string) *guilib.Action {
-	return &guilib.Action{
-		Name: fmt.Sprintf("%sFilterAction", viewName),
-		Key:  gocui.KeyF4,
-		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
-			return func(g *gocui.Gui, v *gocui.View) error {
-				if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, viewName); err != nil {
-					return err
-				}
-				return nil
-			}
-		},
-		Mod: gocui.ModNone,
-	}
-}
-
 func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
 	if err := setViewSelectedLine(gui, view, selectedLine); err != nil {
 		return err
 	}
 	gui.ReRenderViews(view.Name, navigationViewName, detailViewName)
 	return nil
+}
+
+func editResourceHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+	return func(g *gocui.Gui, v *gocui.View) error {
+		return nil
+	}
 }

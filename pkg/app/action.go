@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/jroimartin/gocui"
@@ -94,7 +95,30 @@ var (
 			Mod:     gocui.ModNone,
 		},
 	}
+
+	editResource = &moreAction{
+		keyName:     "e",
+		description: "edit",
+		action: &guilib.Action{
+			Name:    "editResource",
+			Key:     'e',
+			Handler: nil,
+			Mod:     0,
+		},
+	}
+
+	moreActionsMap = map[string][]*moreAction{
+		deploymentViewName: {
+			editResource,
+		},
+	}
 )
+
+type moreAction struct {
+	keyName     string
+	description string
+	action      *guilib.Action
+}
 
 func setViewSelectedLine(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
 	formatted := formatResourceName(selectedLine, 0)
@@ -121,4 +145,42 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	detailView.Autoscroll = false
 	detailView.SetOrigin(0, 0)
 	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
+}
+
+func newFilterAction(viewName string, resourceName string) *guilib.Action {
+	return &guilib.Action{
+		Name: fmt.Sprintf("%sFilterAction", viewName),
+		Keys: []interface{}{
+			gocui.KeyF4,
+			'f',
+		},
+		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
+			return func(g *gocui.Gui, v *gocui.View) error {
+				if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, viewName); err != nil {
+					return err
+				}
+				return nil
+			}
+		},
+		Mod: gocui.ModNone,
+	}
+}
+
+func newMoreActions(viewName string, moreActions []*moreAction) *guilib.Action {
+	return &guilib.Action{
+		Name: fmt.Sprintf("%sMoreActions", viewName),
+		Keys: []interface{}{
+			gocui.KeyF5,
+			'm',
+		},
+		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
+			return func(g *gocui.Gui, v *gocui.View) error {
+				if err := newMoreActionDialog("More Actions", gui, moreActions); err != nil {
+					return err
+				}
+				return nil
+			}
+		},
+		Mod: gocui.ModNone,
+	}
 }
