@@ -30,6 +30,10 @@ var (
 			toNavigation,
 			nextCyclicView,
 		},
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
+			gui.ReRenderViews(navigationViewName, detailViewName)
+			return nil
+		},
 	}
 
 	Deployment = &guilib.View{
