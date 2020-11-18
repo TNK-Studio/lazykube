@@ -19,3 +19,4 @@ jobs:
         uses: elfgzp/action-auto-changelog@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_BRANCH: ${{github.GITHUB_REF##*/}}
