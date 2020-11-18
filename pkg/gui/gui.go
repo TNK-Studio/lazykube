@@ -22,6 +22,8 @@ type Gui struct {
 
 	preHeight int
 	preWidth  int
+
+	Actions []*Action
 }
 
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
@@ -73,6 +75,10 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 	for _, view := range gui.views {
+		if err := gui.updateSelectedViewLine(view); err != nil {
+			return err
+		}
+
 		err := gui.RenderView(view)
 		if err == nil {
 			continue
@@ -103,6 +109,24 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
+	return nil
+}
+
+func (gui *Gui) updateSelectedViewLine(view *View) error {
+	if !view.Rendered() {
+		return nil
+	}
+
+	_, cy := view.Cursor()
+	selectedLine, _ := view.Line(cy)
+	if selectedLine != view.SelectedLine {
+		view.SelectedLine = selectedLine
+		if view.OnSelectedLineChange != nil {
+			if err := view.OnSelectedLineChange(gui, view, selectedLine); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -159,7 +183,7 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 
 func (gui *Gui) BindAction(viewName string, action *Action) {
 	var handler func(g *gocui.Gui, v *gocui.View) error
-	if action.ReRender {
+	if action.ReRenderAllView {
 		handler = func(g *gocui.Gui, v *gocui.View) error {
 			if err := action.Handler(gui)(g, v); err != nil {
 				return err
@@ -199,6 +223,12 @@ func (gui *Gui) ViewDimensionValidated(x0, y0, x1, y1 int) bool {
 }
 
 func (gui *Gui) Run() {
+	if gui.Actions != nil {
+		for _, act := range gui.Actions {
+			gui.BindAction("", act)
+		}
+	}
+
 	for _, view := range gui.views {
 		if view.Clickable {
 			gui.BindAction(view.Name, ClickView)
@@ -530,4 +560,16 @@ func (gui *Gui) renderOptions() error {
 
 func (gui *Gui) SetRune(x, y int, ch rune, fgColor, bgColor gocui.Attribute) error {
 	return gui.g.SetRune(x, y, ch, fgColor, bgColor)
+}
+
+func (gui *Gui) ReRenderViews(viewNames ...string) {
+	for _, name := range viewNames {
+		view, err := gui.GetView(name)
+		if err != nil {
+			log.Logger.Warningf("ReRenderViews - view '%s' error %s", name, err)
+			continue
+		}
+
+		view.ReRender()
+	}
 }

@@ -1,12 +1,9 @@
 package app
 
 import (
-	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
-	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
-	"math"
 )
 
 const (
@@ -48,134 +45,75 @@ var (
 	}
 
 	previousLine = &guilib.Action{
-		Name:     "previousLine",
-		Key:      gocui.KeyArrowUp,
-		Handler:  previousLineHandler,
-		Mod:      gocui.ModNone,
-		ReRender: true,
+		Name:    "previousLine",
+		Key:     gocui.KeyArrowUp,
+		Handler: previousLineHandler,
+		Mod:     gocui.ModNone,
 	}
 
 	nextLine = &guilib.Action{
-		Name:     "nextLine",
-		Key:      gocui.KeyArrowDown,
-		Handler:  nextLineHandler,
-		Mod:      gocui.ModNone,
-		ReRender: true,
+		Name:    "nextLine",
+		Key:     gocui.KeyArrowDown,
+		Handler: nextLineHandler,
+		Mod:     gocui.ModNone,
 	}
 
 	actions = []*guilib.Action{
 		backToPreviousView,
-		&guilib.Action{
-			Name: "scrollUp",
+		{
+			Name: "previousPage",
 			Keys: []interface{}{
 				gocui.KeyPgup,
+			},
+			Handler: previousPageHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name: "nextPage",
+			Keys: []interface{}{
+				gocui.KeyPgdn,
+			},
+			Handler: nextPageHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name: "scrollUp",
+			Keys: []interface{}{
 				gocui.MouseWheelUp,
 			},
 			Handler: scrollUpHandler,
 			Mod:     gocui.ModNone,
 		},
-		&guilib.Action{
+		{
 			Name: "scrollDown",
 			Keys: []interface{}{
-				gocui.KeyPgdn,
 				gocui.MouseWheelDown,
 			},
 			Handler: scrollDownHandler,
 			Mod:     gocui.ModNone,
 		},
-		&guilib.Action{
+		{
 			Name:    "scrollTop",
 			Key:     gocui.KeyHome,
 			Handler: scrollTopHandler,
 			Mod:     gocui.ModNone,
 		},
-		&guilib.Action{
+		{
 			Name:    "scrollBottom",
 			Key:     gocui.KeyEnd,
 			Handler: scrollBottomHandler,
 			Mod:     gocui.ModNone,
 		},
 	}
-
-	viewActionsMap = map[string][]*guilib.Action{
-		navigationViewName: {
-			&guilib.Action{
-				Name:     "navigationArrowLeft",
-				Key:      gocui.KeyArrowLeft,
-				Handler:  navigationArrowLeftHandler,
-				Mod:      gocui.ModNone,
-				ReRender: true,
-			},
-			&guilib.Action{
-				Name:     "navigationArrowRight",
-				Key:      gocui.KeyArrowRight,
-				Handler:  navigationArrowRightHandler,
-				Mod:      gocui.ModNone,
-				ReRender: true,
-			},
-			&guilib.Action{
-				Name: "navigationDown",
-				Key:  gocui.KeyArrowDown,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						gui.FocusView(detailViewName, false)
-						return nil
-					}
-				},
-				Mod:      gocui.ModNone,
-				ReRender: true,
-			},
-		},
-		detailViewName: {
-			&guilib.Action{
-				Name: "detailArrowUp",
-				Key:  gocui.KeyArrowUp,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						gui.FocusView(navigationViewName, false)
-						return nil
-					}
-				},
-				Mod:      gocui.ModNone,
-				ReRender: true,
-			},
-		},
-		clusterInfoViewName: {
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-		},
-		namespaceViewName: {
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-			previousLine,
-			nextLine,
-			newFilterAction(namespaceViewName, "namespaces"),
-		},
-		serviceViewName: {
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-			previousLine,
-			nextLine,
-		},
-		deploymentViewName: {
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-			previousLine,
-			nextLine,
-		},
-		podViewName: {
-			toNavigation,
-			nextCyclicView,
-			//previousCyclicView,
-			previousLine,
-			nextLine,
-		},
-	}
 )
+
+func setViewSelectedLine(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
+	formatted := formatResourceName(selectedLine, 0)
+	if notResourceSelected(formatted) {
+		formatted = ""
+	}
+	return nil
+}
 
 func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	kubecli.Cli.SetNamespace(selectedNamespaceLine)
@@ -193,234 +131,5 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	}
 	detailView.Autoscroll = false
 	detailView.SetOrigin(0, 0)
-}
-
-func nextCyclicViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-
-		currentView := gui.CurrentView()
-		if currentView == nil {
-			return nil
-		}
-
-		for index, viewName := range cyclicViews {
-			if currentView.Name == viewName {
-				nextIndex := index + 1
-				if nextIndex >= len(cyclicViews) {
-					nextIndex = 0
-				}
-				nextViewName := cyclicViews[nextIndex]
-				log.Logger.Debugf("nextCyclicViewHandler - nextViewName: %s", nextViewName)
-				return gui.FocusView(nextViewName, true)
-			}
-		}
-		return nil
-	}
-}
-
-func previousCyclicViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-
-		currentView := gui.CurrentView()
-		if currentView == nil {
-			return nil
-		}
-
-		for index, viewName := range cyclicViews {
-			if currentView.Name == viewName {
-				nextIndex := index - 1
-				if nextIndex < 0 {
-					nextIndex = len(cyclicViews) - 1
-				}
-				previousViewName := cyclicViews[nextIndex]
-				log.Logger.Debugf("previousCyclicViewHandler - previousViewName: %s", previousViewName)
-				return gui.FocusView(cyclicViews[nextIndex], true)
-			}
-		}
-		return nil
-	}
-}
-
-func backToPreviousViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-		if gui.HasPreviousView() {
-			return gui.ReturnPreviousView()
-		}
-
-		return gui.FocusView(clusterInfoViewName, false)
-	}
-}
-
-func toNavigationHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-		return gui.FocusView(navigationViewName, true)
-	}
-}
-
-func navigationArrowRightHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-		options := viewNavigationMap[activeView.Name]
-		if navigationIndex+1 >= len(options) {
-			return nil
-		}
-		switchNavigation(navigationIndex + 1)
-		return nil
-	}
-}
-
-func navigationArrowLeftHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-		if navigationIndex-1 < 0 {
-			return gui.ReturnPreviousView()
-		}
-		switchNavigation(navigationIndex - 1)
-		return nil
-	}
-}
-
-func scrollUpHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		v.Autoscroll = false
-		ox, oy := v.Origin()
-		newOy := int(math.Max(0, float64(oy-2)))
-		return v.SetOrigin(ox, newOy)
-	}
-}
-
-func scrollDownHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		v.Autoscroll = false
-		ox, oy := v.Origin()
-
-		reservedLines := 0
-		_, sizeY := v.Size()
-		reservedLines = sizeY
-
-		totalLines := len(v.ViewBufferLines())
-		if oy+reservedLines >= totalLines {
-			v.Autoscroll = true
-			return nil
-		}
-
-		return v.SetOrigin(ox, oy+2)
-	}
-}
-
-func scrollTopHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		v.Autoscroll = false
-		ox, _ := v.Origin()
-		return v.SetOrigin(ox, 0)
-	}
-}
-
-func scrollBottomHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		totalLines := len(v.ViewBufferLines())
-		if totalLines == 0 {
-			return nil
-		}
-		_, vy := v.Size()
-		if totalLines <= vy {
-			return nil
-		}
-
-		ox, _ := v.Origin()
-		v.Autoscroll = true
-		return v.SetOrigin(ox, totalLines-1)
-	}
-}
-
-func viewLineClickHandler(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
-	detailView, _ := gui.GetView(detailViewName)
-	if detailView != nil {
-		detailView.SetOrigin(0, 0)
-	}
-
-	if cy == 0 {
-		selected := formatSelectedName(lineString, 0)
-		if notResourceSelected(selected) {
-			log.Logger.Debugf("viewLineClickHandler - view: '%s' cy == 0, setViewSelectedLine(gui, view, \"\")", view.Name)
-			return setViewSelectedLine(gui, view, "")
-		}
-	}
-
-	log.Logger.Debugf("viewLineClickHandler - view: '%s' setViewSelectedLine(gui, %s, \"%s\")", view.Name, lineString)
-	return setViewSelectedLine(gui, view, lineString)
-}
-
-func previousLineHandler(gui *guilib.Gui) func(gui *gocui.Gui, view *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		currentView := gui.CurrentView()
-		if currentView == nil {
-			return nil
-		}
-
-		_, cy := v.Cursor()
-		ox, oy := v.Origin()
-		var lineStr string
-		var err error
-		if cy-1 < 0 {
-			if err := v.SetOrigin(ox, int(math.Max(0, float64(oy-1)))); err != nil {
-				return err
-			}
-			v.MoveCursor(0, -1, false)
-			_, newCy := v.Cursor()
-			lineStr, err = v.Line(newCy)
-			if err != nil {
-				log.Logger.Warningf("previousLineHandler - v.Line(cy - 1)", cy)
-			}
-		} else {
-			lineStr, err = v.Line(cy - 1)
-			if err != nil {
-				log.Logger.Warningf("previousLineHandler - v.Line(cy - 1)", cy)
-			}
-			v.MoveCursor(0, -1, false)
-		}
-
-		return setViewSelectedLine(gui, currentView, lineStr)
-	}
-}
-
-func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, v *gocui.View) error {
-		currentView := gui.CurrentView()
-		if currentView == nil {
-			return nil
-		}
-
-		_, cy := v.Cursor()
-		lineStr, err := v.Line(cy + 1)
-		if err != nil {
-			log.Logger.Warningf("nextLineHandler - v.Line(%d + 1)", cy)
-		}
-		v.MoveCursor(0, 1, false)
-		if currentView.Name == namespaceViewName {
-			namespace := formatSelectedNamespace(lineStr)
-			log.Logger.Debugf("nextLineHandler - switch namespace to %s", namespace)
-			switchNamespace(gui, namespace)
-		}
-
-		return setViewSelectedLine(gui, currentView, lineStr)
-	}
-}
-
-func newFilterAction(viewName string, resourceName string) *guilib.Action {
-	return &guilib.Action{
-		Name: fmt.Sprintf("%sFilterAction", viewName),
-		Key:  gocui.KeyF4,
-		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
-			return func(g *gocui.Gui, v *gocui.View) error {
-				view, err := gui.GetView(viewName)
-				if err != nil {
-					return err
-				}
-				if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, view); err != nil {
-					return err
-				}
-				return nil
-			}
-		},
-		Mod: gocui.ModNone,
-	}
+	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
 }

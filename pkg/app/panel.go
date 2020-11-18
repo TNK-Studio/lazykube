@@ -26,15 +26,22 @@ var (
 		},
 		LowerRightPointYFunc: reactiveHeight,
 		OnRender:             renderClusterInfo,
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+		},
 	}
 
 	Deployment = &guilib.View{
-		Name:        deploymentViewName,
-		Title:       "Deployments",
-		FgColor:     gocui.ColorDefault,
-		Clickable:   true,
-		OnRender:    deploymentRender,
-		OnLineClick: viewLineClickHandler,
+		Name:                 deploymentViewName,
+		Title:                "Deployments",
+		FgColor:              gocui.ColorDefault,
+		Clickable:            true,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnRender:             deploymentRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
@@ -46,6 +53,14 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(deploymentViewName, "deployments"),
+		},
 	}
 
 	Navigation = &guilib.View{
@@ -59,6 +74,33 @@ var (
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
 		OnRender: navigationRender,
+		Actions: []*guilib.Action{
+			{
+				Name:    "navigationArrowLeft",
+				Key:     gocui.KeyArrowLeft,
+				Handler: navigationArrowLeftHandler,
+				Mod:     gocui.ModNone,
+			},
+			{
+				Name:    "navigationArrowRight",
+				Key:     gocui.KeyArrowRight,
+				Handler: navigationArrowRightHandler,
+				Mod:     gocui.ModNone,
+			},
+			{
+				Name: "navigationDown",
+				Key:  gocui.KeyArrowDown,
+				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+					return func(*gocui.Gui, *gocui.View) error {
+						if err := gui.FocusView(detailViewName, false); err != nil {
+							return err
+						}
+						return nil
+					}
+				},
+				Mod: gocui.ModNone,
+			},
+		},
 	}
 
 	Detail = &guilib.View{
@@ -70,14 +112,43 @@ var (
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
+		Actions: []*guilib.Action{
+			{
+				Name: "detailArrowUp",
+				Key:  gocui.KeyArrowUp,
+				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+					return func(*gocui.Gui, *gocui.View) error {
+						gui.FocusView(navigationViewName, false)
+						return nil
+					}
+				},
+				Mod: gocui.ModNone,
+			},
+		},
 	}
 
 	Namespace = &guilib.View{
-		Name:        namespaceViewName,
-		Title:       "Namespaces",
-		Clickable:   true,
-		OnRender:    namespaceRender,
-		OnLineClick: viewLineClickHandler,
+		Name:      namespaceViewName,
+		Title:     "Namespaces",
+		Clickable: true,
+		OnRender:  namespaceRender,
+		//OnLineClick: viewLineClickHandler,
+		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
+			formatted := formatResourceName(selectedLine, 0)
+			if notResourceSelected(formatted) {
+				formatted = ""
+			}
+
+			if formatted == "" {
+				switchNamespace(gui, "")
+				return nil
+			} else {
+				switchNamespace(gui, formatSelectedNamespace(selectedLine))
+			}
+			return nil
+		},
+		Highlight:  true,
+		SelFgColor: gocui.ColorGreen,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
@@ -90,6 +161,14 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(namespaceViewName, "namespaces"),
+		},
 	}
 
 	Option = &guilib.View{
@@ -103,11 +182,13 @@ var (
 	}
 
 	Pod = &guilib.View{
-		Name:        podViewName,
-		Title:       "Pods",
-		Clickable:   true,
-		OnRender:    podRender,
-		OnLineClick: viewLineClickHandler,
+		Name:                 podViewName,
+		Title:                "Pods",
+		Clickable:            true,
+		OnRender:             podRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
@@ -120,14 +201,24 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(podViewName, "pods"),
+		},
 	}
 
 	Service = &guilib.View{
-		Name:        serviceViewName,
-		Title:       "Services",
-		Clickable:   true,
-		OnRender:    serviceRender,
-		OnLineClick: viewLineClickHandler,
+		Name:                 serviceViewName,
+		Title:                "Services",
+		Clickable:            true,
+		OnRender:             serviceRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
 				return err
@@ -139,28 +230,13 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		Actions: []*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			//previousCyclicView,
+			previousLine,
+			nextLine,
+			newFilterAction(serviceViewName, "services"),
+		},
 	}
 )
-
-func setViewSelectedLine(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
-	formatted := formatSelectedName(selectedLine, 0)
-	if formatted == "NAME" || formatted == "NAMESPACE" {
-		formatted = ""
-	}
-
-	if formatted == "" {
-		if err := view.State.Set(selectedViewLine, nil); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if view.Name == namespaceViewName {
-		switchNamespace(gui, formatSelectedNamespace(selectedLine))
-	}
-
-	if err := view.State.Set(selectedViewLine, selectedLine); err != nil {
-		return err
-	}
-	return nil
-}

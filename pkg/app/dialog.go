@@ -4,14 +4,16 @@ import (
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
+	"github.com/TNK-Studio/lazykube/pkg/utils"
 	"github.com/jroimartin/gocui"
 	"strings"
 )
 
 const (
-	filterInputViewName = "filterInput"
-	filteredViewName    = "filtered"
-	filteredNoResource  = "No Resource."
+	filterInputViewName      = "filterInput"
+	filterInputValueStateKey = "value"
+	filteredViewName         = "filtered"
+	filteredNoResource       = "No Resource."
 )
 
 var (
@@ -41,21 +43,42 @@ var (
 		},
 		Mod: gocui.ModNone,
 	}
-)
 
-func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) error {
-	resourceList := resourceView.ViewBufferLines()
-	if len(resourceList) == 0 {
-		return nil
+	filteredNextLine = &guilib.Action{
+		Name: "filteredNextLine",
+		Keys: []interface{}{
+			gocui.KeyArrowDown,
+		},
+		Handler: nextLineHandler,
+		Mod:     gocui.ModNone,
 	}
 
+	filteredPreviousLine = &guilib.Action{
+		Name: "filteredPreviousLine",
+		Keys: []interface{}{
+			gocui.KeyArrowUp,
+		},
+		Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+			return func(g *gocui.Gui, v *gocui.View) error {
+				_, oy := v.Origin()
+				_, cy := v.Cursor()
+				if oy == 0 && cy-1 < 0 {
+					return gui.FocusView(filterInputViewName, false)
+				}
+				return previousLineHandler(gui)(g, v)
+			}
+		},
+		Mod: gocui.ModNone,
+	}
+)
+
+func NewConfirmFilterInput(resourceViewName string) *guilib.Action {
 	confirmFilterInput := &guilib.Action{
 		Name: "confirmFilterInput",
 		Key:  gocui.KeyEnter,
 		Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 			return func(*gocui.Gui, *gocui.View) error {
 				filteredView, err := gui.GetView(filteredViewName)
-
 				if err != nil {
 					return err
 				}
@@ -66,16 +89,21 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 					return nil
 				}
 
+				resourceView, err := gui.GetView(resourceViewName)
+				if err != nil {
+					return err
+				}
+
 				y := resourceView.WhichLine(filtered)
 				if y < 0 {
 					if err := resourceView.ResetCursorOrigin(); err != nil {
 						return err
 					}
 				} else {
-					if err := setViewSelectedLine(gui, resourceView, filtered); err != nil {
+					if err := resourceView.SetOrigin(0, y); err != nil {
 						return err
 					}
-					if err := resourceView.SetOrigin(0, y); err != nil {
+					if err := resourceView.SetCursor(0, 0); err != nil {
 						return err
 					}
 				}
@@ -85,12 +113,17 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 				if err := gui.ReturnPreviousView(); err != nil {
 					return err
 				}
-				gui.ReRender()
 				return nil
 			}
 		},
 		Mod: gocui.ModNone,
 	}
+	return confirmFilterInput
+}
+
+func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) error {
+
+	confirmFilterInput := NewConfirmFilterInput(resourceViewName)
 
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,
@@ -113,6 +146,12 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 			toFilteredView,
 			confirmFilterInput,
 		},
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			gui.Config.Cursor = true
+			gui.Configure()
+			return nil
+		},
+		OnRenderOptions: filterDialogRenderOption,
 		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = false
 			gui.Configure()
@@ -129,38 +168,18 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 			if len(bufferLines) > 0 {
 				value = view.ViewBufferLines()[0]
 			}
+
+			if err := view.State.Set(filterInputValueStateKey, value); err != nil {
+				log.Logger.Warningf("OnEditedChange - view.State.Set(filterInputValueStateKey,%s) error %s", value, err)
+				return
+			}
+
 			filteredView, err := gui.GetView(filteredViewName)
-
 			if err != nil {
-				log.Logger.Warningf("OnEditedChange - gui.GetView(%s) error %s", filteredViewName, err)
+				log.Logger.Warningf("filteredView - gui.GetView(filteredViewName) error %s", err)
 				return
 			}
-
-			filteredView.Clear()
-			if err := filteredView.ResetCursorOrigin(); err != nil {
-				log.Logger.Warningf("OnEditedChange filteredView.ResetCursorOrigin() error %s", err)
-				return
-			}
-
-			if value == "" {
-				fmt.Fprint(filteredView, strings.Join(resourceList[1:], "\n"))
-				return
-			}
-
-			filtered := make([]string, 0)
-			value = strings.ToLower(value)
-			for _, resource := range resourceList[1:] {
-				if strings.Index(strings.ToLower(resource), value) > -1 {
-					filtered = append(filtered, resource)
-				}
-			}
-
-			if len(filtered) == 0 {
-				fmt.Fprint(filteredView, filteredNoResource)
-				return
-			}
-
-			fmt.Fprint(filteredView, strings.Join(filtered, "\n"))
+			filteredView.ReRender()
 		},
 	}
 	filtered := &guilib.View{
@@ -174,12 +193,58 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 		Actions: []*guilib.Action{
 			toFilterInputView,
 			confirmFilterInput,
+			filteredNextLine,
+			filteredPreviousLine,
 		},
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
-			fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+			value := ""
+			val, _ := filterInput.State.Get(filterInputValueStateKey)
+			if val != nil {
+				value = val.(string)
+			}
+
+			view.Clear()
+			if err := view.ResetCursorOrigin(); err != nil {
+				log.Logger.Warningf("OnRender - view %s view.ResetCursorOrigin() error %s", filterInputViewName, err)
+				return err
+			}
+
+			resourceView, err := gui.GetView(resourceViewName)
+			if err != nil {
+				return err
+			}
+
+			resourceList := resourceView.ViewBufferLines()
+			if len(resourceList) == 0 {
+				return nil
+			}
+
+			if value == "" {
+				fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+				return nil
+			}
+
+			filtered := make([]string, 0)
+			value = strings.ToLower(value)
+			for _, resource := range resourceList[1:] {
+				if strings.Index(strings.ToLower(resource), value) > -1 {
+					filtered = append(filtered, resource)
+				}
+			}
+
+			if len(filtered) == 0 {
+				fmt.Fprint(view, filteredNoResource)
+				return nil
+			}
+
+			fmt.Fprint(view, strings.Join(filtered, "\n"))
 			return nil
 		},
-		OnFocusLost: filterDialogFocusLost,
+		OnRenderOptions: filterDialogRenderOption,
+		OnFocusLost:     filterDialogFocusLost,
+		OnLineClick: func(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
+			return nil
+		},
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			quarterWidth, quarterHeight := maxWidth/4, maxHeight/4
@@ -208,6 +273,22 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceView *guilib.View) e
 		return err
 	}
 	return nil
+}
+
+func filterDialogRenderOption(gui *guilib.Gui, view *guilib.View) error {
+	return gui.RenderString(
+		optionViewName,
+		utils.OptionsMapToString(
+			map[string]string{
+				"← → ↑ ↓":   "navigate",
+				"Ctrl+c":    "exit",
+				"Esc":       "close dialog",
+				"PgUp/PgDn": "scroll",
+				"Home/End":  "top/bottom",
+				"Tab":       "next panel",
+				"Enter":     "confirm",
+			}),
+	)
 }
 
 func filterDialogFocusLost(gui *guilib.Gui, view *guilib.View) error {

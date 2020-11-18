@@ -6,10 +6,10 @@ import (
 )
 
 func formatSelectedNamespace(selected string) string {
-	return formatSelectedName(selected, 0)
+	return formatResourceName(selected, 0)
 }
 
-func formatSelectedName(selected string, index int) string {
+func formatResourceName(selected string, index int) string {
 	if selected == "" {
 		return ""
 	}
