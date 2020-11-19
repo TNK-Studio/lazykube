@@ -55,6 +55,13 @@ func NewApp() *App {
 	app.Gui.OnRender = app.OnRender
 	app.Gui.OnRenderOptions = app.OnRenderOptions
 	app.Gui.Actions = actions
+	app.Gui.OnSizeChange = func(gui *guilib.Gui) error {
+		if err := resizePanelHeight(gui); err != nil {
+			return err
+		}
+
+		return nil
+	}
 	return app
 }
 

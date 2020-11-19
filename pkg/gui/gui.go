@@ -14,6 +14,7 @@ type (
 		Actions            []*Action
 		State              State
 		previousViews      TowHeadQueue
+		OnSizeChange       func(gui *Gui) error
 		OnRender           func(gui *Gui) error
 		OnRenderOptions    func(gui *Gui) error
 		previousViewsLimit int
@@ -71,6 +72,11 @@ func (gui *Gui) layout(*gocui.Gui) error {
 	if gui.preHeight != height || gui.preWidth != width {
 		gui.preHeight = height
 		gui.preWidth = width
+		if gui.OnSizeChange != nil {
+			if err := gui.OnSizeChange(gui); err != nil {
+				return err
+			}
+		}
 		gui.ReRender()
 	}
 
