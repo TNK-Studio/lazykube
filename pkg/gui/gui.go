@@ -10,9 +10,10 @@ import (
 type (
 	// Gui Gui
 	Gui struct {
-		views              []*View
-		Actions            []*Action
-		State              State
+		views   []*View
+		Actions []*Action
+		State   State
+		// History of focused views name.
 		previousViews      TowHeadQueue
 		OnSizeChange       func(gui *Gui) error
 		OnRender           func(gui *Gui) error
@@ -23,9 +24,6 @@ type (
 		preWidth           int
 		Config             config.GuiConfig
 		reRendered         bool
-
-		// History of focused views name.
-
 	}
 )
 
