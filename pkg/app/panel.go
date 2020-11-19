@@ -62,6 +62,7 @@ var (
 			previousLine,
 			nextLine,
 			filterAction,
+			editResourceAction,
 			newMoreActions(moreActionsMap[deploymentViewName]),
 		}),
 	}
@@ -167,6 +168,8 @@ var (
 			previousLine,
 			nextLine,
 			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
 	}
 
@@ -206,6 +209,8 @@ var (
 			previousLine,
 			nextLine,
 			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
 	}
 
@@ -234,6 +239,8 @@ var (
 			previousLine,
 			nextLine,
 			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
 	}
 )

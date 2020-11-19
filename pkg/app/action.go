@@ -116,20 +116,31 @@ var (
 		Mod: gocui.ModNone,
 	}
 
-	editResource = &moreAction{
+	editResourceAction = &guilib.Action{
+		Name:    "Edit Resource",
+		Key:     'e',
+		Handler: editResourceHandler,
+		Mod:     gocui.ModNone,
+	}
+
+	editResourceMoreAction = &moreAction{
 		NeedSelectPanel:    false,
 		NeedSelectResource: false,
-		Action: guilib.Action{
-			Name:    "Edit Resource",
-			Key:     'e',
-			Handler: editResourceHandler,
-			Mod:     gocui.ModNone,
-		},
+		Action:             *editResourceAction,
 	}
 
 	moreActionsMap = map[string][]*moreAction{
+		namespaceViewName: {
+			editResourceMoreAction,
+		},
+		serviceViewName: {
+			editResourceMoreAction,
+		},
 		deploymentViewName: {
-			editResource,
+			editResourceMoreAction,
+		},
+		podViewName: {
+			editResourceMoreAction,
 		},
 	}
 )
@@ -176,7 +187,7 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 	return &guilib.Action{
 		Name: "moreActions",
 		Keys: []interface{}{
-			gocui.KeyF5,
+			gocui.KeyF3,
 			'm',
 		},
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {

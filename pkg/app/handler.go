@@ -198,7 +198,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 		if notResourceSelected(resourceName) {
 			return "", "", err
 		}
-		return resourceName, namespace, nil
+		return namespace, resourceName, nil
 	}
 
 	namespace = formatResourceName(selected, 0)
@@ -235,7 +235,9 @@ func editResourceHandler(gui *guilib.Gui, view *guilib.View) error {
 	}
 
 	cli(namespace).Edit(newStdStream(), resource, resourceName).Run()
-	gui.Configure()
+	if err := gui.ForceFlush(); err != nil {
+		return err
+	}
 	gui.ReRenderAll()
 	return nil
 }

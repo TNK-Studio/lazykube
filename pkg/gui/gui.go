@@ -5,6 +5,7 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
+	"github.com/nsf/termbox-go"
 )
 
 type (
@@ -619,4 +620,27 @@ func (gui *Gui) ClearViews(viewNames ...string) {
 
 		view.Clear()
 	}
+}
+
+// ForceFlush ForceFlush
+func (gui *Gui) ForceFlush() error {
+	if err := termbox.Sync(); err != nil {
+		return err
+	}
+	inputMode := termbox.InputAlt
+	if gui.g.InputEsc {
+		inputMode = termbox.InputEsc
+	}
+	if gui.g.Mouse {
+		inputMode |= termbox.InputMouse
+	}
+	termbox.SetInputMode(inputMode)
+
+	// Must to set cursor otherwise hide cursor not work.
+	termbox.SetCursor(0, 0)
+	if !gui.g.Cursor {
+		termbox.HideCursor()
+	}
+
+	return termbox.Flush()
 }
