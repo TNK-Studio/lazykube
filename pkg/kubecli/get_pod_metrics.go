@@ -5,7 +5,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	. "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubectl/pkg/metricsutil"
 	metricsapi "k8s.io/metrics/pkg/apis/metrics"
 	metricsv1beta1api "k8s.io/metrics/pkg/apis/metrics/v1beta1"
@@ -29,7 +29,7 @@ func GetPodMetrics(m *metricsapi.PodMetrics) v1.ResourceList {
 }
 
 func GetAllResourceUsages(metrics *metricsutil.ResourceMetricsInfo) map[v1.ResourceName]int64 {
-	result := make(map[v1.ResourceName]int64, 0)
+	result := make(map[v1.ResourceName]int64)
 	for _, res := range metricsutil.MeasuredResources {
 		quantity := metrics.Metrics[res]
 		usage := GetSingleResourceUsage(res, quantity)
@@ -53,9 +53,13 @@ func GetSingleResourceUsage(resourceType v1.ResourceName, quantity resource.Quan
 	}
 }
 
-func (cli *KubeCLI) GetPodRawMetrics(namespace, name string, allNamespaces bool, selector labels.Selector) (*metricsapi.PodMetricsList, error) {
+func (cli *KubeCLI) GetPodRawMetrics(
+	namespace, name string,
+	allNamespaces bool,
+	selector Selector,
+) (*metricsapi.PodMetricsList, error) {
 	if selector == nil {
-		selector = labels.Everything()
+		selector = Everything()
 	}
 
 	var err error
@@ -94,15 +98,15 @@ func (cli *KubeCLI) GetPodRawMetrics(namespace, name string, allNamespaces bool,
 	return metrics, nil
 }
 
-func (cli *KubeCLI) GetPodMetrics(namespace, name string, allNamespaces bool, selector labels.Selector) ([]map[v1.ResourceName]int64, error) {
+func (cli *KubeCLI) GetPodMetrics(namespace, name string, allNamespaces bool, selector Selector) ([]map[v1.ResourceName]int64, error) {
 	metrics, err := cli.GetPodRawMetrics(namespace, name, allNamespaces, selector)
 	if err != nil {
 		return nil, err
 	}
 
 	result := make([]map[v1.ResourceName]int64, 0)
-	for _, metric := range metrics.Items {
-		podMetrics := GetPodMetrics(&metric)
+	for index, metric := range metrics.Items {
+		var podMetrics = GetPodMetrics(&metrics.Items[index])
 		metricsInfo := &metricsutil.ResourceMetricsInfo{
 			Name:      metric.Name,
 			Metrics:   podMetrics,

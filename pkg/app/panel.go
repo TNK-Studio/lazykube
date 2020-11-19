@@ -120,7 +120,10 @@ var (
 				Key:  gocui.KeyArrowUp,
 				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 					return func(*gocui.Gui, *gocui.View) error {
-						gui.FocusView(navigationViewName, false)
+						err := gui.FocusView(navigationViewName, false)
+						if err != nil {
+							return err
+						}
 						return nil
 					}
 				},
@@ -143,9 +146,8 @@ var (
 			if formatted == "" {
 				switchNamespace(gui, "")
 				return nil
-			} else {
-				switchNamespace(gui, formatSelectedNamespace(selectedLine))
 			}
+			switchNamespace(gui, formatSelectedNamespace(selectedLine))
 			return nil
 		},
 		Highlight:  true,

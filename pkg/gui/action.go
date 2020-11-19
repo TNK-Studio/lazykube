@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"errors"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 )
@@ -27,12 +28,13 @@ var (
 	}
 )
 
+// Action Action
 type Action struct {
+	Keys            []interface{}
 	Name            string
 	Key             interface{}
-	Keys            []interface{}
-	ReRenderAllView bool
 	Handler         func(gui *Gui) func(*gocui.Gui, *gocui.View) error
+	ReRenderAllView bool
 	Mod             gocui.Modifier
 }
 
@@ -44,8 +46,7 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 		log.Logger.Debugf("ViewClickHandler - view '%s' on click.", viewName)
 
 		currentView := gui.CurrentView()
-		canReturn := true
-
+		var canReturn = true
 		if currentView == nil || currentView.Name != viewName {
 			canReturn = true
 
@@ -60,7 +61,7 @@ func ViewClickHandler(gui *Gui) func(*gocui.Gui, *gocui.View) error {
 
 		view, err := gui.GetView(viewName)
 		if err != nil {
-			if err == gocui.ErrUnknownView {
+			if errors.Is(err, gocui.ErrUnknownView) {
 				log.Logger.Warningf("ViewClickHandler - gui.GetView(%s) error %+v", view, err)
 				return nil
 			}

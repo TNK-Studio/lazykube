@@ -72,6 +72,7 @@ var (
 	}
 )
 
+//nolint:gocognit
 func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 	confirmFilterInput := &guilib.Action{
 		Name: "confirmFilterInput",
@@ -121,7 +122,11 @@ func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 	return confirmFilterInput
 }
 
-func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) error {
+//nolint:funlen
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+func NewFilterDialog(title string, gui *guilib.Gui, resourceViewName string) error {
 
 	confirmFilterInput := newConfirmFilterInput(resourceViewName)
 
@@ -220,24 +225,35 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 			}
 
 			if value == "" {
-				fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+				_, err := fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+				if err != nil {
+					return err
+				}
+
 				return nil
 			}
 
 			filtered := make([]string, 0)
 			value = strings.ToLower(value)
 			for _, resource := range resourceList[1:] {
-				if strings.Index(strings.ToLower(resource), value) > -1 {
+				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)
 				}
 			}
 
 			if len(filtered) == 0 {
-				fmt.Fprint(view, filteredNoResource)
+				_, err := fmt.Fprint(view, filteredNoResource)
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 
-			fmt.Fprint(view, strings.Join(filtered, "\n"))
+			_, err = fmt.Fprint(view, strings.Join(filtered, "\n"))
+			if err != nil {
+				return err
+			}
+
 			return nil
 		},
 		OnRenderOptions: filterDialogRenderOption,
@@ -275,7 +291,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 	return nil
 }
 
-func filterDialogRenderOption(gui *guilib.Gui, view *guilib.View) error {
+func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
 	return gui.RenderString(
 		optionViewName,
 		utils.OptionsMapToString(
@@ -291,7 +307,7 @@ func filterDialogRenderOption(gui *guilib.Gui, view *guilib.View) error {
 	)
 }
 
-func filterDialogFocusLost(gui *guilib.Gui, view *guilib.View) error {
+func filterDialogFocusLost(gui *guilib.Gui, _ *guilib.View) error {
 	currentView := gui.CurrentView()
 
 	if currentView != nil && (currentView.Name == filterInputViewName || currentView.Name == filteredViewName) {
@@ -316,13 +332,16 @@ func closeFilterDialog(gui *guilib.Gui) error {
 	return nil
 }
 
-func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*moreAction) error {
+func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*guilib.Action) error {
 	moreActionView := &guilib.View{
 		Title: title,
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			view.Clear()
 			for _, moreAct := range moreActions {
-				fmt.Fprintf(view, "%-7s %s", moreAct.keyName, moreAct.description)
+				_, err := fmt.Fprintf(view, "%-7s %s", moreAct.Key, moreAct.Name)
+				if err != nil {
+					return err
+				}
 			}
 			return nil
 		},

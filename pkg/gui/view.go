@@ -28,61 +28,53 @@ func init() {
 	}
 }
 
-type View struct {
-	State State
-	Name  string
-	Title string
+type (
+	View struct {
+		Actions               []*Action
+		State                 State
+		Name                  string
+		Title                 string
+		SelectedLine          string
+		OnClick               func(gui *Gui, view *View) error
+		OnLineClick           func(gui *Gui, view *View, cy int, lineString string) error
+		OnRender              func(gui *Gui, view *View) error
+		OnRenderOptions       func(gui *Gui, view *View) error
+		OnFocus               func(gui *Gui, view *View) error
+		OnFocusLost           func(gui *Gui, view *View) error
+		OnCursorChange        func(gui *Gui, view *View, x, y int) error
+		OnEditedChange        func(gui *Gui, view *View, key gocui.Key, ch rune, mod gocui.Modifier)
+		OnSelectedLineChange  func(gui *Gui, view *View, selectedLine string) error
+		DimensionFunc         DimensionFunc
+		UpperLeftPointXFunc   ViewPointFunc
+		UpperLeftPointYFunc   ViewPointFunc
+		LowerRightPointXFunc  ViewPointFunc
+		LowerRightPointYFunc  ViewPointFunc
+		x0                    int
+		y0                    int
+		x1                    int
+		y1                    int
+		gui                   *Gui
+		v                     *gocui.View
+		FgColor               gocui.Attribute
+		BgColor               gocui.Attribute
+		SelBgColor            gocui.Attribute
+		SelFgColor            gocui.Attribute
+		Clickable             bool
+		Editable              bool
+		Wrap                  bool
+		Autoscroll            bool
+		IgnoreCarriageReturns bool
+		Highlight             bool
+		NoFrame               bool
+		MouseDisable          bool
+		CanNotReturn          bool
+		reRendered            bool
+		AlwaysOnTop           bool
 
-	Clickable   bool
-	OnClick     func(gui *Gui, view *View) error
-	OnLineClick func(gui *Gui, view *View, cy int, lineString string) error
+		// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
 
-	Editable              bool
-	Wrap                  bool
-	Autoscroll            bool
-	IgnoreCarriageReturns bool
-	Highlight             bool
-	NoFrame               bool
-	FgColor               gocui.Attribute
-	BgColor               gocui.Attribute
-	SelBgColor            gocui.Attribute
-	SelFgColor            gocui.Attribute
-	MouseDisable          bool
-
-	// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
-	CanNotReturn bool
-
-	reRendered bool
-
-	AlwaysOnTop bool
-
-	Actions []*Action
-
-	OnRender        func(gui *Gui, view *View) error
-	OnRenderOptions func(gui *Gui, view *View) error
-
-	OnFocus     func(gui *Gui, view *View) error
-	OnFocusLost func(gui *Gui, view *View) error
-
-	OnCursorChange func(gui *Gui, view *View, x, y int) error
-
-	OnEditedChange func(gui *Gui, view *View, key gocui.Key, ch rune, mod gocui.Modifier)
-
-	SelectedLine         string
-	OnSelectedLineChange func(gui *Gui, view *View, selectedLine string) error
-
-	DimensionFunc DimensionFunc
-
-	UpperLeftPointXFunc  ViewPointFunc
-	UpperLeftPointYFunc  ViewPointFunc
-	LowerRightPointXFunc ViewPointFunc
-	LowerRightPointYFunc ViewPointFunc
-
-	x0, y0, x1, y1 int
-
-	gui *Gui
-	v   *gocui.View
-}
+	}
+)
 
 func (view *View) InitView() {
 	if view.State == nil {
@@ -298,7 +290,7 @@ func (view *View) ResetCursorOrigin() error {
 	return nil
 }
 
-func (view *View) onCursorChange(v *gocui.View, x, y int) error {
+func (view *View) onCursorChange(_ *gocui.View, x, y int) error {
 	if view.OnCursorChange != nil {
 		if err := view.OnCursorChange(view.gui, view, x, y); err != nil {
 			return err

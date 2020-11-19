@@ -23,38 +23,22 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 	if !canRenderPlot(gui, view) {
 		return nil
 	}
-
 	view.Clear()
-	namespaceView, err := gui.GetView(namespaceViewName)
-	if err != nil {
-		return err
-	}
-	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	var err error
 
 	podView, err := gui.GetView(podViewName)
 	if err != nil {
 		return err
 	}
-
-	selected := podView.SelectedLine
 	resource := "pod"
-	if notResourceSelected(selected) {
-		showPleaseSelected(view, resource)
-		return nil
+	namespace, resourceName, err := getResourceNamespaceAndName(
+		gui,
+		podView,
+	)
+	if err != nil {
+		return err
 	}
 
-	var resourceName string
-	if !notResourceSelected(namespace) {
-		resourceName = formatResourceName(selected, 0)
-		if notResourceSelected(resourceName) {
-			showPleaseSelected(view, resource)
-			return nil
-		}
-		namespace = kubecli.Cli.Namespace()
-	} else {
-		namespace = formatResourceName(selected, 0)
-		resourceName = formatResourceName(selected, 1)
-	}
 	if notResourceSelected(resourceName) {
 		showPleaseSelected(view, resource)
 		return nil

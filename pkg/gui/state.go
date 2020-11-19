@@ -2,8 +2,10 @@ package gui
 
 import "errors"
 
-// StateKeyError StateKeyError
-var StateKeyError = errors.New("State key not existed. ")
+var (
+	// StateKeyError StateKeyError
+	StateKeyError = errors.New("State key not existed. ")
+)
 
 // State State
 type State interface {

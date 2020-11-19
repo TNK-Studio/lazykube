@@ -2,14 +2,17 @@ package app
 
 import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 	"math"
 )
 
 func nextCyclicViewHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(g *gocui.Gui, view *gocui.View) error {
-
+	return func(
+		g *gocui.Gui,
+		view *gocui.View,
+	) error {
 		currentView := gui.CurrentView()
 		if currentView == nil {
 			return nil
@@ -69,7 +72,7 @@ func navigationArrowLeftHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) e
 	}
 }
 
-func nextPageHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func nextPageHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
@@ -79,7 +82,7 @@ func nextPageHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func previousPageHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func previousPageHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
@@ -89,7 +92,7 @@ func previousPageHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func scrollUpHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func scrollUpHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
@@ -98,7 +101,7 @@ func scrollUpHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func scrollDownHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func scrollDownHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
@@ -117,7 +120,7 @@ func scrollDownHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func scrollTopHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func scrollTopHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		v.Autoscroll = false
 		ox, _ := v.Origin()
@@ -125,7 +128,7 @@ func scrollTopHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func scrollBottomHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func scrollBottomHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		totalLines := len(v.ViewBufferLines())
 		if totalLines == 0 {
@@ -154,8 +157,15 @@ func previousLineHandler(gui *guilib.Gui) func(gui *gocui.Gui, view *gocui.View)
 		ox, oy := v.Origin()
 
 		if cy-1 <= 0 && oy-1 > 0 {
-			v.SetOrigin(ox, int(math.Max(0, float64(oy-height+1))))
-			v.SetCursor(cx, height-1)
+			err := v.SetOrigin(ox, int(math.Max(0, float64(oy-height+1))))
+			if err != nil {
+				return err
+			}
+
+			err = v.SetCursor(cx, height-1)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 
@@ -176,8 +186,16 @@ func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 
 		if cy+1 >= height-1 {
 			ox, oy := v.Origin()
-			v.SetOrigin(ox, oy+height-1)
-			v.SetCursor(cx, 0)
+			err := v.SetOrigin(ox, oy+height-1)
+			if err != nil {
+				return err
+			}
+
+			err = v.SetCursor(cx, 0)
+			if err != nil {
+				return err
+			}
+
 			return nil
 		}
 
@@ -186,15 +204,47 @@ func nextLineHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	}
 }
 
-func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
-	if err := setViewSelectedLine(gui, view, selectedLine); err != nil {
-		return err
-	}
+func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string) error {
 	gui.ReRenderViews(view.Name, navigationViewName, detailViewName)
+	gui.ClearViews(detailViewName)
 	return nil
 }
 
-func editResourceHandler(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (string, string, error) {
+	namespaceView, err := gui.GetView(namespaceViewName)
+	if err != nil {
+		return "", "", err
+	}
+
+	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	selected := resourceView.SelectedLine
+
+	if selected == "" {
+		return "", "", err
+	}
+
+	if !notResourceSelected(namespace) {
+		resourceName := formatResourceName(selected, 0)
+		if notResourceSelected(resourceName) {
+			return "", "", err
+		}
+		return resourceName, namespace, nil
+	}
+
+	namespace = formatResourceName(selected, 0)
+	resourceName := formatResourceName(selected, 1)
+	if notResourceSelected(resourceName) {
+		return "", "", err
+	}
+
+	if namespace == "" {
+		namespace = kubecli.Cli.Namespace()
+	}
+
+	return namespace, resourceName, nil
+}
+
+func editResourceHandler(_ *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		return nil
 	}

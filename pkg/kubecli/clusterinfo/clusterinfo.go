@@ -12,6 +12,15 @@ import (
 	"strings"
 )
 
+// ClusterInfo ClusterInfo
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
+//nolint:gocognit
 func ClusterInfo(factory util.Factory) (string, error) {
 	client, err := factory.ToRESTConfig()
 	if err != nil {
@@ -48,30 +57,22 @@ func ClusterInfo(factory util.Factory) (string, error) {
 				name := service.ObjectMeta.Name
 
 				if len(service.Spec.Ports) > 0 {
-					port := service.Spec.Ports[0]
-
-					// guess if the scheme is https
-					scheme := ""
+					port, schemeStr := service.Spec.Ports[0], "" // guess if the scheme is https
 					if port.Name == "https" || port.Port == 443 {
-						scheme = "https"
-					}
-
-					// format is <scheme>:<service-name>:<service-port-name>
-					name = utilnet.JoinSchemeNamePort(scheme, service.ObjectMeta.Name, port.Name)
+						schemeStr = "https"
+					} // format is <scheme>:<service-name>:<service-port-name>
+					name = utilnet.JoinSchemeNamePort(schemeStr, service.ObjectMeta.Name, port.Name)
 				}
-
 				if len(client.GroupVersion.Group) == 0 {
 					link = client.Host + "/api/" + client.GroupVersion.Version + "/namespaces/" + service.ObjectMeta.Namespace + "/services/" + name + "/proxy"
 				} else {
 					link = client.Host + "/api/" + client.GroupVersion.Group + "/" + client.GroupVersion.Version + "/namespaces/" + service.ObjectMeta.Namespace + "/services/" + name + "/proxy"
-
 				}
 			}
 			name := service.ObjectMeta.Labels["kubernetes.io/name"]
 			if len(name) == 0 {
 				name = service.ObjectMeta.Name
 			}
-
 			infoArr = append(infoArr, fmt.Sprintf("%s %s", color.Green.Sprint(name), link))
 		}
 		return nil

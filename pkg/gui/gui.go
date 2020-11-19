@@ -1,35 +1,35 @@
 package gui
 
 import (
+	"errors"
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 )
 
-// Gui Gui
-type Gui struct {
-	State           State
-	reRendered      bool
-	OnRender        func(gui *Gui) error
-	OnRenderOptions func(gui *Gui) error
-	Config          config.GuiConfig
+type (
+	// Gui Gui
+	Gui struct {
+		views              []*View
+		Actions            []*Action
+		State              State
+		previousViews      TowHeadQueue
+		OnRender           func(gui *Gui) error
+		OnRenderOptions    func(gui *Gui) error
+		previousViewsLimit int
+		g                  *gocui.Gui
+		preHeight          int
+		preWidth           int
+		Config             config.GuiConfig
+		reRendered         bool
 
-	// History of focused views name.
-	previousViews      TowHeadQueue
-	previousViewsLimit int
+		// History of focused views name.
 
-	g     *gocui.Gui
-	views []*View
-
-	preHeight int
-	preWidth  int
-
-	Actions []*Action
-}
+	}
+)
 
 // NewGui NewGui
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
-
 	gui := &Gui{
 		State:              NewStateMap(),
 		previousViews:      NewQueue(),
@@ -87,7 +87,7 @@ func (gui *Gui) layout(*gocui.Gui) error {
 			continue
 		}
 
-		if err == ErrNotEnoughSpace {
+		if errors.Is(err, ErrNotEnoughSpace) {
 			if err := gui.renderNotEnoughSpaceView(); err != nil {
 				return err
 			}
@@ -252,7 +252,7 @@ func (gui *Gui) Run() {
 		}
 	}
 
-	if err := gui.g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := gui.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
 		log.Logger.Panicf("%+v", err)
 	}
 }
@@ -312,7 +312,7 @@ func (gui *Gui) SetView(view *View, x0, y0, x1, y1 int) (*View, error) {
 		view.Name,
 		x0, y0, x1, y1,
 	); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return nil, err
 		}
 
@@ -601,5 +601,18 @@ func (gui *Gui) ReRenderViews(viewNames ...string) {
 		}
 
 		view.ReRender()
+	}
+}
+
+// ClearViews ClearViews
+func (gui *Gui) ClearViews(viewNames ...string) {
+	for _, name := range viewNames {
+		view, err := gui.GetView(name)
+		if err != nil {
+			log.Logger.Warningf("ClearViews - view '%s' error %s", name, err)
+			continue
+		}
+
+		view.Clear()
 	}
 }

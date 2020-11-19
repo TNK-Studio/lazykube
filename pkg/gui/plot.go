@@ -81,9 +81,9 @@ func (plot *Plot) Render(io io.Writer) {
 	newData := plot.DataGetter()
 	plot.data = append(plot.data, newData...)
 	if len(plot.data) == 0 {
-		fmt.Fprintf(io, "%s - No data. ", plot.Name)
+		_, _ = fmt.Fprintf(io, "%s - No data. ", plot.Name)
 		return
 	}
 
-	fmt.Fprint(io, plot.Graph())
+	_, _ = fmt.Fprint(io, plot.Graph())
 }
