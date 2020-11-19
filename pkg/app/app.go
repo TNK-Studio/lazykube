@@ -54,7 +54,14 @@ func NewApp() *App {
 	)
 	app.Gui.OnRender = app.OnRender
 	app.Gui.OnRenderOptions = app.OnRenderOptions
-	app.Gui.Actions = actions
+	app.Gui.Actions = appActions
+	app.Gui.OnSizeChange = func(gui *guilib.Gui) error {
+		if err := resizePanelHeight(gui); err != nil {
+			return err
+		}
+
+		return nil
+	}
 	return app
 }
 
@@ -92,14 +99,14 @@ func (app *App) OnRenderOptions(gui *guilib.Gui) error {
 		app.Option.Name,
 		utils.OptionsMapToString(
 			map[string]string{
-				"← → ↑ ↓":   "navigate",
+				"←→↑↓":      "navigate",
 				"Ctrl+c":    "exit",
 				"Esc":       "back",
 				"PgUp/PgDn": "scroll",
 				"Home/End":  "top/bottom",
 				"Tab":       "next panel",
-				"F4":        "filter",
-				"m":         "menu",
+				"f":         "filter",
+				"m":         "more action",
 			}),
 	)
 }

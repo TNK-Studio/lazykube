@@ -26,10 +26,10 @@ var (
 		},
 		LowerRightPointYFunc: reactiveHeight,
 		OnRender:             renderClusterInfo,
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-		},
+		}),
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.ReRenderViews(navigationViewName, detailViewName)
 			return nil
@@ -56,13 +56,15 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(deploymentViewName, "deployments"),
-		},
+			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[deploymentViewName]),
+		}),
 	}
 
 	Navigation = &guilib.View{
@@ -76,7 +78,7 @@ var (
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
 		OnRender: navigationRender,
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
 				Name:    "navigationArrowLeft",
 				Key:     gocui.KeyArrowLeft,
@@ -92,17 +94,15 @@ var (
 			{
 				Name: "navigationDown",
 				Key:  gocui.KeyArrowDown,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						if err := gui.FocusView(detailViewName, false); err != nil {
-							return err
-						}
-						return nil
+				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
+					if err := gui.FocusView(detailViewName, false); err != nil {
+						return err
 					}
+					return nil
 				},
 				Mod: gocui.ModNone,
 			},
-		},
+		}),
 	}
 
 	Detail = &guilib.View{
@@ -114,19 +114,20 @@ var (
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
 				Name: "detailArrowUp",
 				Key:  gocui.KeyArrowUp,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						gui.FocusView(navigationViewName, false)
-						return nil
+				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
+					err := gui.FocusView(navigationViewName, false)
+					if err != nil {
+						return err
 					}
+					return nil
 				},
 				Mod: gocui.ModNone,
 			},
-		},
+		}),
 	}
 
 	Namespace = &guilib.View{
@@ -143,9 +144,8 @@ var (
 			if formatted == "" {
 				switchNamespace(gui, "")
 				return nil
-			} else {
-				switchNamespace(gui, formatSelectedNamespace(selectedLine))
 			}
+			switchNamespace(gui, formatSelectedNamespace(selectedLine))
 			return nil
 		},
 		Highlight:  true,
@@ -162,13 +162,15 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(namespaceViewName, "namespaces"),
-		},
+			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
+		}),
 	}
 
 	Option = &guilib.View{
@@ -201,13 +203,15 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(podViewName, "pods"),
-		},
+			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
+		}),
 	}
 
 	Service = &guilib.View{
@@ -229,12 +233,35 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(serviceViewName, "services"),
-		},
+			filterAction,
+			editResourceAction,
+			newMoreActions(moreActionsMap[namespaceViewName]),
+		}),
 	}
 )
+
+func getViewResourceName(viewName string) string {
+	var resource string
+	switch viewName {
+	case namespaceViewName:
+		resource = namespaceResource
+	case serviceViewName:
+		resource = serviceResource
+	case deploymentViewName:
+		resource = deploymentResource
+	case podViewName:
+		resource = podResource
+	}
+
+	// Todo
+	//if resource == "" {
+	//
+	//}
+
+	return resource
+}

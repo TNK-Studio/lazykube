@@ -17,7 +17,7 @@ var Cli *KubeCLI
 
 func init() {
 	Cli = NewKubeCLI()
-	// To disable aws warnning
+	// To disable aws warning
 	disableKlog()
 }
 
@@ -42,7 +42,7 @@ func NewCmd(cmd *cobra.Command, args []string, streams genericclioptions.IOStrea
 
 func (c *Cmd) Run() {
 	util.BehaviorOnFatal(func(s string, i int) {
-		fmt.Fprint(c.streams.ErrOut, s)
+		_, _ = fmt.Fprint(c.streams.ErrOut, s)
 	})
 	c.cmd.Run(c.cmd, c.args)
 }
@@ -87,8 +87,6 @@ func (cli *KubeCLI) WithNamespace(namespace string) *KubeCLI {
 		factory:   util.NewFactory(matchVersionKubeConfigFlags),
 		namespace: &namespace,
 	}
-	// To disable aws warnning
-	disableKlog()
 	return k
 }
 
@@ -107,6 +105,6 @@ func (cli *KubeCLI) ClusterInfo() (string, error) {
 func disableKlog() {
 	flagSet := &flag.FlagSet{}
 	klog.InitFlags(flagSet)
-	flagSet.Set("logtostderr", "false")
+	_ = flagSet.Set("logtostderr", "false")
 	klog.SetOutput(ioutil.Discard)
 }

@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/TNK-Studio/lazykube/pkg/gui"
+	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 )
 
 var (
@@ -22,7 +22,7 @@ func leftSideWidth(maxWidth int) int {
 	return maxWidth / 3
 }
 
-func usableSpace(gui *gui.Gui, maxHeight int) int {
+func usableSpace(gui *guilib.Gui, maxHeight int) int {
 	if maxHeight < 28 {
 		if currentView := gui.CurrentView(); currentView != nil && currentView.Name == podViewName {
 			return maxHeight
@@ -33,7 +33,7 @@ func usableSpace(gui *gui.Gui, maxHeight int) int {
 	return maxHeight - 8
 }
 
-func reactiveHeight(gui *gui.Gui, view *gui.View) int {
+func resizePanelHeight(gui *guilib.Gui) error {
 	_, maxHeight := gui.Size()
 
 	space := usableSpace(gui, maxHeight)
@@ -55,12 +55,15 @@ func reactiveHeight(gui *gui.Gui, view *gui.View) int {
 	}
 
 	viewHeights[resizeView] += space % tallPanels
+	return nil
+}
 
+func reactiveHeight(_ *guilib.Gui, view *guilib.View) int {
 	height := viewHeights[view.Name]
 	return height
 }
 
-func migrateTopFunc(gui *gui.Gui, view *gui.View) int {
+func migrateTopFunc(gui *guilib.Gui, view *guilib.View) int {
 	maxHeight := gui.MaxHeight()
 
 	if maxHeight < 28 {
