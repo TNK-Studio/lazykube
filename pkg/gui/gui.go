@@ -196,24 +196,25 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 
 // BindAction BindAction
 func (gui *Gui) BindAction(viewName string, action *Action) {
-	var handler func(g *gocui.Gui, v *gocui.View) error
+	var handler func(gui *Gui, view *View) error
 	if action.ReRenderAllView {
-		handler = func(g *gocui.Gui, v *gocui.View) error {
-			if err := action.Handler(gui)(g, v); err != nil {
+		handler = func(gui *Gui, view *View) error {
+			if err := action.Handler(gui, view); err != nil {
 				return err
 			}
 			gui.ReRender()
 			return nil
 		}
 	} else {
-		handler = action.Handler(gui)
+		handler = action.Handler
 	}
 
+	wrappedHandler := actionHandlerWrapper(gui, handler)
 	if action.Key != nil {
 		gui.SetKeybinding(viewName,
 			action.Key,
 			action.Mod,
-			handler,
+			wrappedHandler,
 		)
 	}
 
@@ -222,7 +223,7 @@ func (gui *Gui) BindAction(viewName string, action *Action) {
 			gui.SetKeybinding(viewName,
 				k,
 				action.Mod,
-				handler,
+				wrappedHandler,
 			)
 		}
 	}

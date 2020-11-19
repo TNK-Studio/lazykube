@@ -62,6 +62,7 @@ var (
 			previousLine,
 			nextLine,
 			newFilterAction(deploymentViewName, "deployments"),
+			newMoreActions(deploymentViewName, moreActionsMap[deploymentViewName]),
 		},
 	}
 
@@ -92,13 +93,11 @@ var (
 			{
 				Name: "navigationDown",
 				Key:  gocui.KeyArrowDown,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						if err := gui.FocusView(detailViewName, false); err != nil {
-							return err
-						}
-						return nil
+				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
+					if err := gui.FocusView(detailViewName, false); err != nil {
+						return err
 					}
+					return nil
 				},
 				Mod: gocui.ModNone,
 			},
@@ -118,14 +117,12 @@ var (
 			{
 				Name: "detailArrowUp",
 				Key:  gocui.KeyArrowUp,
-				Handler: func(gui *guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-					return func(*gocui.Gui, *gocui.View) error {
-						err := gui.FocusView(navigationViewName, false)
-						if err != nil {
-							return err
-						}
-						return nil
+				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
+					err := gui.FocusView(navigationViewName, false)
+					if err != nil {
+						return err
 					}
+					return nil
 				},
 				Mod: gocui.ModNone,
 			},
@@ -240,3 +237,24 @@ var (
 		},
 	}
 )
+
+func getViewResourceName(viewName string) string {
+	var resource string
+	switch viewName {
+	case namespaceViewName:
+		resource = namespaceResource
+	case serviceViewName:
+		resource = serviceResource
+	case deploymentViewName:
+		resource = deploymentResource
+	case podViewName:
+		resource = podResource
+	}
+
+	//  Todo
+	//if resource == "" {
+	//
+	//}
+
+	return resource
+}

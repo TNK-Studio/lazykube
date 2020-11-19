@@ -111,6 +111,10 @@ var (
 	}
 )
 
+type (
+	moreActionFunc func(viewName string) []*guilib.Action
+)
+
 func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	kubecli.Cli.SetNamespace(selectedNamespaceLine)
 	for _, viewName := range []string{serviceViewName, deploymentViewName, podViewName} {
@@ -135,18 +139,16 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 
 func newFilterAction(viewName string, resourceName string) *guilib.Action {
 	return &guilib.Action{
-		Name: fmt.Sprintf("%sFilterAction", viewName),
+		Name: "filterAction",
 		Keys: []interface{}{
 			gocui.KeyF4,
 			'f',
 		},
-		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
-			return func(g *gocui.Gui, v *gocui.View) error {
-				if err := NewFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, viewName); err != nil {
-					return err
-				}
-				return nil
+		Handler: func(gui *guilib.Gui, v *guilib.View) error {
+			if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, viewName); err != nil {
+				return err
 			}
+			return nil
 		},
 		Mod: gocui.ModNone,
 	}
@@ -159,14 +161,20 @@ func newMoreActions(viewName string, moreActions []*guilib.Action) *guilib.Actio
 			gocui.KeyF5,
 			'm',
 		},
-		Handler: func(gui *guilib.Gui) func(g *gocui.Gui, v *gocui.View) error {
-			return func(g *gocui.Gui, v *gocui.View) error {
-				if err := newMoreActionDialog("More Actions", gui, moreActions); err != nil {
-					return err
-				}
-				return nil
+		Handler: func(gui *guilib.Gui, v *guilib.View) error {
+			if err := newMoreActionDialog("More Actions", gui, moreActions); err != nil {
+				return err
 			}
+			return nil
 		},
 		Mod: gocui.ModNone,
+	}
+}
+
+func newEditResourceHandler(resource string) func(*guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+	return func(*guilib.Gui) func(*gocui.Gui, *gocui.View) error {
+		return func(g *gocui.Gui, v *gocui.View) error {
+			return nil
+		}
 	}
 }

@@ -19,6 +19,7 @@ const (
 	navigationPathJoin = " + "
 	logsTail           = "500"
 
+	namespaceResource  = "namespace"
 	serviceResource    = "service"
 	deploymentResource = "deployment"
 	podResource        = "pod"
@@ -283,6 +284,14 @@ func newStream() genericclioptions.IOStreams {
 	}
 }
 
+func newStdStream() genericclioptions.IOStreams {
+	return genericclioptions.IOStreams{
+		In:     os.Stdin,
+		Out:    os.Stdout,
+		ErrOut: os.Stderr,
+	}
+}
+
 func streamCopyTo(streams genericclioptions.IOStreams, writer io.Writer) {
 	if _, err := io.Copy(writer, (streams.Out).(io.Reader)); err != nil {
 		log.Logger.Warningf("streamCopyTo - streams.Out copy error %s", err)
@@ -337,15 +346,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 		return namespaceConfigRender(gui, view)
 	}
 
-	resource := ""
-	switch activeView.Name {
-	case serviceViewName:
-		resource = serviceResource
-	case deploymentViewName:
-		resource = deploymentResource
-	case podViewName:
-		resource = podResource
-	}
+	resource := getViewResourceName(activeView.Name)
 
 	if resource == "" {
 		return nil
@@ -374,13 +375,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 		return namespaceConfigRender(gui, view)
 	}
 
-	resource := ""
-	switch activeView.Name {
-	case deploymentViewName:
-		resource = deploymentResource
-	case podViewName:
-		resource = podResource
-	}
+	resource := getViewResourceName(activeView.Name)
 
 	if resource == "" {
 		return nil

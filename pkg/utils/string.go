@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"github.com/jroimartin/gocui"
 	"github.com/spkg/bom"
 	"regexp"
 	"sort"
@@ -40,4 +42,36 @@ func DeleteExtraSpace(s string) string {
 		spcIndex = reg.FindStringIndex(string(s2))
 	}
 	return string(s2)
+}
+
+func GetKey(key interface{}) string {
+	if _, ok := key.(rune); ok {
+		key = int(key.(rune))
+	} else {
+		key = int(key.(gocui.Key))
+	}
+
+	// special keys
+	switch key {
+	case 27:
+		return "esc"
+	case 13:
+		return "enter"
+	case 32:
+		return "space"
+	case 65514:
+		return "►"
+	case 65515:
+		return "◄"
+	case 65517:
+		return "▲"
+	case 65516:
+		return "▼"
+	case 65508:
+		return "PgUp"
+	case 65507:
+		return "PgDn"
+	}
+
+	return fmt.Sprintf("%c", key)
 }
