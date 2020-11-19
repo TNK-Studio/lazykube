@@ -624,6 +624,10 @@ func (gui *Gui) ClearViews(viewNames ...string) {
 
 // ForceFlush ForceFlush
 func (gui *Gui) ForceFlush() error {
+	termbox.Close()
+	if err := termbox.Init(); err != nil {
+		return err
+	}
 	if err := termbox.Sync(); err != nil {
 		return err
 	}
