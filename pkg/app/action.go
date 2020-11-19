@@ -49,7 +49,7 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
-	actions = []*guilib.Action{
+	appActions = []*guilib.Action{
 		backToPreviousView,
 		{
 			Name: "previousPage",
@@ -97,14 +97,37 @@ var (
 		},
 	}
 
-	editResource = &guilib.Action{
-		Name:    "Edit Resource",
-		Key:     'e',
-		Handler: editResourceHandler,
-		Mod:     0,
+	filterAction = &guilib.Action{
+		Name: "filterAction",
+		Keys: []interface{}{
+			gocui.KeyF4,
+			'f',
+		},
+		Handler: func(gui *guilib.Gui, v *guilib.View) error {
+			resourceName := getViewResourceName(v.Name)
+			if resourceName == "" {
+				return nil
+			}
+			if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, v.Name); err != nil {
+				return err
+			}
+			return nil
+		},
+		Mod: gocui.ModNone,
 	}
 
-	moreActionsMap = map[string][]*guilib.Action{
+	editResource = &moreAction{
+		NeedSelectPanel:    false,
+		NeedSelectResource: false,
+		Action: guilib.Action{
+			Name:    "Edit Resource",
+			Key:     'e',
+			Handler: editResourceHandler,
+			Mod:     gocui.ModNone,
+		},
+	}
+
+	moreActionsMap = map[string][]*moreAction{
 		deploymentViewName: {
 			editResource,
 		},
@@ -112,8 +135,20 @@ var (
 )
 
 type (
-	moreActionFunc func(viewName string) []*guilib.Action
+	moreAction struct {
+		NeedSelectPanel    bool
+		NeedSelectResource bool
+		guilib.Action
+	}
 )
+
+func toMoreActionArr(actions []*moreAction) []guilib.ActionInterface {
+	arr := make([]guilib.ActionInterface, 0)
+	for _, act := range actions {
+		arr = append(arr, act)
+	}
+	return arr
+}
 
 func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	kubecli.Cli.SetNamespace(selectedNamespaceLine)
@@ -137,44 +172,19 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
 }
 
-func newFilterAction(viewName string, resourceName string) *guilib.Action {
+func newMoreActions(moreActions []*moreAction) *guilib.Action {
 	return &guilib.Action{
-		Name: "filterAction",
-		Keys: []interface{}{
-			gocui.KeyF4,
-			'f',
-		},
-		Handler: func(gui *guilib.Gui, v *guilib.View) error {
-			if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, viewName); err != nil {
-				return err
-			}
-			return nil
-		},
-		Mod: gocui.ModNone,
-	}
-}
-
-func newMoreActions(viewName string, moreActions []*guilib.Action) *guilib.Action {
-	return &guilib.Action{
-		Name: fmt.Sprintf("%sMoreActions", viewName),
+		Name: "moreActions",
 		Keys: []interface{}{
 			gocui.KeyF5,
 			'm',
 		},
-		Handler: func(gui *guilib.Gui, v *guilib.View) error {
-			if err := newMoreActionDialog("More Actions", gui, moreActions); err != nil {
+		Handler: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := newMoreActionDialog("More Actions", gui, view, moreActions); err != nil {
 				return err
 			}
 			return nil
 		},
 		Mod: gocui.ModNone,
-	}
-}
-
-func newEditResourceHandler(resource string) func(*guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-	return func(*guilib.Gui) func(*gocui.Gui, *gocui.View) error {
-		return func(g *gocui.Gui, v *gocui.View) error {
-			return nil
-		}
 	}
 }

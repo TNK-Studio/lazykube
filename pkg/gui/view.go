@@ -29,8 +29,9 @@ func init() {
 }
 
 type (
+	// View View
 	View struct {
-		Actions               []*Action
+		Actions               []ActionInterface
 		State                 State
 		Name                  string
 		Title                 string
@@ -92,10 +93,9 @@ func (view *View) InitView() {
 		view.v.SelBgColor = view.SelBgColor
 		view.v.SelFgColor = view.SelFgColor
 		view.v.MouseDisable = view.MouseDisable
+		view.v.Editor = NewViewEditor(view.gui, view)
+		view.v.OnCursorChange = view.onCursorChange
 	}
-
-	view.v.Editor = NewViewEditor(view.gui, view)
-	view.v.OnCursorChange = view.onCursorChange
 }
 
 func (view *View) BindGui(gui *Gui) {
@@ -158,11 +158,7 @@ func (view *View) IsBindingGui() bool {
 }
 
 func (view *View) Rendered() bool {
-	if view.v != nil {
-		return true
-	}
-
-	return false
+	return view.v != nil
 }
 
 func (view *View) SetViewContent(s string) error {

@@ -26,10 +26,10 @@ var (
 		},
 		LowerRightPointYFunc: reactiveHeight,
 		OnRender:             renderClusterInfo,
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
-		},
+		}),
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.ReRenderViews(navigationViewName, detailViewName)
 			return nil
@@ -56,14 +56,14 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(deploymentViewName, "deployments"),
-			newMoreActions(deploymentViewName, moreActionsMap[deploymentViewName]),
-		},
+			filterAction,
+			newMoreActions(moreActionsMap[deploymentViewName]),
+		}),
 	}
 
 	Navigation = &guilib.View{
@@ -77,7 +77,7 @@ var (
 			return leftSideWidth(gui.MaxWidth()) + 1, 0, gui.MaxWidth() - 1, 2
 		},
 		OnRender: navigationRender,
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
 				Name:    "navigationArrowLeft",
 				Key:     gocui.KeyArrowLeft,
@@ -101,7 +101,7 @@ var (
 				},
 				Mod: gocui.ModNone,
 			},
-		},
+		}),
 	}
 
 	Detail = &guilib.View{
@@ -113,7 +113,7 @@ var (
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
 				Name: "detailArrowUp",
 				Key:  gocui.KeyArrowUp,
@@ -126,7 +126,7 @@ var (
 				},
 				Mod: gocui.ModNone,
 			},
-		},
+		}),
 	}
 
 	Namespace = &guilib.View{
@@ -161,13 +161,13 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(namespaceViewName, "namespaces"),
-		},
+			filterAction,
+		}),
 	}
 
 	Option = &guilib.View{
@@ -200,13 +200,13 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(podViewName, "pods"),
-		},
+			filterAction,
+		}),
 	}
 
 	Service = &guilib.View{
@@ -228,13 +228,13 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			newFilterAction(serviceViewName, "services"),
-		},
+			filterAction,
+		}),
 	}
 )
 
@@ -251,7 +251,7 @@ func getViewResourceName(viewName string) string {
 		resource = podResource
 	}
 
-	//  Todo
+	// Todo
 	//if resource == "" {
 	//
 	//}

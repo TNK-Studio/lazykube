@@ -215,5 +215,27 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 }
 
 func editResourceHandler(gui *guilib.Gui, view *guilib.View) error {
+	if view.Name == moreActionsViewName {
+		var err error
+		view, err = getMoreActionTriggerView(view)
+		if err != nil {
+			return err
+		}
+	}
+	resource := getViewResourceName(view.Name)
+	if resource == "" {
+		return nil
+	}
+	namespace, resourceName, err := getResourceNamespaceAndName(gui, view)
+	if err != nil {
+		return err
+	}
+	if notResourceSelected(resourceName) {
+		return nil
+	}
+
+	cli(namespace).Edit(newStdStream(), resource, resourceName).Run()
+	gui.Configure()
+	gui.ReRenderAll()
 	return nil
 }

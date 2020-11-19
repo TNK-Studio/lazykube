@@ -57,8 +57,8 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	return gui
 }
 
-// ReRender ReRender
-func (gui *Gui) ReRender() {
+// ReRenderAll ReRenderAll
+func (gui *Gui) ReRenderAll() {
 	gui.reRendered = false
 	for _, view := range gui.views {
 		view.ReRender()
@@ -75,7 +75,7 @@ func (gui *Gui) layout(*gocui.Gui) error {
 				return err
 			}
 		}
-		gui.ReRender()
+		gui.ReRenderAll()
 	}
 
 	if err := gui.Clear(); err != nil {
@@ -195,34 +195,34 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 }
 
 // BindAction BindAction
-func (gui *Gui) BindAction(viewName string, action *Action) {
+func (gui *Gui) BindAction(viewName string, action ActionInterface) {
 	var handler func(gui *Gui, view *View) error
-	if action.ReRenderAllView {
+	if action.ReRenderAll() {
 		handler = func(gui *Gui, view *View) error {
-			if err := action.Handler(gui, view); err != nil {
+			if err := action.HandlerFunc(gui, view); err != nil {
 				return err
 			}
-			gui.ReRender()
+			gui.ReRenderAll()
 			return nil
 		}
 	} else {
-		handler = action.Handler
+		handler = action.HandlerFunc
 	}
 
 	wrappedHandler := actionHandlerWrapper(gui, handler)
-	if action.Key != nil {
+	if action.BindKey() != nil {
 		gui.SetKeybinding(viewName,
-			action.Key,
-			action.Mod,
+			action.BindKey(),
+			action.Modifier(),
 			wrappedHandler,
 		)
 	}
 
-	if action.Keys != nil {
-		for _, k := range action.Keys {
+	if action.BindKeys() != nil {
+		for _, k := range action.BindKeys() {
 			gui.SetKeybinding(viewName,
 				k,
-				action.Mod,
+				action.Modifier(),
 				wrappedHandler,
 			)
 		}
@@ -338,7 +338,7 @@ func (gui *Gui) renderView(view *View, x0, y0, x1, y1 int) error {
 		view,
 		x0, y0, x1, y1,
 	); err != nil {
-		if err != gocui.ErrUnknownView {
+		if !errors.Is(err, gocui.ErrUnknownView) {
 			return err
 		}
 	}
@@ -375,7 +375,7 @@ func (gui *Gui) AddView(view *View) error {
 	gui.views = append(gui.views, view)
 	view.gui = gui
 	err := gui.RenderView(view)
-	if err == ErrNotEnoughSpace {
+	if errors.Is(err, ErrNotEnoughSpace) {
 		if err := gui.renderNotEnoughSpaceView(); err != nil {
 			return err
 		}
@@ -445,7 +445,6 @@ func (gui *Gui) RenderString(viewName, s string) error {
 		}
 
 		return nil
-
 	})
 	return nil
 }
@@ -500,7 +499,7 @@ func (gui *Gui) PeekPreviousView() string {
 }
 
 func (gui *Gui) pushPreviousView(name string) {
-	if name == "" && name == gui.PeekPreviousView() {
+	if name == "" || name == gui.PeekPreviousView() {
 		return
 	}
 	gui.previousViews.Push(name)
@@ -565,7 +564,7 @@ func (gui *Gui) ReturnPreviousView() error {
 	previousViewName := gui.popPreviousView()
 	previousView, err := gui.GetView(previousViewName)
 	if err != nil {
-		if err == gocui.ErrUnknownView {
+		if errors.Is(err, gocui.ErrUnknownView) {
 			log.Logger.Warningf("ReturnPreviousView view '%s' not found", previousViewName)
 			return nil
 		}

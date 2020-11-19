@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
@@ -15,7 +16,8 @@ const (
 	filteredViewName         = "filtered"
 	filteredNoResource       = "No Resource."
 
-	moreActionsViewName = "moreActions"
+	moreActionsViewName           = "moreActions"
+	moreActionTriggerViewStateKey = "triggerView"
 )
 
 var (
@@ -141,10 +143,10 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 			y1 := quarterHeight + 3
 			return x0, y0, x1, y1
 		},
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toFilteredView,
 			confirmFilterInput,
-		},
+		}),
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = true
 			gui.Configure()
@@ -189,12 +191,12 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 		Highlight:    true,
 		SelFgColor:   gocui.ColorBlack,
 		SelBgColor:   gocui.ColorWhite,
-		Actions: []*guilib.Action{
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toFilterInputView,
 			confirmFilterInput,
 			filteredNextLine,
 			filteredPreviousLine,
-		},
+		}),
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			value := ""
 			val, _ := filterInput.State.Get(filterInputValueStateKey)
@@ -265,6 +267,8 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 			return x0, y0, x1, y1
 		},
 	}
+	filterInput.InitView()
+	filtered.InitView()
 
 	if err := gui.AddView(filterInput); err != nil {
 		return err
@@ -319,7 +323,7 @@ func closeFilterDialog(gui *guilib.Gui) error {
 	return nil
 }
 
-func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*guilib.Action) error {
+func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreActions []*moreAction) error {
 	moreActionView := &guilib.View{
 		Title:       title,
 		Name:        moreActionsViewName,
@@ -349,8 +353,14 @@ func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*guilib.Ac
 			}
 			return nil
 		},
-		Actions: moreActions,
+		Actions: toMoreActionArr(moreActions),
 	}
+	moreActionView.InitView()
+
+	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
+		return err
+	}
+
 	if err := gui.AddView(moreActionView); err != nil {
 		return err
 	}
@@ -358,4 +368,16 @@ func newMoreActionDialog(title string, gui *guilib.Gui, moreActions []*guilib.Ac
 		return err
 	}
 	return nil
+}
+
+func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {
+	val, err := moreActionView.State.Get(moreActionTriggerViewStateKey)
+	if err != nil {
+		return nil, err
+	}
+	view, ok := val.(*guilib.View)
+	if !ok {
+		return nil, errors.New("editResourceHandler - more action trigger view not found. ")
+	}
+	return view, nil
 }

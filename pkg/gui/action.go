@@ -26,6 +26,16 @@ var (
 	}
 )
 
+// ActionInterface ActionInterface
+type ActionInterface interface {
+	ActionName() string
+	HandlerFunc(*Gui, *View) error
+	Modifier() gocui.Modifier
+	BindKey() interface{}
+	BindKeys() []interface{}
+	ReRenderAll() bool
+}
+
 // Action Action
 type Action struct {
 	Keys            []interface{}
@@ -36,6 +46,38 @@ type Action struct {
 	Mod             gocui.Modifier
 }
 
+func (a Action) HandlerFunc(gui *Gui, view *View) error {
+	return a.Handler(gui, view)
+}
+
+func (a Action) ActionName() string {
+	return a.Name
+}
+
+func (a Action) Modifier() gocui.Modifier {
+	return a.Mod
+}
+
+func (a Action) BindKey() interface{} {
+	return a.Key
+}
+
+func (a Action) BindKeys() []interface{} {
+	return a.Keys
+}
+
+func (a Action) ReRenderAll() bool {
+	return a.ReRenderAllView
+}
+
+func ToActionInterfaceArr(actions []*Action) []ActionInterface {
+	arr := make([]ActionInterface, 0)
+	for _, act := range actions {
+		arr = append(arr, act)
+	}
+	return arr
+}
+
 type ActionHandler func(gui *Gui) func(*gocui.Gui, *gocui.View) error
 
 func ViewClickHandler(gui *Gui, view *View) error {
@@ -43,7 +85,9 @@ func ViewClickHandler(gui *Gui, view *View) error {
 	log.Logger.Debugf("ViewClickHandler - view '%s' on click.", viewName)
 
 	currentView := gui.CurrentView()
-	canReturn := true
+
+	var canReturn bool
+	canReturn = true
 	if currentView == nil || currentView.Name != viewName {
 		canReturn = true
 

@@ -357,12 +357,7 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 		return err
 	}
 
-	if namespace == kubecli.Cli.Namespace() {
-		kubecli.Cli.Get(viewStreams(view), resource, resourceName).SetFlag("output", "yaml").Run()
-		return nil
-	}
-
-	kubecli.Cli.WithNamespace(namespace).Get(viewStreams(view), resource, resourceName).SetFlag("output", "yaml").Run()
+	cli(namespace).Get(viewStreams(view), resource, resourceName).SetFlag("output", "yaml").Run()
 	return nil
 }
 
@@ -391,11 +386,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 
-	if namespace == kubecli.Cli.Namespace() {
-		kubecli.Cli.Describe(viewStreams(view), resource, resourceName).Run()
-	} else {
-		kubecli.Cli.WithNamespace(namespace).Describe(viewStreams(view), resource, resourceName).Run()
-	}
+	cli(namespace).Describe(viewStreams(view), resource, resourceName).Run()
 
 	view.ReRender()
 	return nil
@@ -438,11 +429,14 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 		showPleaseSelected(view, resource)
 		return nil
 	}
-	if namespace == kubecli.Cli.Namespace() {
-		kubecli.Cli.Logs(viewStreams(view), resourceName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
-	} else {
-		kubecli.Cli.WithNamespace(namespace).Logs(viewStreams(view), resourceName).SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
-	}
+
+	cli(namespace).
+		Logs(viewStreams(view), resourceName).
+		SetFlag("all-containers", "true").
+		SetFlag("tail", logsTail).
+		SetFlag("prefix", "true").
+		Run()
+
 	view.ReRender()
 	return nil
 }
@@ -536,11 +530,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		}
 
 		output := newStream()
-		if namespace == kubecli.Cli.Namespace() {
-			kubecli.Cli.Get(output, resource, resourceName).SetFlag("output", jsonPath).Run()
-		} else {
-			kubecli.Cli.WithNamespace(namespace).Get(output, resource, resourceName).SetFlag("output", jsonPath).Run()
-		}
+		cli(namespace).Get(output, resource, resourceName).SetFlag("output", jsonPath).Run()
 
 		var labelJSON = streamToString(output)
 		if labelJSON == "" {
