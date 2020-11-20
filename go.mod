@@ -9,12 +9,12 @@ replace (
 
 require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/gojp/goreportcard v0.0.0-20201106142952-232d912e513e // indirect
 	github.com/gookit/color v1.3.2
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
 	github.com/jesseduffield/asciigraph v0.0.0-20190605104717-6d88e39309ee
 	github.com/jroimartin/gocui v0.4.0
+	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lestrrat/go-envload v0.0.0-20180220120943-6ed08b54a570 // indirect
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
@@ -24,6 +24,9 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spkg/bom v1.0.0
 	github.com/tebeka/strftime v0.1.5 // indirect
+	golang.org/x/net v0.0.0-20200927032502-5d4f70055728 // indirect
+	golang.org/x/sys v0.0.0-20200926100807-9d91bd62050c // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 	k8s.io/api v0.19.3
 	k8s.io/apimachinery v0.19.3
 	k8s.io/cli-runtime v0.19.3
