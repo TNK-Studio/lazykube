@@ -109,9 +109,15 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	rolloutRestartAction = &guilib.Action{
+		Keys:    keyMap[rolloutRestartActionName],
+		Name:    rolloutRestartActionName,
+		Handler: rolloutRestartHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	editResourceMoreAction = &moreAction{
-		NeedSelectPanel:    false,
-		NeedSelectResource: false,
+		NeedSelectResource: true,
 		Action:             *editResourceAction,
 	}
 
@@ -124,6 +130,10 @@ var (
 		},
 		deploymentViewName: {
 			editResourceMoreAction,
+			&moreAction{
+				NeedSelectResource: true,
+				Action:             *newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
+			},
 		},
 		podViewName: {
 			editResourceMoreAction,
@@ -133,7 +143,6 @@ var (
 
 type (
 	moreAction struct {
-		NeedSelectPanel    bool
 		NeedSelectResource bool
 		guilib.Action
 	}
@@ -165,7 +174,10 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 		return
 	}
 	detailView.Autoscroll = false
-	detailView.SetOrigin(0, 0)
+	err = detailView.SetOrigin(0, 0)
+	if err != nil {
+		log.Logger.Warningf("switchNamespace - detailView.SetOrigin(0, 0) error %s", err)
+	}
 	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
 }
 
@@ -181,4 +193,9 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 		},
 		Mod: gocui.ModNone,
 	}
+}
+
+func newConfirmDialogAction(relatedViewName string, action *guilib.Action) *guilib.Action {
+	action.Handler = newConfirmDialogHandler(relatedViewName, action.Handler)
+	return action
 }

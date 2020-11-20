@@ -18,9 +18,15 @@ const (
 
 	moreActionsViewName           = "moreActions"
 	moreActionTriggerViewStateKey = "triggerView"
+
+	confirmDialogViewName = "confirmDialog"
 )
 
 var (
+	confirmDialogOpt     = "Confirm"
+	cancelDialogOpt      = "Cancel"
+	confirmDialogOptions = []string{cancelDialogOpt, confirmDialogOpt}
+
 	toFilteredView = &guilib.Action{
 		Name: toFilteredViewAction,
 		Keys: keyMap[toFilteredViewAction],
@@ -122,6 +128,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 		Title:        title,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
+		ZIndex:       0,
 		Clickable:    true,
 		Editable:     true,
 		MouseDisable: true,
@@ -176,6 +183,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 	}
 	filtered := &guilib.View{
 		Name:         filteredViewName,
+		ZIndex:       1,
 		Clickable:    true,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
@@ -278,7 +286,7 @@ func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
 		optionViewName,
 		utils.OptionsMapToString(
 			map[string]string{
-				"← → ↑ ↓":   "navigate",
+				"←→↑↓":      "navigate",
 				"Ctrl+c":    "exit",
 				"Esc":       "close dialog",
 				"PgUp/PgDn": "scroll",
@@ -330,11 +338,37 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			view.Clear()
+			moreActionsDescription := make([]string, 0)
 			for _, moreAct := range moreActions {
-				_, err := fmt.Fprintf(view, "%-7s %s", utils.GetKey(moreAct.Key), moreAct.Name)
+				if moreAct.NeedSelectResource {
+					resourceView, err := getMoreActionTriggerView(view)
+					if err != nil {
+						continue
+					}
+
+					_, resourceName, err := getResourceNamespaceAndName(gui, resourceView)
+					if err != nil {
+						continue
+					}
+
+					if notResourceSelected(resourceName) {
+						continue
+					}
+				}
+				moreActionsDescription = append(moreActionsDescription, keyMapDescription(moreAct.Keys, moreAct.Name))
+			}
+
+			if len(moreActionsDescription) == 0 {
+				_, err := fmt.Fprint(view, "No more actions.")
 				if err != nil {
 					return err
 				}
+				return nil
+			}
+
+			_, err := fmt.Fprint(view, strings.Join(moreActionsDescription, "\n"))
+			if err != nil {
+				return err
 			}
 			return nil
 		},
@@ -346,15 +380,17 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		Actions: toMoreActionArr(moreActions),
 	}
-	moreActionView.InitView()
-
-	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
-		return err
-	}
 
 	if err := gui.AddView(moreActionView); err != nil {
 		return err
 	}
+
+	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
+		return err
+	}
+	// Todo: On view state change. Rerender.
+	moreActionView.ReRender()
+
 	if err := gui.FocusView(moreActionView.Name, true); err != nil {
 		return err
 	}
