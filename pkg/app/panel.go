@@ -80,14 +80,20 @@ var (
 		OnRender: navigationRender,
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
-				Name:    "navigationArrowLeft",
-				Key:     gocui.KeyArrowLeft,
+				Name: "navigationArrowLeft",
+				Keys: []interface{}{
+					gocui.KeyArrowLeft,
+					'k',
+				},
 				Handler: navigationArrowLeftHandler,
 				Mod:     gocui.ModNone,
 			},
 			{
-				Name:    "navigationArrowRight",
-				Key:     gocui.KeyArrowRight,
+				Name: "navigationArrowRight",
+				Keys: []interface{}{
+					gocui.KeyArrowRight,
+					'l',
+				},
 				Handler: navigationArrowRightHandler,
 				Mod:     gocui.ModNone,
 			},
