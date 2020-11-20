@@ -4,6 +4,10 @@ import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 )
 
+const (
+	tallPanels = 4
+)
+
 var (
 	viewHeights     = map[string]int{}
 	resizeableViews = []string{namespaceViewName, serviceViewName, deploymentViewName, podViewName}
@@ -22,12 +26,8 @@ func leftSideWidth(maxWidth int) int {
 	return maxWidth / 3
 }
 
-func usableSpace(gui *guilib.Gui, maxHeight int) int {
+func usableSpace(_ *guilib.Gui, maxHeight int) int {
 	if maxHeight < 28 {
-		if currentView := gui.CurrentView(); currentView != nil && currentView.Name == podViewName {
-			return maxHeight
-		}
-
 		return maxHeight - 2
 	}
 	return maxHeight - 8
@@ -38,7 +38,6 @@ func resizePanelHeight(gui *guilib.Gui) error {
 
 	space := usableSpace(gui, maxHeight)
 
-	tallPanels := 4
 	viewHeights[clusterInfoViewName] = 2
 	viewHeights[namespaceViewName] = space / tallPanels
 	viewHeights[serviceViewName] = space / tallPanels
@@ -46,20 +45,48 @@ func resizePanelHeight(gui *guilib.Gui) error {
 	viewHeights[podViewName] = space / tallPanels
 	viewHeights[optionViewName] = 1
 
-	resizeView := namespaceViewName
-	currentView := gui.CurrentView()
-	if currentView != nil && resizeAbleView(currentView.Name) {
-		resizeView = currentView.Name
-	} else if gui.PeekPreviousView() != "" && gui.PeekPreviousView() != clusterInfoViewName {
-		resizeView = gui.PeekPreviousView()
-	}
-
-	viewHeights[resizeView] += space % tallPanels
 	return nil
 }
 
-func reactiveHeight(_ *guilib.Gui, view *guilib.View) int {
+func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
+	var resizeView string
+	currentView := gui.CurrentView()
+	if currentView == nil {
+		resizeView = namespaceViewName
+	} else {
+		resizeView = currentView.Name
+	}
+
+	// When cluster info 、navigation or detail panel selected.
+	if !resizeAbleView(resizeView) {
+		resizeView = gui.PeekPreviousView()
+
+		// If previous view is cluster info 、navigation or detail pane.
+		if !resizeAbleView(resizeView) {
+			resizeView = namespaceViewName
+		}
+	}
+
+	maxHeight := gui.MaxHeight()
 	height := viewHeights[view.Name]
+	if resizeView == view.Name {
+		height += usableSpace(gui, maxHeight) % tallPanels
+	}
+
+	if maxHeight < 28 {
+		if view.Name == podViewName {
+			// First time
+			if currentView == nil {
+				return height
+			}
+
+			// When pod panel selected.
+			if resizeView == podViewName {
+				return height - migrateTopFunc(gui, view)*2
+			}
+		}
+	}
+
 	return height
 }
 

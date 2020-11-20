@@ -50,6 +50,7 @@ type (
 		UpperLeftPointYFunc   ViewPointFunc
 		LowerRightPointXFunc  ViewPointFunc
 		LowerRightPointYFunc  ViewPointFunc
+		ZIndex                int
 		x0                    int
 		y0                    int
 		x1                    int
@@ -68,15 +69,14 @@ type (
 		Highlight             bool
 		NoFrame               bool
 		MouseDisable          bool
-		CanNotReturn          bool
-		reRendered            bool
-		AlwaysOnTop           bool
-
 		// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
-
+		CanNotReturn bool
+		reRendered   bool
+		AlwaysOnTop  bool
 	}
 )
 
+// InitView InitView
 func (view *View) InitView() {
 	if view.State == nil {
 		view.State = NewStateMap()
@@ -98,10 +98,12 @@ func (view *View) InitView() {
 	}
 }
 
+// BindGui BindGui
 func (view *View) BindGui(gui *Gui) {
 	view.gui = gui
 }
 
+// InitDimension InitDimension
 func (view *View) InitDimension() {
 	if !view.IsBindingGui() {
 		log.Logger.Warningf("Please run 'InitDimension' after binding Gui.")
@@ -115,6 +117,7 @@ func (view *View) InitDimension() {
 	view.x0, view.y0, view.x1, view.y1 = view.DimensionFunc(view.gui, view)
 }
 
+// UpperLeftPointX UpperLeftPointX
 func (view *View) UpperLeftPointX() int {
 	if view.IsBindingGui() && view.UpperLeftPointXFunc != nil {
 		return view.UpperLeftPointXFunc(view.gui, view)
@@ -122,6 +125,7 @@ func (view *View) UpperLeftPointX() int {
 	return view.x0
 }
 
+// UpperLeftPointY UpperLeftPointY
 func (view *View) UpperLeftPointY() int {
 	if view.IsBindingGui() && view.UpperLeftPointYFunc != nil {
 		return view.UpperLeftPointYFunc(view.gui, view)
@@ -129,6 +133,7 @@ func (view *View) UpperLeftPointY() int {
 	return view.y0
 }
 
+// LowerRightPointX LowerRightPointX
 func (view *View) LowerRightPointX() int {
 	if view.IsBindingGui() && view.LowerRightPointXFunc != nil {
 		return view.LowerRightPointXFunc(view.gui, view)
@@ -136,6 +141,7 @@ func (view *View) LowerRightPointX() int {
 	return view.x1
 }
 
+// LowerRightPointY LowerRightPointY
 func (view *View) LowerRightPointY() int {
 	if view.IsBindingGui() && view.LowerRightPointYFunc != nil {
 		return view.LowerRightPointYFunc(view.gui, view)
@@ -143,12 +149,14 @@ func (view *View) LowerRightPointY() int {
 	return view.y1
 }
 
+// GetDimensions GetDimensions
 func (view *View) GetDimensions() (int, int, int, int) {
 	view.InitDimension()
 	x0, y0, x1, y1 := view.UpperLeftPointX(), view.UpperLeftPointY(), view.LowerRightPointX(), view.LowerRightPointY()
 	return x0, y0, x1, y1
 }
 
+// IsBindingGui IsBindingGui
 func (view *View) IsBindingGui() bool {
 	if view.gui != nil && view.gui.g != nil {
 		return true
@@ -157,10 +165,12 @@ func (view *View) IsBindingGui() bool {
 	return false
 }
 
+// Rendered Rendered
 func (view *View) Rendered() bool {
 	return view.v != nil
 }
 
+// SetViewContent SetViewContent
 func (view *View) SetViewContent(s string) error {
 	view.v.Clear()
 	if _, err := fmt.Fprint(view.v, utils.CleanString(s)); err != nil {
@@ -169,6 +179,7 @@ func (view *View) SetViewContent(s string) error {
 	return nil
 }
 
+// SetOrigin SetOrigin
 func (view *View) SetOrigin(x, y int) error {
 	if view.Rendered() {
 		return view.v.SetOrigin(x, y)
@@ -176,10 +187,12 @@ func (view *View) SetOrigin(x, y int) error {
 	return nil
 }
 
+// Origin Origin
 func (view *View) Origin() (int, int) {
 	return view.v.Origin()
 }
 
+// SetCursor SetCursor
 func (view *View) SetCursor(x, y int) error {
 	if view.Rendered() {
 		return view.v.SetCursor(x, y)
@@ -191,22 +204,27 @@ func (view *View) Write(p []byte) (n int, err error) {
 	return view.v.Write(p)
 }
 
+// Clear Clear
 func (view *View) Clear() {
 	view.v.Clear()
 }
 
+// Cursor Cursor
 func (view *View) Cursor() (int, int) {
 	return view.v.Cursor()
 }
 
+// ViewBufferLines ViewBufferLines
 func (view *View) ViewBufferLines() []string {
 	return view.v.ViewBufferLines()
 }
 
+// Line Line
 func (view *View) Line(y int) (string, error) {
 	return view.v.Line(y)
 }
 
+// WhichLine WhichLine
 func (view *View) WhichLine(s string) int {
 	y := -1
 	for index, line := range view.v.ViewBufferLines() {
@@ -217,10 +235,12 @@ func (view *View) WhichLine(s string) int {
 	return y
 }
 
+// MoveCursor MoveCursor
 func (view *View) MoveCursor(dx, dy int, writeMode bool) {
 	view.v.MoveCursor(dx, dy, writeMode)
 }
 
+// ReRender ReRender
 func (view *View) ReRender() {
 	view.reRendered = false
 }
@@ -274,6 +294,7 @@ func (view *View) Size() (int, int) {
 	return view.v.Size()
 }
 
+// ResetCursorOrigin ResetCursorOrigin
 func (view *View) ResetCursorOrigin() error {
 	if err := view.v.SetCursor(0, 0); err != nil {
 		return err
@@ -295,5 +316,8 @@ func (view *View) onCursorChange(_ *gocui.View, x, y int) error {
 	return nil
 }
 
+// DimensionFunc DimensionFunc
 type DimensionFunc func(gui *Gui, view *View) (int, int, int, int)
+
+// ViewPointFunc ViewPointFunc
 type ViewPointFunc func(gui *Gui, view *View) int

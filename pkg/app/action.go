@@ -163,7 +163,10 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 		return
 	}
 	detailView.Autoscroll = false
-	detailView.SetOrigin(0, 0)
+	err = detailView.SetOrigin(0, 0)
+	if err != nil {
+		log.Logger.Warningf("switchNamespace - detailView.SetOrigin(0, 0) error %s", err)
+	}
 	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
 }
 

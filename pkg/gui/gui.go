@@ -6,6 +6,7 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 	"github.com/nsf/termbox-go"
+	"sort"
 )
 
 type (
@@ -102,10 +103,9 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if gui.OnRender != nil && !gui.reRendered {
-		gui.reRendered = true
-		if err := gui.OnRender(gui); err != nil {
-			return nil
+	if !gui.reRendered {
+		if err := gui.onRender(); err != nil {
+			return err
 		}
 	}
 
@@ -113,10 +113,23 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if err := gui.setTopViews(); err != nil {
-		return err
+	return nil
+}
+
+func (gui *Gui) onRender() error {
+	gui.reRendered = true
+	if gui.OnRender != nil && !gui.reRendered {
+		if err := gui.OnRender(gui); err != nil {
+			return nil
+		}
 	}
 
+	currentView := gui.CurrentView()
+	if currentView != nil {
+		if _, err := gui.SetViewOnTop(currentView.Name); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -147,6 +160,20 @@ func (gui *Gui) setTopViews() error {
 		}
 	}
 	return nil
+}
+
+// SortViewsByZIndex SortViewsByZIndex
+func (gui *Gui) SortViewsByZIndex() {
+	views := gui.views
+	sort.Sort(ViewsZIndexSorter(views))
+
+	for _, view := range views {
+		if _, err := gui.SetViewOnTop(view.Name); err != nil {
+			continue
+		}
+	}
+
+	return
 }
 
 // Configure Configure
@@ -515,6 +542,8 @@ func (gui *Gui) pushPreviousView(name string) {
 func (gui *Gui) FocusView(name string, canReturn bool) error {
 	log.Logger.Debugf("FocusView - name: %s canReturn: %+v", name, canReturn)
 	previousView := gui.CurrentView()
+
+	gui.SortViewsByZIndex()
 
 	if err := gui.focusView(name); err != nil {
 		return err

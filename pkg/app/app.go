@@ -77,19 +77,19 @@ func (app *App) Stop() {
 
 // OnRender OnRender
 func (app *App) OnRender(gui *guilib.Gui) error {
-	if gui.MaxHeight() < 28 {
-		for _, viewName := range functionViews {
-			if _, err := gui.SetViewOnTop(viewName); err != nil {
-				return err
-			}
-		}
-		currentView := gui.CurrentView()
-		if currentView != nil {
-			if _, err := gui.SetViewOnTop(currentView.Name); err != nil {
-				return err
-			}
-		}
-	}
+	//if gui.MaxHeight() < 28 {
+	//	for _, viewName := range functionViews {
+	//		if _, err := gui.SetViewOnTop(viewName); err != nil {
+	//			return err
+	//		}
+	//	}
+	//	currentView := gui.CurrentView()
+	//	if currentView != nil {
+	//		if _, err := gui.SetViewOnTop(currentView.Name); err != nil {
+	//			return err
+	//		}
+	//	}
+	//}
 	return nil
 }
 

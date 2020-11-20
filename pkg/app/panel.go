@@ -40,6 +40,7 @@ var (
 		Name:                 deploymentViewName,
 		Title:                "Deployments",
 		FgColor:              gocui.ColorDefault,
+		ZIndex:               3,
 		Clickable:            true,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -139,6 +140,7 @@ var (
 	Namespace = &guilib.View{
 		Name:      namespaceViewName,
 		Title:     "Namespaces",
+		ZIndex:    1,
 		Clickable: true,
 		OnRender:  namespaceRender,
 		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
@@ -185,13 +187,15 @@ var (
 			maxWidth, maxHeight := gui.Size()
 			return 0, maxHeight - 2, maxWidth, maxHeight
 		},
-		NoFrame: true,
-		FgColor: gocui.ColorBlue,
+		AlwaysOnTop: true,
+		NoFrame:     true,
+		FgColor:     gocui.ColorBlue,
 	}
 
 	Pod = &guilib.View{
 		Name:                 podViewName,
 		Title:                "Pods",
+		ZIndex:               4,
 		Clickable:            true,
 		OnRender:             podRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
@@ -223,6 +227,7 @@ var (
 	Service = &guilib.View{
 		Name:                 serviceViewName,
 		Title:                "Services",
+		ZIndex:               2,
 		Clickable:            true,
 		OnRender:             serviceRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
