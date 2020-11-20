@@ -376,7 +376,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 
-	namespace, resourceName, err := getResourceNamespaceAndName(gui, view)
+	namespace, resourceName, err := getResourceNamespaceAndName(gui, activeView)
 	if err != nil {
 		return err
 	}
