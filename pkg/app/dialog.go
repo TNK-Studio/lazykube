@@ -22,11 +22,8 @@ const (
 
 var (
 	toFilteredView = &guilib.Action{
-		Name: "toFiltered",
-		Keys: []interface{}{
-			gocui.KeyTab,
-			gocui.KeyArrowDown,
-		},
+		Name: toFilteredViewAction,
+		Keys: keyMap[toFilteredViewAction],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
 			return gui.FocusView(filteredViewName, false)
 		},
@@ -34,10 +31,8 @@ var (
 	}
 
 	toFilterInputView = &guilib.Action{
-		Name: "toFilterInput",
-		Keys: []interface{}{
-			gocui.KeyTab,
-		},
+		Name: toFilterInputAction,
+		Keys: keyMap[toFilterInputAction],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
 			return gui.FocusView(filterInputViewName, false)
 		},
@@ -45,19 +40,15 @@ var (
 	}
 
 	filteredNextLine = &guilib.Action{
-		Name: "filteredNextLine",
-		Keys: []interface{}{
-			gocui.KeyArrowDown,
-		},
+		Name:    filteredNextLineAction,
+		Keys:    keyMap[filteredNextLineAction],
 		Handler: nextLineHandler,
 		Mod:     gocui.ModNone,
 	}
 
 	filteredPreviousLine = &guilib.Action{
-		Name: "filteredPreviousLine",
-		Keys: []interface{}{
-			gocui.KeyArrowUp,
-		},
+		Name: filteredPreviousLineAction,
+		Keys: keyMap[filteredPreviousLineAction],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
 			_, oy := view.Origin()
 			_, cy := view.Cursor()
@@ -73,8 +64,8 @@ var (
 //nolint:gocognit
 func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 	confirmFilterInput := &guilib.Action{
-		Name: "confirmFilterInput",
-		Key:  gocui.KeyEnter,
+		Name: confirmFilterInputAction,
+		Keys: keyMap[confirmFilterInputAction],
 		Handler: func(gui *guilib.Gui, _ *guilib.View) error {
 			filteredView, err := gui.GetView(filteredViewName)
 			if err != nil {

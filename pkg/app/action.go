@@ -12,39 +12,36 @@ var (
 	cyclicViews = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 
 	nextCyclicView = &guilib.Action{
-		Name:    "nextCyclicView",
-		Keys:    []interface{}{gocui.KeyTab},
+		Name:    nextCyclicViewAction,
+		Keys:    keyMap[nextCyclicViewAction],
 		Handler: nextCyclicViewHandler,
 		Mod:     gocui.ModNone,
 	}
 
 	backToPreviousView = &guilib.Action{
-		Name:    "backToPreviousView",
-		Key:     gocui.KeyEsc,
+		Name:    backToPreviousViewAction,
+		Keys:    keyMap[backToPreviousViewAction],
 		Handler: backToPreviousViewHandler,
 		Mod:     gocui.ModNone,
 	}
 
 	toNavigation = &guilib.Action{
-		Name: "toNavigation",
-		Keys: []interface{}{
-			gocui.KeyEnter,
-			gocui.KeyArrowRight,
-		},
+		Name:    toNavigationAction,
+		Keys:    keyMap[toNavigationAction],
 		Handler: toNavigationHandler,
 		Mod:     gocui.ModNone,
 	}
 
 	previousLine = &guilib.Action{
-		Name:    "previousLine",
-		Key:     gocui.KeyArrowUp,
+		Name:    previousLineAction,
+		Keys:    keyMap[previousLineAction],
 		Handler: previousLineHandler,
 		Mod:     gocui.ModNone,
 	}
 
 	nextLine = &guilib.Action{
-		Name:    "nextLine",
-		Key:     gocui.KeyArrowDown,
+		Name:    nextLineAction,
+		Keys:    keyMap[nextLineAction],
 		Handler: nextLineHandler,
 		Mod:     gocui.ModNone,
 	}
@@ -52,57 +49,46 @@ var (
 	appActions = []*guilib.Action{
 		backToPreviousView,
 		{
-			Name: "previousPage",
-			Keys: []interface{}{
-				gocui.KeyPgup,
-			},
+			Name:    previousPageAction,
+			Keys:    keyMap[previousPageAction],
 			Handler: previousPageHandler,
 			Mod:     gocui.ModNone,
 		},
 		{
-			Name: "nextPage",
-			Keys: []interface{}{
-				gocui.KeyPgdn,
-			},
+			Name:    nextPageAction,
+			Keys:    keyMap[nextPageAction],
 			Handler: nextPageHandler,
 			Mod:     gocui.ModNone,
 		},
 		{
-			Name: "scrollUp",
-			Keys: []interface{}{
-				gocui.MouseWheelUp,
-			},
+			Name:    scrollUpAction,
+			Keys:    keyMap[scrollUpAction],
 			Handler: scrollUpHandler,
 			Mod:     gocui.ModNone,
 		},
 		{
-			Name: "scrollDown",
-			Keys: []interface{}{
-				gocui.MouseWheelDown,
-			},
+			Name:    scrollDownAction,
+			Keys:    keyMap[scrollDownAction],
 			Handler: scrollDownHandler,
 			Mod:     gocui.ModNone,
 		},
 		{
-			Name:    "scrollTop",
-			Key:     gocui.KeyHome,
+			Name:    scrollTopAction,
+			Keys:    keyMap[scrollTopAction],
 			Handler: scrollTopHandler,
 			Mod:     gocui.ModNone,
 		},
 		{
-			Name:    "scrollBottom",
-			Key:     gocui.KeyEnd,
+			Name:    scrollBottomAction,
+			Keys:    keyMap[scrollBottomAction],
 			Handler: scrollBottomHandler,
 			Mod:     gocui.ModNone,
 		},
 	}
 
 	filterAction = &guilib.Action{
-		Name: "filterAction",
-		Keys: []interface{}{
-			gocui.KeyF4,
-			'f',
-		},
+		Name: filterActionName,
+		Keys: keyMap[filterActionName],
 		Handler: func(gui *guilib.Gui, v *guilib.View) error {
 			resourceName := getViewResourceName(v.Name)
 			if resourceName == "" {
@@ -117,8 +103,8 @@ var (
 	}
 
 	editResourceAction = &guilib.Action{
-		Name:    "Edit Resource",
-		Key:     'e',
+		Name:    editResourceActionName,
+		Keys:    keyMap[editResourceActionName],
 		Handler: editResourceHandler,
 		Mod:     gocui.ModNone,
 	}
@@ -185,11 +171,8 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 
 func newMoreActions(moreActions []*moreAction) *guilib.Action {
 	return &guilib.Action{
-		Name: "moreActions",
-		Keys: []interface{}{
-			gocui.KeyF3,
-			'm',
-		},
+		Name: moreActionsName,
+		Keys: keyMap[moreActionsName],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := newMoreActionDialog("More Actions", gui, view, moreActions); err != nil {
 				return err
