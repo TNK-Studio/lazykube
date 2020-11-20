@@ -330,8 +330,36 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			view.Clear()
+			moreActionsDescription := make([]string, 0)
 			for _, moreAct := range moreActions {
-				_, err := fmt.Fprintf(view, "%-7s %s", utils.GetKey(moreAct.Key), moreAct.Name)
+				if moreAct.NeedSelectResource {
+					resourceView, err := getMoreActionTriggerView(view)
+					if err != nil {
+						continue
+					}
+
+					_, resourceName, err := getResourceNamespaceAndName(gui, resourceView)
+					if err != nil {
+						continue
+					}
+
+					if notResourceSelected(resourceName) {
+						continue
+					}
+				}
+				moreActionsDescription = append(moreActionsDescription, keyMapDescription(moreAct.Keys, moreAct.Name))
+			}
+
+			if len(moreActionsDescription) == 0 {
+				_, err := fmt.Fprint(view, "No more actions.")
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+
+			for _, description := range moreActionsDescription {
+				_, err := fmt.Fprint(view, description)
 				if err != nil {
 					return err
 				}

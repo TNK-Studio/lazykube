@@ -1,6 +1,11 @@
 package app
 
-import "github.com/jroimartin/gocui"
+import (
+	"fmt"
+	"github.com/TNK-Studio/lazykube/pkg/utils"
+	"github.com/jroimartin/gocui"
+	"strings"
+)
 
 const (
 	// All common actions name
@@ -48,3 +53,11 @@ var (
 		confirmFilterInputAction: {gocui.KeyEnter},
 	}
 )
+
+func keyMapDescription(keys []interface{}, description string) string {
+	keysName := make([]string, 0)
+	for _, key := range keys {
+		keysName = append(keysName, utils.GetKey(key))
+	}
+	return fmt.Sprintf("%-7s %s", strings.Join(keysName, " "), description)
+}

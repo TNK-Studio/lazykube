@@ -110,8 +110,7 @@ var (
 	}
 
 	editResourceMoreAction = &moreAction{
-		NeedSelectPanel:    false,
-		NeedSelectResource: false,
+		NeedSelectResource: true,
 		Action:             *editResourceAction,
 	}
 
@@ -133,7 +132,6 @@ var (
 
 type (
 	moreAction struct {
-		NeedSelectPanel    bool
 		NeedSelectResource bool
 		guilib.Action
 	}
