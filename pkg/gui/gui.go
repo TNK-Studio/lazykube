@@ -628,9 +628,6 @@ func (gui *Gui) ForceFlush() error {
 	if err := termbox.Init(); err != nil {
 		return err
 	}
-	if err := termbox.Sync(); err != nil {
-		return err
-	}
 	inputMode := termbox.InputAlt
 	if gui.g.InputEsc {
 		inputMode = termbox.InputEsc

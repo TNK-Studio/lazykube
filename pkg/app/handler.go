@@ -13,21 +13,27 @@ func nextCyclicViewHandler(gui *guilib.Gui, _ *guilib.View) error {
 		return nil
 	}
 
+	var nextViewName string
 	for index, viewName := range cyclicViews {
 		if currentView.Name == viewName {
 			nextIndex := index + 1
 			if nextIndex >= len(cyclicViews) {
 				nextIndex = 0
 			}
-			nextViewName := cyclicViews[nextIndex]
+			nextViewName = cyclicViews[nextIndex]
 			log.Logger.Debugf("nextCyclicViewHandler - nextViewName: %s", nextViewName)
-			return gui.FocusView(nextViewName, true)
+			break
 		}
 	}
-	return nil
+	if nextViewName == "" {
+		return nil
+	}
+	gui.ReRenderViews(navigationViewName, detailViewName)
+	return gui.FocusView(nextViewName, true)
 }
 
 func backToPreviousViewHandler(gui *guilib.Gui, _ *guilib.View) error {
+	gui.ReRenderViews(navigationViewName, detailViewName)
 	if gui.HasPreviousView() {
 		return gui.ReturnPreviousView()
 	}
@@ -40,21 +46,21 @@ func toNavigationHandler(gui *guilib.Gui, _ *guilib.View) error {
 }
 
 func navigationArrowRightHandler(gui *guilib.Gui, _ *guilib.View) error {
+	gui.ReRenderViews(navigationViewName, detailViewName)
 	options := viewNavigationMap[activeView.Name]
 	if navigationIndex+1 >= len(options) {
 		return nil
 	}
 	switchNavigation(navigationIndex + 1)
-	gui.ReRenderViews(navigationViewName, detailViewName)
 	return nil
 }
 
 func navigationArrowLeftHandler(gui *guilib.Gui, _ *guilib.View) error {
+	gui.ReRenderViews(navigationViewName, detailViewName)
 	if navigationIndex-1 < 0 {
 		return gui.ReturnPreviousView()
 	}
 	switchNavigation(navigationIndex - 1)
-	gui.ReRenderViews(navigationViewName, detailViewName)
 	return nil
 }
 
