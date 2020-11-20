@@ -19,6 +19,7 @@ require (
 	github.com/lestrrat/go-strftime v0.0.0-20180220042222-ba3bf9c1d042 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/nsf/termbox-go v0.0.0-20200418040025-38ba6e5628f1
+	github.com/pkg/errors v0.9.1
 	github.com/pochard/logrotator v1.1.3
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.0.0

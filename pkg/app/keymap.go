@@ -12,6 +12,10 @@ const (
 	nextCyclicViewAction       = "nextCyclicView"
 	backToPreviousViewAction   = "backToPreviousView"
 	toNavigationAction         = "toNavigation"
+	navigationArrowLeft        = "navigationArrowLeft"
+	navigationArrowRight       = "navigationArrowRight"
+	navigationDown             = "navigationDown"
+	detailArrowUp              = "detailArrowUp"
 	previousLineAction         = "previousLine"
 	nextLineAction             = "nextLine"
 	previousPageAction         = "previousPage"
@@ -22,12 +26,15 @@ const (
 	scrollBottomAction         = "scrollBottom"
 	filterActionName           = "filterAction"
 	editResourceActionName     = "Edit Resource"
+	rolloutRestartActionName   = "Rollout Restart"
 	moreActionsName            = "moreActions"
 	toFilteredViewAction       = "toFiltered"
 	toFilterInputAction        = "toFilterInput"
 	filteredNextLineAction     = "filteredNextLine"
 	filteredPreviousLineAction = "filteredPreviousLine"
 	confirmFilterInputAction   = "confirmFilterInput"
+	switchConfirmDialogOpt     = "switchConfirmDialogOpt"
+	confirmDialogEnter         = "confirmDialogEnter"
 )
 
 var (
@@ -36,6 +43,10 @@ var (
 		nextCyclicViewAction:     {gocui.KeyTab},
 		backToPreviousViewAction: {gocui.KeyEsc},
 		toNavigationAction:       {gocui.KeyEnter, gocui.KeyArrowRight, 'l'},
+		navigationArrowLeft:      {gocui.KeyArrowLeft, 'k'},
+		navigationArrowRight:     {gocui.KeyArrowRight, 'l'},
+		navigationDown:           {gocui.KeyArrowDown, 'j', gocui.KeyTab},
+		detailArrowUp:            {gocui.KeyArrowUp, 'h', gocui.KeyTab},
 		previousLineAction:       {gocui.KeyArrowUp, 'h'},
 		nextLineAction:           {gocui.KeyArrowDown, 'j'},
 		previousPageAction:       {gocui.KeyPgup},
@@ -46,11 +57,14 @@ var (
 		scrollBottomAction:       {gocui.KeyEnd},
 		filterActionName:         {gocui.KeyF4, 'f'},
 		editResourceActionName:   {'e'},
+		rolloutRestartActionName: {'r'},
 		moreActionsName:          {gocui.KeyF3, 'm'},
 		toFilteredViewAction:     {gocui.KeyTab, gocui.KeyArrowDown},
 		toFilterInputAction:      {gocui.KeyTab},
 		filteredNextLineAction:   {gocui.KeyArrowDown},
 		confirmFilterInputAction: {gocui.KeyEnter},
+		switchConfirmDialogOpt:   {gocui.KeyTab, gocui.KeyArrowRight, gocui.KeyArrowLeft, 'k', 'l'},
+		confirmDialogEnter:       {gocui.KeyEnter},
 	}
 )
 

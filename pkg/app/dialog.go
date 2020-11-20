@@ -18,9 +18,15 @@ const (
 
 	moreActionsViewName           = "moreActions"
 	moreActionTriggerViewStateKey = "triggerView"
+
+	confirmDialogViewName = "confirmDialog"
 )
 
 var (
+	confirmDialogOpt     = "Confirm"
+	cancelDialogOpt      = "Cancel"
+	confirmDialogOptions = []string{cancelDialogOpt, confirmDialogOpt}
+
 	toFilteredView = &guilib.Action{
 		Name: toFilteredViewAction,
 		Keys: keyMap[toFilteredViewAction],
@@ -122,6 +128,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 		Title:        title,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
+		ZIndex:       0,
 		Clickable:    true,
 		Editable:     true,
 		MouseDisable: true,
@@ -176,6 +183,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 	}
 	filtered := &guilib.View{
 		Name:         filteredViewName,
+		ZIndex:       1,
 		Clickable:    true,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
@@ -278,7 +286,7 @@ func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
 		optionViewName,
 		utils.OptionsMapToString(
 			map[string]string{
-				"← → ↑ ↓":   "navigate",
+				"←→↑↓":      "navigate",
 				"Ctrl+c":    "exit",
 				"Esc":       "close dialog",
 				"PgUp/PgDn": "scroll",
@@ -358,11 +366,9 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 				return nil
 			}
 
-			for _, description := range moreActionsDescription {
-				_, err := fmt.Fprint(view, description)
-				if err != nil {
-					return err
-				}
+			_, err := fmt.Fprint(view, strings.Join(moreActionsDescription, "\n"))
+			if err != nil {
+				return err
 			}
 			return nil
 		},
@@ -374,15 +380,17 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		Actions: toMoreActionArr(moreActions),
 	}
-	moreActionView.InitView()
-
-	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
-		return err
-	}
 
 	if err := gui.AddView(moreActionView); err != nil {
 		return err
 	}
+
+	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
+		return err
+	}
+	// Todo: On view state change. Rerender.
+	moreActionView.ReRender()
+
 	if err := gui.FocusView(moreActionView.Name, true); err != nil {
 		return err
 	}

@@ -77,11 +77,11 @@ func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 		if view.Name == podViewName {
 			// First time
 			if currentView == nil {
-				return height
+				return height - migrateTopFunc(gui, view)*2
 			}
 
 			// When pod panel selected.
-			if resizeView == podViewName {
+			if resizeView == podViewName || !resizeAbleView(currentView.Name) {
 				return height - migrateTopFunc(gui, view)*2
 			}
 		}

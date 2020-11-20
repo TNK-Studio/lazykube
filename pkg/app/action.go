@@ -109,6 +109,13 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	rolloutRestartAction = &guilib.Action{
+		Keys:    keyMap[rolloutRestartActionName],
+		Name:    rolloutRestartActionName,
+		Handler: rolloutRestartHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	editResourceMoreAction = &moreAction{
 		NeedSelectResource: true,
 		Action:             *editResourceAction,
@@ -123,6 +130,10 @@ var (
 		},
 		deploymentViewName: {
 			editResourceMoreAction,
+			&moreAction{
+				NeedSelectResource: true,
+				Action:             *newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
+			},
 		},
 		podViewName: {
 			editResourceMoreAction,
@@ -182,4 +193,9 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 		},
 		Mod: gocui.ModNone,
 	}
+}
+
+func newConfirmDialogAction(relatedViewName string, action *guilib.Action) *guilib.Action {
+	action.Handler = newConfirmDialogHandler(relatedViewName, action.Handler)
+	return action
 }

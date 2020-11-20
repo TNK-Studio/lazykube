@@ -151,15 +151,21 @@ func (gui *Gui) updateSelectedViewLine(view *View) error {
 	return nil
 }
 
-func (gui *Gui) setTopViews() error {
-	for _, view := range gui.views {
-		if view.AlwaysOnTop {
-			if _, err := gui.SetViewOnTop(view.Name); err != nil {
-				return err
-			}
+// SetAlwaysOnTopViews SetAlwaysOnTopViews
+func (gui *Gui) SetAlwaysOnTopViews() {
+	views := gui.views
+	sort.Sort(ViewsZIndexSorter(views))
+
+	for _, view := range views {
+		if !view.AlwaysOnTop {
+			continue
+		}
+		if _, err := gui.SetViewOnTop(view.Name); err != nil {
+			continue
 		}
 	}
-	return nil
+
+	return
 }
 
 // SortViewsByZIndex SortViewsByZIndex
@@ -168,6 +174,9 @@ func (gui *Gui) SortViewsByZIndex() {
 	sort.Sort(ViewsZIndexSorter(views))
 
 	for _, view := range views {
+		if view.AlwaysOnTop {
+			break
+		}
 		if _, err := gui.SetViewOnTop(view.Name); err != nil {
 			continue
 		}
@@ -419,7 +428,7 @@ func (gui *Gui) AddView(view *View) error {
 			gui.BindAction(view.Name, act)
 		}
 	}
-
+	view.InitView()
 	return nil
 }
 
@@ -548,6 +557,9 @@ func (gui *Gui) FocusView(name string, canReturn bool) error {
 	if err := gui.focusView(name); err != nil {
 		return err
 	}
+
+	gui.SetAlwaysOnTopViews()
+
 	currentView := gui.CurrentView()
 
 	if previousView != nil {

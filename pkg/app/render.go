@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	OptSeparator       = "   "
+	optSeparator       = "   "
 	navigationPathJoin = " + "
 	logsTail           = "500"
 
@@ -146,7 +146,7 @@ func navigationRender(gui *guilib.Gui, view *guilib.View) error {
 	}
 
 	view.Clear()
-	str := strings.Join(colorfulOptions, OptSeparator)
+	str := strings.Join(colorfulOptions, optSeparator)
 
 	_, err := fmt.Fprint(view, str)
 	if err != nil {
@@ -161,39 +161,14 @@ func navigationOnClick(_ *guilib.Gui, view *guilib.View) error {
 	log.Logger.Debugf("navigationOnClick - cx %d cy %d", cx, cy)
 
 	options := viewNavigationMap[activeView.Name]
-	sep := len(OptSeparator)
-	sections := make([]int, 0)
-	preFix := 0
-
-	var selected string
-	for i, opt := range options {
-		left := preFix + i*sep
-
-		words := len([]rune(opt))
-
-		right := left + words - 1
-		preFix += words
-
-		sections = append(sections, left, right)
+	optionIndex, selected := utils.ClickOption(options, optSeparator, cx, 0)
+	if optionIndex < 0 {
+		return nil
 	}
-
-	log.Logger.Debugf("navigationOnClick - sections %+v", sections)
-
-	for i := 0; i < len(sections); i += 2 {
-		left := sections[i]
-		right := sections[i+1]
-		if cx >= left && cx <= right {
-			optionIndex := i / 2
-			log.Logger.Debugf("navigationOnClick - cx %d in selection(%d)[%d, %d]", cx, optionIndex, left, right)
-			selected = switchNavigation(optionIndex)
-			view.ReRender()
-			Detail.ReRender()
-			break
-		}
-	}
-
 	log.Logger.Debugf("navigationOnClick - cx %d selected '%s'", cx, selected)
-
+	selected = switchNavigation(optionIndex)
+	view.ReRender()
+	Detail.ReRender()
 	return nil
 }
 

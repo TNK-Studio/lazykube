@@ -81,26 +81,20 @@ var (
 		OnRender: navigationRender,
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
-				Name: "navigationArrowLeft",
-				Keys: []interface{}{
-					gocui.KeyArrowLeft,
-					'k',
-				},
+				Name:    navigationArrowLeft,
+				Keys:    keyMap[navigationArrowLeft],
 				Handler: navigationArrowLeftHandler,
 				Mod:     gocui.ModNone,
 			},
 			{
-				Name: "navigationArrowRight",
-				Keys: []interface{}{
-					gocui.KeyArrowRight,
-					'l',
-				},
+				Name:    navigationArrowRight,
+				Keys:    keyMap[navigationArrowRight],
 				Handler: navigationArrowRightHandler,
 				Mod:     gocui.ModNone,
 			},
 			{
-				Name: "navigationDown",
-				Key:  gocui.KeyArrowDown,
+				Name: navigationDown,
+				Keys: keyMap[navigationDown],
 				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
 					if err := gui.FocusView(detailViewName, false); err != nil {
 						return err
@@ -123,8 +117,8 @@ var (
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
-				Name: "detailArrowUp",
-				Key:  gocui.KeyArrowUp,
+				Name: detailArrowUp,
+				Keys: keyMap[detailArrowUp],
 				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
 					err := gui.FocusView(navigationViewName, false)
 					if err != nil {
