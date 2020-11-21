@@ -64,6 +64,7 @@ var (
 			nextLine,
 			filterAction,
 			editResourceAction,
+			newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
 			newMoreActions(moreActionsMap[deploymentViewName]),
 		}),
 	}

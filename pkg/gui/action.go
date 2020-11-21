@@ -41,7 +41,7 @@ type Action struct {
 	Keys            []interface{}
 	Name            string
 	Key             interface{}
-	Handler         func(*Gui, *View) error
+	Handler         ViewHandler
 	ReRenderAllView bool
 	Mod             gocui.Modifier
 }
@@ -130,7 +130,7 @@ func ViewClickHandler(gui *Gui, view *View) error {
 	return nil
 }
 
-func actionHandlerWrapper(gui *Gui, handler func(gui *Gui, view *View) error) func(*gocui.Gui, *gocui.View) error {
+func actionHandlerWrapper(gui *Gui, handler ViewHandler) func(*gocui.Gui, *gocui.View) error {
 	return func(g *gocui.Gui, v *gocui.View) error {
 		view := gui.getView(v.Name())
 		return handler(gui, view)

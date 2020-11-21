@@ -6,6 +6,7 @@ import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
+	"github.com/gookit/color"
 	"github.com/jroimartin/gocui"
 	"strings"
 )
@@ -407,4 +408,132 @@ func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error)
 		return nil, errors.New("editResourceHandler - more action trigger view not found. ")
 	}
 	return view, nil
+}
+
+func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHandler) *guilib.View {
+	return &guilib.View{
+		Name:         confirmDialogViewName,
+		Title:        title,
+		Clickable:    true,
+		CanNotReturn: true,
+		AlwaysOnTop:  true,
+		ZIndex:       10,
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
+			maxWidth, maxHeight := gui.Size()
+			halfWidth, halfHeight := maxWidth/2, maxHeight/2
+			eighthWidth, eighthHeight := maxWidth/8, maxHeight/8
+			return halfWidth - eighthWidth*2, halfHeight - eighthHeight, halfWidth + eighthHeight*2, halfHeight + eighthHeight
+		},
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			view.Clear()
+			canReturn := true
+			currentView := gui.CurrentView()
+			if currentView != nil && currentView.Name == moreActionsViewName {
+				canReturn = false
+			}
+			if err := gui.FocusView(confirmDialogViewName, canReturn); err != nil {
+				return err
+			}
+
+			var value string
+			val, err := view.State.Get("value")
+			if err != nil {
+				_ = view.State.Set("value", confirmDialogOpt)
+				value = confirmDialogOpt
+			} else {
+				value = val.(string)
+			}
+
+			optionsStr := strings.Join(confirmDialogOptions, optSeparator)
+			length := len([]rune(optionsStr))
+			width, height := view.Size()
+			if width < length {
+				return guilib.ErrNotEnoughSpace
+			}
+
+			offset := (width - length) / 2
+			for i := 0; i <= height/3*2; i++ {
+				if _, err := fmt.Fprintln(view); err != nil {
+					return err
+				}
+			}
+
+			optionsStr = strings.Replace(optionsStr, value, color.Green.Sprint(value), 1)
+			for i := 0; i < offset; i++ {
+				optionsStr = " " + optionsStr
+			}
+			log.Logger.Debugf("confirmDialogView - optionsStr %s", optionsStr)
+			if _, err := fmt.Fprint(view, optionsStr); err != nil {
+				return err
+			}
+			return nil
+		},
+		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := gui.DeleteView(view.Name); err != nil {
+				return err
+			}
+			if err := gui.ReturnPreviousView(); err != nil {
+				return err
+			}
+			return nil
+		},
+		OnLineClick: func(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
+			if strings.ReplaceAll(lineString, " ", "") == "" {
+				return nil
+			}
+			cx, _ := view.Cursor()
+			optionsStr := strings.Join(confirmDialogOptions, optSeparator)
+			length := len([]rune(optionsStr))
+			width, _ := view.Size()
+			offset := (width - length) / 2
+			optIndex, selected := utils.ClickOption(confirmDialogOptions, optSeparator, cx, offset)
+			if optIndex < 0 {
+				return nil
+			}
+			return confirmDialogOptionHandler(gui, view, relatedViewName, selected, handler)
+		},
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			{
+				Keys: keyMap[switchConfirmDialogOpt],
+				Name: switchConfirmDialogOpt,
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					var value string
+					val, err := view.State.Get("value")
+					if err != nil {
+						_ = view.State.Set("value", confirmDialogOpt)
+						value = confirmDialogOpt
+					} else {
+						value = val.(string)
+					}
+
+					if value == confirmDialogOpt {
+						_ = view.State.Set("value", cancelDialogOpt)
+					} else {
+						_ = view.State.Set("value", confirmDialogOpt)
+					}
+					view.ReRender()
+					return nil
+				},
+				ReRenderAllView: false,
+				Mod:             gocui.ModNone,
+			},
+			{
+				Keys: keyMap[confirmDialogEnter],
+				Name: confirmDialogEnter,
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					var value string
+					val, err := view.State.Get("value")
+					if err != nil {
+						_ = view.State.Set("value", confirmDialogOpt)
+						value = confirmDialogOpt
+					} else {
+						value = val.(string)
+					}
+
+					return confirmDialogOptionHandler(gui, view, relatedViewName, value, handler)
+				},
+				Mod: gocui.ModNone,
+			},
+		}),
+	}
 }
