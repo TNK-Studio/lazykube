@@ -3,6 +3,7 @@ package app
 import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/jroimartin/gocui"
+	"strings"
 )
 
 const (
@@ -249,25 +250,27 @@ var (
 			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
 	}
+
+	viewNameResourceMap = map[string]string{
+		namespaceViewName:  namespaceResource,
+		serviceViewName:    serviceResource,
+		deploymentViewName: deploymentResource,
+		podViewName:        podResource,
+	}
 )
 
 func getViewResourceName(viewName string) string {
-	var resource string
-	switch viewName {
-	case namespaceViewName:
-		resource = namespaceResource
-	case serviceViewName:
-		resource = serviceResource
-	case deploymentViewName:
-		resource = deploymentResource
-	case podViewName:
-		resource = podResource
-	}
+	return viewNameResourceMap[viewName]
+}
 
-	// Todo
-	//if resource == "" {
-	//
-	//}
+func newCustomResourcePanel(resource string) *guilib.View {
+	return &guilib.View{}
+}
 
+func resourceViewName(resource string) string {
 	return resource
+}
+
+func resourceViewTitle(resource string) string {
+	return strings.ToUpper(resource)
 }
