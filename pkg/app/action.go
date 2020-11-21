@@ -196,6 +196,13 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 }
 
 func newConfirmDialogAction(relatedViewName string, action *guilib.Action) *guilib.Action {
-	action.Handler = newConfirmDialogHandler(relatedViewName, action.Handler)
-	return action
+	confirmTitle := fmt.Sprintf("Confirm to '%s' ?", action.Name)
+	return &guilib.Action{
+		Keys:            action.Keys,
+		Name:            action.Name,
+		Key:             action.Key,
+		Handler:         newConfirmDialogHandler(confirmTitle, relatedViewName, action.Handler),
+		ReRenderAllView: action.ReRenderAllView,
+		Mod:             action.Mod,
+	}
 }

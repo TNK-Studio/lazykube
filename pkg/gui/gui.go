@@ -233,7 +233,7 @@ func (gui *Gui) SetKeybinding(viewName string, key interface{}, mod gocui.Modifi
 
 // BindAction BindAction
 func (gui *Gui) BindAction(viewName string, action ActionInterface) {
-	var handler func(gui *Gui, view *View) error
+	var handler ViewHandler
 	if action.ReRenderAll() {
 		handler = func(gui *Gui, view *View) error {
 			if err := action.HandlerFunc(gui, view); err != nil {
@@ -563,7 +563,7 @@ func (gui *Gui) FocusView(name string, canReturn bool) error {
 	currentView := gui.CurrentView()
 
 	if previousView != nil {
-		if canReturn {
+		if canReturn && (currentView == nil || (previousView.Name != currentView.Name)) {
 			gui.pushPreviousView(previousView.Name)
 		}
 		if previousView.Name != name {

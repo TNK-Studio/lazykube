@@ -36,12 +36,12 @@ type (
 		Name                  string
 		Title                 string
 		SelectedLine          string
-		OnClick               func(gui *Gui, view *View) error
+		OnClick               ViewHandler
 		OnLineClick           func(gui *Gui, view *View, cy int, lineString string) error
-		OnRender              func(gui *Gui, view *View) error
-		OnRenderOptions       func(gui *Gui, view *View) error
-		OnFocus               func(gui *Gui, view *View) error
-		OnFocusLost           func(gui *Gui, view *View) error
+		OnRender              ViewHandler
+		OnRenderOptions       ViewHandler
+		OnFocus               ViewHandler
+		OnFocusLost           ViewHandler
 		OnCursorChange        func(gui *Gui, view *View, x, y int) error
 		OnEditedChange        func(gui *Gui, view *View, key gocui.Key, ch rune, mod gocui.Modifier)
 		OnSelectedLineChange  func(gui *Gui, view *View, selectedLine string) error
@@ -69,11 +69,13 @@ type (
 		Highlight             bool
 		NoFrame               bool
 		MouseDisable          bool
-		// When the "CanNotReturn" parameter is true, it will not be placed in previousViews
+		// When the "CanNotReturn" parameter is true, it will not be placed in previousViews where the view was clicked.
 		CanNotReturn bool
 		reRendered   bool
 		AlwaysOnTop  bool
 	}
+
+	ViewHandler func(gui *Gui, view *View) error
 )
 
 // InitView InitView
@@ -253,7 +255,7 @@ func (view *View) render() error {
 
 	if view.OnRender != nil {
 		if err := view.OnRender(view.gui, view); err != nil {
-			return nil
+			return err
 		}
 	}
 	return nil

@@ -41,7 +41,7 @@ var (
 		podViewName:         {"Log", "Config", "Top", "Describe"},
 	}
 
-	detailRenderMap = map[string]func(gui *guilib.Gui, view *guilib.View) error{
+	detailRenderMap = map[string]guilib.ViewHandler{
 		navigationPath(clusterInfoViewName, "Nodes"):     renderAfterClear(clusterNodesRender),
 		navigationPath(clusterInfoViewName, "Top Nodes"): renderAfterClear(topNodesRender),
 		navigationPath(namespaceViewName, "Deployments"): renderAfterClear(deploymentRender),
@@ -70,7 +70,7 @@ func notResourceSelected(selectedName string) bool {
 	return false
 }
 
-func renderAfterClear(render func(gui *guilib.Gui, view *guilib.View) error) func(gui *guilib.Gui, view *guilib.View) error {
+func renderAfterClear(render guilib.ViewHandler) guilib.ViewHandler {
 	return func(gui *guilib.Gui, view *guilib.View) error {
 		view.Clear()
 		return render(gui, view)
