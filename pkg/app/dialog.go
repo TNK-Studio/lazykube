@@ -323,8 +323,8 @@ func closeFilterDialog(gui *guilib.Gui) error {
 	return nil
 }
 
-func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreActions []*moreAction) error {
-	moreActionView := &guilib.View{
+func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreActions []*moreAction) *guilib.View {
+	return &guilib.View{
 		Title:       title,
 		Name:        moreActionsViewName,
 		AlwaysOnTop: true,
@@ -381,21 +381,6 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		Actions: toMoreActionArr(moreActions),
 	}
-
-	if err := gui.AddView(moreActionView); err != nil {
-		return err
-	}
-
-	if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
-		return err
-	}
-	// Todo: On view state change. Rerender.
-	moreActionView.ReRender()
-
-	if err := gui.FocusView(moreActionView.Name, true); err != nil {
-		return err
-	}
-	return nil
 }
 
 func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {

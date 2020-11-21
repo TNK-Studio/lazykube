@@ -186,7 +186,18 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 		Name: moreActionsName,
 		Keys: keyMap[moreActionsName],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
-			if err := newMoreActionDialog("More Actions", gui, view, moreActions); err != nil {
+			moreActionView := newMoreActionDialog("More Actions", gui, view, moreActions)
+			if err := gui.AddView(moreActionView); err != nil {
+				return err
+			}
+
+			if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
+				return err
+			}
+			// Todo: On view state change. Rerender.
+			moreActionView.ReRender()
+
+			if err := gui.FocusView(moreActionView.Name, true); err != nil {
 				return err
 			}
 			return nil

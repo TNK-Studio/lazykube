@@ -5,11 +5,14 @@ import (
 )
 
 const (
-	tallPanels = 4
+	resizeAbleViewMinHeight = 5
+	clusterInfoViewHeight   = 2
+	optionViewHeight        = 1
 )
 
 var (
 	viewHeights     = map[string]int{}
+	functionViews   = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	resizeableViews = []string{namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 )
 
@@ -27,10 +30,11 @@ func leftSideWidth(maxWidth int) int {
 }
 
 func usableSpace(_ *guilib.Gui, maxHeight int) int {
-	if maxHeight < 28 {
+	usedSpace := clusterInfoViewHeight + optionViewHeight + (len(functionViews) - 1)
+	if maxHeight < resizeAbleViewMinHeight*len(resizeableViews)-usedSpace {
 		return maxHeight - 2
 	}
-	return maxHeight - 8
+	return maxHeight - usedSpace
 }
 
 func resizePanelHeight(gui *guilib.Gui) error {
@@ -38,12 +42,13 @@ func resizePanelHeight(gui *guilib.Gui) error {
 
 	space := usableSpace(gui, maxHeight)
 
-	viewHeights[clusterInfoViewName] = 2
-	viewHeights[namespaceViewName] = space / tallPanels
-	viewHeights[serviceViewName] = space / tallPanels
-	viewHeights[deploymentViewName] = space / tallPanels
-	viewHeights[podViewName] = space / tallPanels
-	viewHeights[optionViewName] = 1
+	n := len(resizeableViews)
+	viewHeights[clusterInfoViewName] = clusterInfoViewHeight
+	viewHeights[namespaceViewName] = space / n
+	viewHeights[serviceViewName] = space / n
+	viewHeights[deploymentViewName] = space / n
+	viewHeights[podViewName] = space / n
+	viewHeights[optionViewName] = optionViewHeight
 
 	return nil
 }
@@ -52,7 +57,7 @@ func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 	var resizeView string
 	currentView := gui.CurrentView()
 	if currentView == nil {
-		resizeView = namespaceViewName
+		resizeView = resizeableViews[0]
 	} else {
 		resizeView = currentView.Name
 	}
@@ -63,28 +68,15 @@ func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 
 		// If previous view is cluster info 、navigation or detail pane.
 		if !resizeAbleView(resizeView) {
-			resizeView = namespaceViewName
+			resizeView = resizeableViews[0]
 		}
 	}
 
+	n := len(resizeableViews)
 	maxHeight := gui.MaxHeight()
 	height := viewHeights[view.Name]
 	if resizeView == view.Name {
-		height += usableSpace(gui, maxHeight) % tallPanels
-	}
-
-	if maxHeight < 28 {
-		if view.Name == podViewName {
-			// First time
-			if currentView == nil {
-				return height - migrateTopFunc(gui, view)*2
-			}
-
-			// When pod panel selected.
-			if resizeView == podViewName || !resizeAbleView(currentView.Name) {
-				return height - migrateTopFunc(gui, view)*2
-			}
-		}
+		height += usableSpace(gui, maxHeight) % n
 	}
 
 	return height
@@ -92,12 +84,13 @@ func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 
 func migrateTopFunc(gui *guilib.Gui, view *guilib.View) int {
 	maxHeight := gui.MaxHeight()
-
-	if maxHeight < 28 {
+	usedSpace := clusterInfoViewHeight - optionViewHeight - (len(functionViews) - 1)
+	HeightLine := resizeAbleViewMinHeight*len(resizeableViews) - usedSpace
+	if maxHeight < HeightLine {
 		currentView := gui.CurrentView()
 		if currentView != nil {
-			if currentView.Name == navigationViewName || currentView.Name == detailViewName {
-				if view.Name == namespaceViewName {
+			if !resizeAbleView(view.Name) {
+				if view.Name == resizeableViews[0] {
 					return 1
 				}
 			}
@@ -112,7 +105,7 @@ func migrateTopFunc(gui *guilib.Gui, view *guilib.View) int {
 			}
 		}
 	}
-	if maxHeight < 28 {
+	if maxHeight < HeightLine {
 		return -1
 	}
 	return 1

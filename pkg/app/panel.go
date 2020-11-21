@@ -2,6 +2,8 @@ package app
 
 import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
+	"github.com/fatih/camelcase"
 	"github.com/jroimartin/gocui"
 	"strings"
 )
@@ -22,6 +24,7 @@ var (
 		Name:      clusterInfoViewName,
 		Title:     "Cluster Info",
 		Clickable: true,
+		ZIndex:    zIndexOfFunctionView(clusterInfoViewName),
 		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
 			return leftSideWidth(gui.MaxWidth())
 		},
@@ -41,7 +44,7 @@ var (
 		Name:                 deploymentViewName,
 		Title:                "Deployments",
 		FgColor:              gocui.ColorDefault,
-		ZIndex:               3,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -136,7 +139,7 @@ var (
 	Namespace = &guilib.View{
 		Name:      namespaceViewName,
 		Title:     "Namespaces",
-		ZIndex:    1,
+		ZIndex:    zIndexOfFunctionView(deploymentViewName),
 		Clickable: true,
 		OnRender:  namespaceRender,
 		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
@@ -191,7 +194,7 @@ var (
 	Pod = &guilib.View{
 		Name:                 podViewName,
 		Title:                "Pods",
-		ZIndex:               4,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
 		OnRender:             podRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
@@ -209,6 +212,21 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return leftSideWidth(gui.MaxWidth())
+			}
+
+			_, _, x1, _ := view.DimensionFunc(gui, view)
+			return x1
+		},
+		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return gui.MaxHeight() - 2
+			}
+			_, _, _, y1 := view.DimensionFunc(gui, view)
+			return y1
+		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
@@ -223,7 +241,7 @@ var (
 	Service = &guilib.View{
 		Name:                 serviceViewName,
 		Title:                "Services",
-		ZIndex:               2,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
 		OnRender:             serviceRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
@@ -264,13 +282,62 @@ func getViewResourceName(viewName string) string {
 }
 
 func newCustomResourcePanel(resource string) *guilib.View {
-	return &guilib.View{}
+	viewName := resourceViewName(resource)
+	return &guilib.View{
+		Name:                 resourceViewName(resource),
+		Title:                resourceViewTitle(resource),
+		ZIndex:               zIndexOfFunctionView(viewName),
+		Clickable:            true,
+		OnRender:             serviceRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
+		DimensionFunc: guilib.BeneathView(
+			podViewName,
+			reactiveHeight,
+			migrateTopFunc,
+		),
+		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return leftSideWidth(gui.MaxWidth())
+			}
+
+			_, _, x1, _ := view.DimensionFunc(gui, view)
+			return x1
+		},
+		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return gui.MaxHeight() - 2
+			}
+			_, _, _, y1 := view.DimensionFunc(gui, view)
+			return y1
+		},
+	}
 }
 
 func resourceViewName(resource string) string {
-	return resource
+	gvk := kubecli.Cli.GetResourceGroupVersionKind(resource)
+	return strings.ToLower(gvk.Kind)
 }
 
 func resourceViewTitle(resource string) string {
-	return strings.ToUpper(resource)
+	gvk := kubecli.Cli.GetResourceGroupVersionKind(resource)
+	return strings.Join(camelcase.Split(gvk.Kind), " ")
+}
+
+func zIndexOfFunctionView(viewName string) int {
+	i := 0
+	for i < len(functionViews) {
+		if functionViews[i] == viewName {
+			return i
+		}
+		i++
+	}
+	return i
 }

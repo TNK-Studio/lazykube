@@ -32,7 +32,6 @@ var (
 	navigationIndex     int
 	activeNavigationOpt string
 
-	functionViews     = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
 	viewNavigationMap = map[string][]string{
 		clusterInfoViewName: {"Nodes", "Top Nodes"},
 		namespaceViewName:   {"Config", "Deployments", "Pods"},
