@@ -411,13 +411,6 @@ func (gui *Gui) AddView(view *View) error {
 	// Todo: Check if view existed
 	gui.views = append(gui.views, view)
 	view.gui = gui
-	err := gui.RenderView(view)
-	if errors.Is(err, ErrNotEnoughSpace) {
-		if err := gui.renderNotEnoughSpaceView(); err != nil {
-			return err
-		}
-		return nil
-	}
 
 	if view.Clickable {
 		gui.BindAction(view.Name, ClickView)
@@ -428,7 +421,16 @@ func (gui *Gui) AddView(view *View) error {
 			gui.BindAction(view.Name, act)
 		}
 	}
+
 	view.InitView()
+
+	err := gui.RenderView(view)
+	if errors.Is(err, ErrNotEnoughSpace) {
+		if err := gui.renderNotEnoughSpaceView(); err != nil {
+			return err
+		}
+		return nil
+	}
 	return nil
 }
 

@@ -242,7 +242,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 			}
 
 			filtered := make([]string, 0)
-			value = strings.ToLower(value)
+			value = strings.TrimSpace(strings.ToLower(value))
 			for _, resource := range data[1:] {
 				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)

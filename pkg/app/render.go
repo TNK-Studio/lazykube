@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
@@ -119,7 +120,7 @@ func navigationRender(gui *guilib.Gui, view *guilib.View) error {
 
 	if activeView == nil {
 		if gui.CurrentView() == nil {
-			if err := gui.FocusView(clusterInfoViewName, false); err != nil {
+			if err := gui.FocusView(functionViews[0], false); err != nil {
 				log.Logger.Println(err)
 			}
 		}
@@ -286,6 +287,10 @@ func configRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace, resourceName, err := getResourceNamespaceAndName(gui, activeView)
 	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			showPleaseSelected(view, resource)
+			return nil
+		}
 		return err
 	}
 
@@ -310,12 +315,12 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace, resourceName, err := getResourceNamespaceAndName(gui, activeView)
 	if err != nil {
-		return err
-	}
+		if errors.Is(err, noResourceSelectedErr) {
+			showPleaseSelected(view, resource)
+			return nil
+		}
 
-	if notResourceSelected(resourceName) {
-		showPleaseSelected(view, resource)
-		return nil
+		return err
 	}
 
 	cli(namespace).Describe(viewStreams(view), resource, resourceName).Run()
@@ -354,12 +359,11 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	namespace, resourceName, err := getResourceNamespaceAndName(gui, podView)
 	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			showPleaseSelected(view, resource)
+			return nil
+		}
 		return err
-	}
-
-	if notResourceSelected(resourceName) {
-		showPleaseSelected(view, resource)
-		return nil
 	}
 
 	cli(namespace).
@@ -453,12 +457,11 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 
 		namespace, resourceName, err := getResourceNamespaceAndName(gui, activeView)
 		if err != nil {
+			if errors.Is(err, noResourceSelectedErr) {
+				showPleaseSelected(view, resource)
+				return nil
+			}
 			return err
-		}
-
-		if notResourceSelected(resourceName) {
-			showPleaseSelected(view, resource)
-			return nil
 		}
 
 		output := newStream()

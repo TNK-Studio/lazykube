@@ -134,35 +134,47 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	deleteCustomResourcePanelAction = &guilib.Action{
+		Keys:    keyMap[deleteCustomResourcePanelActionName],
+		Name:    deleteCustomResourcePanelActionName,
+		Handler: deleteCustomResourcePanelHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,
+	}
+	deleteCustomResourcePanelMoreAction = &moreAction{
+		NeedSelectResource: false,
+		Action:             *deleteCustomResourcePanelAction,
+	}
+
+	commonResourceMoreActions = []*moreAction{
+		addCustomResourcePanelMoreAction,
+		editResourceMoreAction,
 	}
 
 	moreActionsMap = map[string][]*moreAction{
 		clusterInfoViewName: {
 			addCustomResourcePanelMoreAction,
 		},
-		namespaceViewName: {
-			editResourceMoreAction,
-			addCustomResourcePanelMoreAction,
-		},
-		serviceViewName: {
-			editResourceMoreAction,
-			addCustomResourcePanelMoreAction,
-		},
-		deploymentViewName: {
-			editResourceMoreAction,
+		namespaceViewName: append(
+			commonResourceMoreActions,
+		),
+		serviceViewName: append(
+			commonResourceMoreActions,
+		),
+		deploymentViewName: append(
+			commonResourceMoreActions,
 			&moreAction{
 				NeedSelectResource: true,
 				Action:             *newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
 			},
-			addCustomResourcePanelMoreAction,
-		},
-		podViewName: {
-			editResourceMoreAction,
-			addCustomResourcePanelMoreAction,
-		},
+		),
+		podViewName: append(
+			commonResourceMoreActions,
+		),
 		navigationViewName: {
 			addCustomResourcePanelMoreAction,
 		},

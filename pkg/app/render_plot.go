@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
@@ -36,12 +37,11 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		podView,
 	)
 	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			showPleaseSelected(view, resource)
+			return nil
+		}
 		return err
-	}
-
-	if notResourceSelected(resourceName) {
-		showPleaseSelected(view, resource)
-		return nil
 	}
 
 	metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)

@@ -206,13 +206,13 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 	selected := resourceView.SelectedLine
 
 	if selected == "" {
-		return "", "", err
+		return "", "", noResourceSelectedErr
 	}
 
 	if !notResourceSelected(namespace) {
 		resourceName := formatResourceName(selected, 0)
 		if notResourceSelected(resourceName) {
-			return "", "", err
+			return "", "", noResourceSelectedErr
 		}
 		return namespace, resourceName, nil
 	}
@@ -220,7 +220,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 	namespace = formatResourceName(selected, 0)
 	resourceName := formatResourceName(selected, 1)
 	if notResourceSelected(resourceName) {
-		return "", "", err
+		return "", "", noResourceSelectedErr
 	}
 
 	if namespace == "" {
@@ -272,9 +272,6 @@ func resourceMoreActionHandlerHelper(gui *guilib.Gui, view *guilib.View) (resour
 	namespace, resourceName, err = getResourceNamespaceAndName(gui, view)
 	if err != nil {
 		return nil, "", "", "", err
-	}
-	if notResourceSelected(resourceName) {
-		return nil, "", "", "", noResourceSelectedErr
 	}
 	return view, resource, namespace, resourceName, nil
 }
@@ -351,6 +348,20 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 		},
 		resourceNotFound,
 	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error {
+	if view.Name == moreActionsViewName {
+		var err error
+		view, err = getMoreActionTriggerView(view)
+		if err != nil {
+			return err
+		}
+	}
+	if err := deleteCustomResourcePanel(gui, view.Name); err != nil {
 		return err
 	}
 	return nil

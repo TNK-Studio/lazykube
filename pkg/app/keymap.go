@@ -35,40 +35,42 @@ const (
 	confirmDialogEnter         = "confirmDialogEnter"
 
 	// More actions
-	editResourceActionName           = "Edit Resource"
-	rolloutRestartActionName         = "Rollout Restart"
-	addCustomResourcePanelActionName = "Add custom resource panel"
+	editResourceActionName              = "Edit Resource"
+	rolloutRestartActionName            = "Rollout Restart"
+	addCustomResourcePanelActionName    = "Add custom resource panel"
+	deleteCustomResourcePanelActionName = "Delete custom resource panel"
 )
 
 var (
 	// All common actions key map.
 	keyMap = map[string][]interface{}{
-		nextCyclicViewAction:             {gocui.KeyTab},
-		backToPreviousViewAction:         {gocui.KeyEsc},
-		toNavigationAction:               {gocui.KeyEnter, gocui.KeyArrowRight, 'l'},
-		navigationArrowLeft:              {gocui.KeyArrowLeft, 'k'},
-		navigationArrowRight:             {gocui.KeyArrowRight, 'l'},
-		navigationDown:                   {gocui.KeyArrowDown, 'j', gocui.KeyTab},
-		detailArrowUp:                    {gocui.KeyArrowUp, 'h', gocui.KeyTab},
-		previousLineAction:               {gocui.KeyArrowUp, 'h'},
-		nextLineAction:                   {gocui.KeyArrowDown, 'j'},
-		previousPageAction:               {gocui.KeyPgup},
-		nextPageAction:                   {gocui.KeyPgdn},
-		scrollUpAction:                   {gocui.MouseWheelUp},
-		scrollDownAction:                 {gocui.MouseWheelDown},
-		scrollTopAction:                  {gocui.KeyHome},
-		scrollBottomAction:               {gocui.KeyEnd},
-		filterResourceActionName:         {gocui.KeyF4, 'f'},
-		editResourceActionName:           {'e'},
-		rolloutRestartActionName:         {'r'},
-		moreActionsName:                  {gocui.KeyF3, 'm'},
-		toFilteredViewAction:             {gocui.KeyTab, gocui.KeyArrowDown},
-		toFilterInputAction:              {gocui.KeyTab},
-		filteredNextLineAction:           {gocui.KeyArrowDown},
-		confirmFilterInputAction:         {gocui.KeyEnter},
-		switchConfirmDialogOpt:           {gocui.KeyTab, gocui.KeyArrowRight, gocui.KeyArrowLeft, 'k', 'l'},
-		confirmDialogEnter:               {gocui.KeyEnter},
-		addCustomResourcePanelActionName: {'p'},
+		nextCyclicViewAction:                {gocui.KeyTab},
+		backToPreviousViewAction:            {gocui.KeyEsc},
+		toNavigationAction:                  {gocui.KeyEnter, gocui.KeyArrowRight, 'l'},
+		navigationArrowLeft:                 {gocui.KeyArrowLeft, 'k'},
+		navigationArrowRight:                {gocui.KeyArrowRight, 'l'},
+		navigationDown:                      {gocui.KeyArrowDown, 'j', gocui.KeyTab},
+		detailArrowUp:                       {gocui.KeyArrowUp, 'h', gocui.KeyTab},
+		previousLineAction:                  {gocui.KeyArrowUp, 'h'},
+		nextLineAction:                      {gocui.KeyArrowDown, 'j'},
+		previousPageAction:                  {gocui.KeyPgup},
+		nextPageAction:                      {gocui.KeyPgdn},
+		scrollUpAction:                      {gocui.MouseWheelUp},
+		scrollDownAction:                    {gocui.MouseWheelDown},
+		scrollTopAction:                     {gocui.KeyHome},
+		scrollBottomAction:                  {gocui.KeyEnd},
+		filterResourceActionName:            {gocui.KeyF4, 'f'},
+		editResourceActionName:              {'e'},
+		rolloutRestartActionName:            {'r'},
+		moreActionsName:                     {gocui.KeyF3, 'm'},
+		toFilteredViewAction:                {gocui.KeyTab, gocui.KeyArrowDown},
+		toFilterInputAction:                 {gocui.KeyTab},
+		filteredNextLineAction:              {gocui.KeyArrowDown},
+		confirmFilterInputAction:            {gocui.KeyEnter},
+		switchConfirmDialogOpt:              {gocui.KeyTab, gocui.KeyArrowRight, gocui.KeyArrowLeft, 'k', 'l'},
+		confirmDialogEnter:                  {gocui.KeyEnter},
+		addCustomResourcePanelActionName:    {'+'},
+		deleteCustomResourcePanelActionName: {'-'},
 	}
 )
 

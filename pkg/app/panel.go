@@ -222,10 +222,16 @@ var (
 			return x1
 		},
 		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			_, y0, _, y1 := view.DimensionFunc(gui, view)
+
 			if resizeableViews[len(resizeableViews)-1] == view.Name {
-				return gui.MaxHeight() - 2
+				height := gui.MaxHeight() - 2
+				if height < y0+1 {
+					return y0 + 1
+				}
+
+				return height
 			}
-			_, _, _, y1 := view.DimensionFunc(gui, view)
 			return y1
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
@@ -276,6 +282,8 @@ var (
 		deploymentViewName: deploymentResource,
 		podViewName:        podResource,
 	}
+
+	restartableResource = []string{"deployments", "statefulsets", "daemonsets"}
 )
 
 func getViewResourceName(viewName string) string {
@@ -284,7 +292,7 @@ func getViewResourceName(viewName string) string {
 
 func newCustomResourcePanel(resource string) *guilib.View {
 	viewName := resourceViewName(resource)
-	return &guilib.View{
+	customResourcePanel := &guilib.View{
 		Name:                 resourceViewName(resource),
 		Title:                resourceViewTitle(resource),
 		ZIndex:               zIndexOfFunctionView(viewName),
@@ -313,13 +321,47 @@ func newCustomResourcePanel(resource string) *guilib.View {
 			return x1
 		},
 		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			_, y0, _, y1 := view.DimensionFunc(gui, view)
+
 			if resizeableViews[len(resizeableViews)-1] == view.Name {
-				return gui.MaxHeight() - 2
+				height := gui.MaxHeight() - 2
+				if height < y0+1 {
+					return y0 + 1
+				}
+
+				return height
 			}
-			_, _, _, y1 := view.DimensionFunc(gui, view)
 			return y1
 		},
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			filterResource,
+			editResourceAction,
+		}),
 	}
+
+	customPanelMoreActions := []*moreAction{
+		// initialization loop
+		//addCustomResourcePanelMoreAction,
+		editResourceMoreAction,
+		deleteCustomResourcePanelMoreAction,
+	}
+	if resourceRestartable(resource) {
+		customPanelMoreActions = append(
+			customPanelMoreActions,
+			&moreAction{
+				NeedSelectResource: true,
+				Action:             *newConfirmDialogAction(customResourcePanel.Name, rolloutRestartAction),
+			},
+		)
+	}
+
+	customPanelMoreActions = append(customPanelMoreActions)
+	customResourcePanel.Actions = append(customResourcePanel.Actions, newMoreActions(customPanelMoreActions))
+	return customResourcePanel
 }
 
 func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
@@ -336,7 +378,50 @@ func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
 	viewNavigationMap[customResourcePanel.Name] = []string{"Config", "Describe"}
 	detailRenderMap[navigationPath(customResourcePanel.Name, "Config")] = clearBeforeRender(configRender)
 	detailRenderMap[navigationPath(customResourcePanel.Name, "Describe")] = clearBeforeRender(describeRender)
+	if err := resizePanelHeight(gui); err != nil {
+		return err
+	}
 	if err := gui.AddView(customResourcePanel); err != nil {
+		return err
+	}
+
+	// Todo: panic error
+	//if err := gui.FocusView(customResourcePanel.Name, false); err != nil {
+	//	return err
+	//}
+
+	//if err := gui.FocusView(functionViews[0], false); err != nil {
+	//	return err
+	//}
+	return nil
+}
+
+func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
+	var customResourcePanel *guilib.View
+	customResourcePanel, _ = gui.GetView(viewName)
+	if customResourcePanel == nil {
+		return nil
+	}
+
+	for index, eachViewName := range functionViews {
+		if eachViewName == viewName {
+			functionViews = append(functionViews[:index], functionViews[index+1:]...)
+		}
+	}
+
+	for index, eachViewName := range resizeableViews {
+		if eachViewName == viewName {
+			resizeableViews = append(resizeableViews[:index], resizeableViews[index+1:]...)
+		}
+	}
+
+	if err := resizePanelHeight(gui); err != nil {
+		return err
+	}
+	if err := gui.DeleteView(customResourcePanel.Name); err != nil {
+		return err
+	}
+	if err := gui.FocusView(functionViews[0], false); err != nil {
 		return err
 	}
 	return nil
@@ -361,4 +446,13 @@ func zIndexOfFunctionView(viewName string) int {
 		i++
 	}
 	return i
+}
+
+func resourceRestartable(resource string) bool {
+	for _, restartable := range restartableResource {
+		if resource == restartable {
+			return true
+		}
+	}
+	return false
 }
