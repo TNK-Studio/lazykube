@@ -14,7 +14,6 @@ type (
 	Gui struct {
 		views   []*View
 		Actions []*Action
-		State   State
 		// History of focused views name.
 		previousViews      TowHeadQueue
 		OnSizeChange       func(gui *Gui) error
@@ -22,6 +21,7 @@ type (
 		OnRenderOptions    func(gui *Gui) error
 		previousViewsLimit int
 		g                  *gocui.Gui
+		state              State
 		preHeight          int
 		preWidth           int
 		Config             config.GuiConfig
@@ -32,7 +32,7 @@ type (
 // NewGui NewGui
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	gui := &Gui{
-		State:              NewStateMap(),
+		state:              NewStateMap(),
 		previousViews:      NewQueue(),
 		previousViewsLimit: 20,
 		Config:             config,
@@ -685,4 +685,25 @@ func (gui *Gui) ForceFlush() error {
 	}
 
 	return termbox.Flush()
+}
+
+func (gui *Gui) SetState(key string, value interface{}, reRenderAll bool, reRenderViews ...string) error {
+	err := gui.state.Set(key, value)
+	if err != nil {
+		return err
+	}
+	if reRenderAll {
+		gui.ReRenderAll()
+		return nil
+	}
+
+	if reRenderViews != nil {
+		gui.ReRenderViews(reRenderViews...)
+		return nil
+	}
+	return nil
+}
+
+func (gui *Gui) GetState(key string) (interface{}, error) {
+	return gui.state.Get(key)
 }

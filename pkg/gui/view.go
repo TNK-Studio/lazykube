@@ -32,7 +32,6 @@ type (
 	// View View
 	View struct {
 		Actions               []ActionInterface
-		State                 State
 		Name                  string
 		Title                 string
 		SelectedLine          string
@@ -57,6 +56,7 @@ type (
 		y1                    int
 		gui                   *Gui
 		v                     *gocui.View
+		state                 State
 		FgColor               gocui.Attribute
 		BgColor               gocui.Attribute
 		SelBgColor            gocui.Attribute
@@ -80,8 +80,8 @@ type (
 
 // InitView InitView
 func (view *View) InitView() {
-	if view.State == nil {
-		view.State = NewStateMap()
+	if view.state == nil {
+		view.state = NewStateMap()
 	}
 	if view.v != nil {
 		view.v.Title = view.Title
@@ -316,6 +316,20 @@ func (view *View) onCursorChange(_ *gocui.View, x, y int) error {
 		}
 	}
 	return nil
+}
+
+func (view *View) SetState(key string, value interface{}) error {
+	err := view.state.Set(key, value)
+	if err != nil {
+		return err
+	}
+
+	view.ReRender()
+	return nil
+}
+
+func (view *View) GetState(key string) (interface{}, error) {
+	return view.state.Get(key)
 }
 
 // DimensionFunc DimensionFunc

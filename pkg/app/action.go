@@ -243,11 +243,9 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 				return err
 			}
 
-			if err := moreActionView.State.Set(moreActionTriggerViewStateKey, view); err != nil {
+			if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
 				return err
 			}
-			// Todo: On view state change. Rerender.
-			moreActionView.ReRender()
 
 			if err := gui.FocusView(moreActionView.Name, true); err != nil {
 				return err

@@ -89,10 +89,6 @@ func newConfirmFilterInput(confirmHandler func(string) error) *guilib.Action {
 	return confirmFilterInput
 }
 
-//nolint:funlen
-//nolint:gocognit
-//nolint:gocognit
-//nolint:gocognit
 func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
 	confirmAction := newConfirmFilterInput(confirmHandler)
 	filterInput := &guilib.View{
@@ -140,8 +136,8 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 				value = view.ViewBufferLines()[0]
 			}
 
-			if err := view.State.Set(filterInputValueStateKey, value); err != nil {
-				log.Logger.Warningf("OnEditedChange - view.State.Set(filterInputValueStateKey,%s) error %s", value, err)
+			if err := view.SetState(filterInputValueStateKey, value); err != nil {
+				log.Logger.Warningf("OnEditedChange - view.SetState(filterInputValueStateKey,%s) error %s", value, err)
 				return
 			}
 
@@ -170,7 +166,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 		}),
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			value := ""
-			val, _ := filterInput.State.Get(filterInputValueStateKey)
+			val, _ := filterInput.GetState(filterInputValueStateKey)
 			if val != nil {
 				value = val.(string)
 			}
@@ -342,7 +338,7 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 }
 
 func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {
-	val, err := moreActionView.State.Get(moreActionTriggerViewStateKey)
+	val, err := moreActionView.GetState(moreActionTriggerViewStateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -379,9 +375,9 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 			}
 
 			var value string
-			val, err := view.State.Get("value")
+			val, err := view.GetState("value")
 			if err != nil {
-				_ = view.State.Set("value", confirmDialogOpt)
+				_ = view.SetState("value", confirmDialogOpt)
 				value = confirmDialogOpt
 			} else {
 				value = val.(string)
@@ -441,18 +437,18 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 				Name: switchConfirmDialogOpt,
 				Handler: func(gui *guilib.Gui, view *guilib.View) error {
 					var value string
-					val, err := view.State.Get("value")
+					val, err := view.GetState("value")
 					if err != nil {
-						_ = view.State.Set("value", confirmDialogOpt)
+						_ = view.SetState("value", confirmDialogOpt)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)
 					}
 
 					if value == confirmDialogOpt {
-						_ = view.State.Set("value", cancelDialogOpt)
+						_ = view.SetState("value", cancelDialogOpt)
 					} else {
-						_ = view.State.Set("value", confirmDialogOpt)
+						_ = view.SetState("value", confirmDialogOpt)
 					}
 					view.ReRender()
 					return nil
@@ -465,9 +461,9 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 				Name: confirmDialogEnter,
 				Handler: func(gui *guilib.Gui, view *guilib.View) error {
 					var value string
-					val, err := view.State.Get("value")
+					val, err := view.GetState("value")
 					if err != nil {
-						_ = view.State.Set("value", confirmDialogOpt)
+						_ = view.SetState("value", confirmDialogOpt)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)
