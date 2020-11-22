@@ -4,6 +4,7 @@ import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
+	"github.com/jroimartin/gocui"
 	"github.com/pkg/errors"
 	"math"
 	"strings"
@@ -339,6 +340,9 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 				return err
 			}
 			if err := closeFilterDialog(gui); err != nil {
+				if errors.Is(err, gocui.ErrUnknownView) {
+					return nil
+				}
 				return err
 			}
 			return nil

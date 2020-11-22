@@ -326,7 +326,11 @@ func (gui *Gui) RenderView(view *View) error {
 func (gui *Gui) unRenderNotEnoughSpaceView() error {
 	v, _ := gui.g.View(NotEnoughSpace.Name)
 	if v != nil {
-		return gui.g.DeleteView(NotEnoughSpace.Name)
+		if err := gui.g.DeleteView(NotEnoughSpace.Name); err != nil {
+			if errors.Is(err, gocui.ErrUnknownView) {
+				return nil
+			}
+		}
 	}
 	return nil
 }

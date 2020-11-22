@@ -385,14 +385,10 @@ func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
 		return err
 	}
 
-	// Todo: panic error
-	//if err := gui.FocusView(customResourcePanel.Name, false); err != nil {
-	//	return err
-	//}
+	if err := gui.FocusView(customResourcePanel.Name, false); err != nil {
+		return err
+	}
 
-	//if err := gui.FocusView(functionViews[0], false); err != nil {
-	//	return err
-	//}
 	return nil
 }
 
