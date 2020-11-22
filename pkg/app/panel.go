@@ -2,7 +2,10 @@ package app
 
 import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
+	"github.com/fatih/camelcase"
 	"github.com/jroimartin/gocui"
+	"strings"
 )
 
 const (
@@ -21,6 +24,7 @@ var (
 		Name:      clusterInfoViewName,
 		Title:     "Cluster Info",
 		Clickable: true,
+		ZIndex:    zIndexOfFunctionView(clusterInfoViewName),
 		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
 			return leftSideWidth(gui.MaxWidth())
 		},
@@ -29,6 +33,7 @@ var (
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
+			newMoreActions(moreActionsMap[clusterInfoViewName]),
 		}),
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.ReRenderViews(navigationViewName, detailViewName)
@@ -40,11 +45,11 @@ var (
 		Name:                 deploymentViewName,
 		Title:                "Deployments",
 		FgColor:              gocui.ColorDefault,
-		ZIndex:               3,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
-		OnRender:             deploymentRender,
+		OnRender:             resourceListRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
@@ -62,7 +67,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			filterAction,
+			filterResource,
 			editResourceAction,
 			newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
 			newMoreActions(moreActionsMap[deploymentViewName]),
@@ -135,7 +140,7 @@ var (
 	Namespace = &guilib.View{
 		Name:      namespaceViewName,
 		Title:     "Namespaces",
-		ZIndex:    1,
+		ZIndex:    zIndexOfFunctionView(deploymentViewName),
 		Clickable: true,
 		OnRender:  namespaceRender,
 		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
@@ -170,7 +175,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			filterAction,
+			filterResource,
 			editResourceAction,
 			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
@@ -190,7 +195,7 @@ var (
 	Pod = &guilib.View{
 		Name:                 podViewName,
 		Title:                "Pods",
-		ZIndex:               4,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
 		OnRender:             podRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
@@ -208,12 +213,33 @@ var (
 			reactiveHeight,
 			migrateTopFunc,
 		),
+		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return leftSideWidth(gui.MaxWidth())
+			}
+
+			_, _, x1, _ := view.DimensionFunc(gui, view)
+			return x1
+		},
+		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			_, y0, _, y1 := view.DimensionFunc(gui, view)
+
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				height := gui.MaxHeight() - 2
+				if height < y0+1 {
+					return y0 + 1
+				}
+
+				return height
+			}
+			return y1
+		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			filterAction,
+			filterResource,
 			editResourceAction,
 			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
@@ -222,9 +248,9 @@ var (
 	Service = &guilib.View{
 		Name:                 serviceViewName,
 		Title:                "Services",
-		ZIndex:               2,
+		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
-		OnRender:             serviceRender,
+		OnRender:             resourceListRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -244,30 +270,185 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
-			filterAction,
+			filterResource,
 			editResourceAction,
 			newMoreActions(moreActionsMap[namespaceViewName]),
 		}),
 	}
+
+	viewNameResourceMap = map[string]string{
+		namespaceViewName:  namespaceResource,
+		serviceViewName:    serviceResource,
+		deploymentViewName: deploymentResource,
+		podViewName:        podResource,
+	}
+
+	restartableResource = []string{"deployments", "statefulsets", "daemonsets"}
 )
 
 func getViewResourceName(viewName string) string {
-	var resource string
-	switch viewName {
-	case namespaceViewName:
-		resource = namespaceResource
-	case serviceViewName:
-		resource = serviceResource
-	case deploymentViewName:
-		resource = deploymentResource
-	case podViewName:
-		resource = podResource
+	return viewNameResourceMap[viewName]
+}
+
+func newCustomResourcePanel(resource string) *guilib.View {
+	viewName := resourceViewName(resource)
+	customResourcePanel := &guilib.View{
+		Name:                 resourceViewName(resource),
+		Title:                resourceViewTitle(resource),
+		ZIndex:               zIndexOfFunctionView(viewName),
+		Clickable:            true,
+		OnRender:             resourceListRender,
+		OnSelectedLineChange: viewSelectedLineChangeHandler,
+		Highlight:            true,
+		SelFgColor:           gocui.ColorGreen,
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := onFocusClearSelected(gui, view); err != nil {
+				return err
+			}
+			return nil
+		},
+		DimensionFunc: guilib.BeneathView(
+			functionViews[len(functionViews)-1],
+			reactiveHeight,
+			migrateTopFunc,
+		),
+		LowerRightPointXFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				return leftSideWidth(gui.MaxWidth())
+			}
+
+			_, _, x1, _ := view.DimensionFunc(gui, view)
+			return x1
+		},
+		LowerRightPointYFunc: func(gui *guilib.Gui, view *guilib.View) int {
+			_, y0, _, y1 := view.DimensionFunc(gui, view)
+
+			if resizeableViews[len(resizeableViews)-1] == view.Name {
+				height := gui.MaxHeight() - 2
+				if height < y0+1 {
+					return y0 + 1
+				}
+
+				return height
+			}
+			return y1
+		},
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			toNavigation,
+			nextCyclicView,
+			previousLine,
+			nextLine,
+			filterResource,
+			editResourceAction,
+		}),
 	}
 
-	// Todo
-	//if resource == "" {
-	//
-	//}
+	customPanelMoreActions := []*moreAction{
+		// initialization loop
+		//addCustomResourcePanelMoreAction,
+		editResourceMoreAction,
+		deleteCustomResourcePanelMoreAction,
+	}
+	if resourceRestartable(resource) {
+		customPanelMoreActions = append(
+			customPanelMoreActions,
+			&moreAction{
+				NeedSelectResource: true,
+				Action:             *newConfirmDialogAction(customResourcePanel.Name, rolloutRestartAction),
+			},
+		)
+	}
 
-	return resource
+	customPanelMoreActions = append(customPanelMoreActions)
+	customResourcePanel.Actions = append(customResourcePanel.Actions, newMoreActions(customPanelMoreActions))
+	return customResourcePanel
+}
+
+func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
+	var customResourcePanel *guilib.View
+	customResourcePanel, _ = gui.GetView(resourceViewName(resource))
+	if customResourcePanel != nil {
+		return nil
+	}
+
+	customResourcePanel = newCustomResourcePanel(resource)
+	viewNameResourceMap[customResourcePanel.Name] = resource
+	functionViews = append(functionViews, customResourcePanel.Name)
+	resizeableViews = append(resizeableViews, customResourcePanel.Name)
+	viewNavigationMap[customResourcePanel.Name] = []string{"Config", "Describe"}
+	detailRenderMap[navigationPath(customResourcePanel.Name, "Config")] = clearBeforeRender(configRender)
+	detailRenderMap[navigationPath(customResourcePanel.Name, "Describe")] = clearBeforeRender(describeRender)
+	if err := resizePanelHeight(gui); err != nil {
+		return err
+	}
+	if err := gui.AddView(customResourcePanel); err != nil {
+		return err
+	}
+
+	if err := gui.FocusView(customResourcePanel.Name, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
+	var customResourcePanel *guilib.View
+	customResourcePanel, _ = gui.GetView(viewName)
+	if customResourcePanel == nil {
+		return nil
+	}
+
+	for index, eachViewName := range functionViews {
+		if eachViewName == viewName {
+			functionViews = append(functionViews[:index], functionViews[index+1:]...)
+		}
+	}
+
+	for index, eachViewName := range resizeableViews {
+		if eachViewName == viewName {
+			resizeableViews = append(resizeableViews[:index], resizeableViews[index+1:]...)
+		}
+	}
+
+	if err := resizePanelHeight(gui); err != nil {
+		return err
+	}
+	if err := gui.DeleteView(customResourcePanel.Name); err != nil {
+		return err
+	}
+	if err := gui.FocusView(functionViews[0], false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resourceViewName(resource string) string {
+	gvk := kubecli.Cli.GetResourceGroupVersionKind(resource)
+	return strings.ToLower(gvk.Kind)
+}
+
+func resourceViewTitle(resource string) string {
+	gvk := kubecli.Cli.GetResourceGroupVersionKind(resource)
+	return strings.Join(camelcase.Split(gvk.Kind), " ")
+}
+
+func zIndexOfFunctionView(viewName string) int {
+	i := 0
+	for i < len(functionViews) {
+		if functionViews[i] == viewName {
+			return i
+		}
+		i++
+	}
+	return i
+}
+
+func resourceRestartable(resource string) bool {
+	for _, restartable := range restartableResource {
+		if resource == restartable {
+			return true
+		}
+	}
+	return false
 }

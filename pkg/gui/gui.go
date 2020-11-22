@@ -14,7 +14,6 @@ type (
 	Gui struct {
 		views   []*View
 		Actions []*Action
-		State   State
 		// History of focused views name.
 		previousViews      TowHeadQueue
 		OnSizeChange       func(gui *Gui) error
@@ -22,6 +21,7 @@ type (
 		OnRenderOptions    func(gui *Gui) error
 		previousViewsLimit int
 		g                  *gocui.Gui
+		state              State
 		preHeight          int
 		preWidth           int
 		Config             config.GuiConfig
@@ -32,7 +32,7 @@ type (
 // NewGui NewGui
 func NewGui(config config.GuiConfig, views ...*View) *Gui {
 	gui := &Gui{
-		State:              NewStateMap(),
+		state:              NewStateMap(),
 		previousViews:      NewQueue(),
 		previousViewsLimit: 20,
 		Config:             config,
@@ -295,7 +295,7 @@ func (gui *Gui) Run() {
 	}
 
 	if err := gui.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		log.Logger.Panicf("%+v", err)
+		log.Logger.Panicf("MainLoop - %+v", err)
 	}
 }
 
@@ -326,7 +326,11 @@ func (gui *Gui) RenderView(view *View) error {
 func (gui *Gui) unRenderNotEnoughSpaceView() error {
 	v, _ := gui.g.View(NotEnoughSpace.Name)
 	if v != nil {
-		return gui.g.DeleteView(NotEnoughSpace.Name)
+		if err := gui.g.DeleteView(NotEnoughSpace.Name); err != nil {
+			if errors.Is(err, gocui.ErrUnknownView) {
+				return nil
+			}
+		}
 	}
 	return nil
 }
@@ -411,13 +415,6 @@ func (gui *Gui) AddView(view *View) error {
 	// Todo: Check if view existed
 	gui.views = append(gui.views, view)
 	view.gui = gui
-	err := gui.RenderView(view)
-	if errors.Is(err, ErrNotEnoughSpace) {
-		if err := gui.renderNotEnoughSpaceView(); err != nil {
-			return err
-		}
-		return nil
-	}
 
 	if view.Clickable {
 		gui.BindAction(view.Name, ClickView)
@@ -428,7 +425,16 @@ func (gui *Gui) AddView(view *View) error {
 			gui.BindAction(view.Name, act)
 		}
 	}
+
 	view.InitView()
+
+	err := gui.RenderView(view)
+	if errors.Is(err, ErrNotEnoughSpace) {
+		if err := gui.renderNotEnoughSpaceView(); err != nil {
+			return err
+		}
+		return nil
+	}
 	return nil
 }
 
@@ -685,4 +691,25 @@ func (gui *Gui) ForceFlush() error {
 	}
 
 	return termbox.Flush()
+}
+
+func (gui *Gui) SetState(key string, value interface{}, reRenderAll bool, reRenderViews ...string) error {
+	err := gui.state.Set(key, value)
+	if err != nil {
+		return err
+	}
+	if reRenderAll {
+		gui.ReRenderAll()
+		return nil
+	}
+
+	if reRenderViews != nil {
+		gui.ReRenderViews(reRenderViews...)
+		return nil
+	}
+	return nil
+}
+
+func (gui *Gui) GetState(key string) (interface{}, error) {
+	return gui.state.Get(key)
 }

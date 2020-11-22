@@ -4,8 +4,14 @@ import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
+	"github.com/jroimartin/gocui"
 	"github.com/pkg/errors"
 	"math"
+	"strings"
+)
+
+const (
+	resourceNotFound = "Resource not found."
 )
 
 func nextCyclicViewHandler(gui *guilib.Gui, _ *guilib.View) error {
@@ -188,6 +194,10 @@ func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string)
 }
 
 func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (string, string, error) {
+	if resourceView.Name == namespaceViewName {
+		return "", formatSelectedNamespace(resourceView.SelectedLine), nil
+	}
+
 	namespaceView, err := gui.GetView(namespaceViewName)
 	if err != nil {
 		return "", "", err
@@ -197,13 +207,13 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 	selected := resourceView.SelectedLine
 
 	if selected == "" {
-		return "", "", err
+		return "", "", noResourceSelectedErr
 	}
 
 	if !notResourceSelected(namespace) {
 		resourceName := formatResourceName(selected, 0)
 		if notResourceSelected(resourceName) {
-			return "", "", err
+			return "", "", noResourceSelectedErr
 		}
 		return namespace, resourceName, nil
 	}
@@ -211,7 +221,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 	namespace = formatResourceName(selected, 0)
 	resourceName := formatResourceName(selected, 1)
 	if notResourceSelected(resourceName) {
-		return "", "", err
+		return "", "", noResourceSelectedErr
 	}
 
 	if namespace == "" {
@@ -264,19 +274,14 @@ func resourceMoreActionHandlerHelper(gui *guilib.Gui, view *guilib.View) (resour
 	if err != nil {
 		return nil, "", "", "", err
 	}
-	if notResourceSelected(resourceName) {
-		return nil, "", "", "", noResourceSelectedErr
-	}
 	return view, resource, namespace, resourceName, nil
 }
 
 func newConfirmDialogHandler(title, relatedViewName string, handler guilib.ViewHandler) guilib.ViewHandler {
 	return func(gui *guilib.Gui, view *guilib.View) error {
-		confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
-		if err := gui.AddView(confirmDialog); err != nil {
+		if err := showConfirmActionDialog(gui, title, relatedViewName, handler); err != nil {
 			return err
 		}
-
 		return nil
 	}
 }
@@ -307,6 +312,61 @@ func confirmDialogOptionHandler(gui *guilib.Gui, view *guilib.View, relatedViewN
 			return err
 		}
 		return nil
+	}
+	return nil
+}
+
+func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
+	stream := newStream()
+	kubecli.Cli.APIResources(stream).Run()
+	apiResourcesStr := streamToString(stream)
+
+	apiResources := strings.Split(apiResourcesStr, "\n")
+	if len(apiResources) > 0 {
+		apiResources = apiResources[1:]
+	}
+
+	if err := showFilterDialog(
+		gui,
+		"Filter resource by name.",
+		func(resource string) error {
+			if resource == "" || resource == resourceNotFound {
+				return nil
+			}
+
+			resource = formatResourceName(resource, 0)
+
+			if err := addCustomResourcePanel(gui, resource); err != nil {
+				return err
+			}
+			if err := closeFilterDialog(gui); err != nil {
+				if errors.Is(err, gocui.ErrUnknownView) {
+					return nil
+				}
+				return err
+			}
+			return nil
+		},
+		func() ([]string, error) {
+			return apiResources, nil
+		},
+		resourceNotFound,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error {
+	if view.Name == moreActionsViewName {
+		var err error
+		view, err = getMoreActionTriggerView(view)
+		if err != nil {
+			return err
+		}
+	}
+	if err := deleteCustomResourcePanel(gui, view.Name); err != nil {
+		return err
 	}
 	return nil
 }

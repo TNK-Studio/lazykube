@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
@@ -36,12 +37,11 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		podView,
 	)
 	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			showPleaseSelected(view, resource)
+			return nil
+		}
 		return err
-	}
-
-	if notResourceSelected(resourceName) {
-		showPleaseSelected(view, resource)
-		return nil
 	}
 
 	metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)
@@ -96,16 +96,16 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 }
 
 func canRenderPlot(gui *guilib.Gui, view *guilib.View) bool {
-	val, _ := view.State.Get(plotLastRenderStateKey)
+	val, _ := view.GetState(plotLastRenderStateKey)
 	now := time.Now()
 	if val == nil {
-		view.State.Set(plotLastRenderStateKey, now)
+		view.SetState(plotLastRenderStateKey, now)
 		return true
 	}
 
 	since := val.(time.Time)
 	if since.Add(1 * time.Second).Before(now) {
-		view.State.Set(plotLastRenderStateKey, now)
+		view.SetState(plotLastRenderStateKey, now)
 		return true
 	}
 
@@ -115,7 +115,7 @@ func canRenderPlot(gui *guilib.Gui, view *guilib.View) bool {
 func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, namespace, name string, dataGetter func() []float64, resourceName v1.ResourceName, colorSprintf func(format string, args ...interface{}) string) *guilib.Plot {
 	var plot *guilib.Plot
 	plotName := fmt.Sprintf("%s - %s", namespace, name)
-	val, _ := view.State.Get(plotStateKey)
+	val, _ := view.GetState(plotStateKey)
 	newCPUPlot := false
 	if val == nil {
 		newCPUPlot = true
@@ -139,7 +139,7 @@ func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, na
 				return colorSprintf(graph)
 			},
 		)
-		view.State.Set(plotStateKey, plot)
+		view.SetState(plotStateKey, plot)
 	}
 	return plot
 }
