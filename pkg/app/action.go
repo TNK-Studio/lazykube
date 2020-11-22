@@ -86,15 +86,67 @@ var (
 		},
 	}
 
-	filterAction = &guilib.Action{
-		Name: filterActionName,
-		Keys: keyMap[filterActionName],
+	filterResource = &guilib.Action{
+		Name: filterResourceActionName,
+		Keys: keyMap[filterResourceActionName],
 		Handler: func(gui *guilib.Gui, v *guilib.View) error {
 			resourceName := getViewResourceName(v.Name)
 			if resourceName == "" {
 				return nil
 			}
-			if err := newFilterDialog(fmt.Sprintf("Input to filter %s", resourceName), gui, v.Name); err != nil {
+			resourceViewName := resourceViewName(resourceName)
+			filterInput, filtered := newFilterDialog(
+				fmt.Sprintf("Input to filter %s", resourceName),
+				func(filtered string) error {
+					if filtered == "" || filtered == filteredNoResource {
+						return nil
+					}
+
+					resourceView, err := gui.GetView(resourceViewName)
+					if err != nil {
+						return err
+					}
+
+					y := resourceView.WhichLine(filtered)
+					if y < 0 {
+						if err := resourceView.ResetCursorOrigin(); err != nil {
+							return err
+						}
+					} else {
+						if err := resourceView.SetOrigin(0, y); err != nil {
+							return err
+						}
+						if err := resourceView.SetCursor(0, 0); err != nil {
+							return err
+						}
+					}
+					if err := closeFilterDialog(gui); err != nil {
+						return err
+					}
+					if err := gui.ReturnPreviousView(); err != nil {
+						return err
+					}
+					return nil
+				},
+				func() ([]string, error) {
+					var data []string
+					resourceView, err := gui.GetView(resourceViewName)
+					if err != nil {
+						return nil, err
+					}
+
+					data = resourceView.ViewBufferLines()
+					return data, nil
+				},
+				filteredNoResource,
+			)
+			if err := gui.AddView(filterInput); err != nil {
+				return err
+			}
+			if err := gui.AddView(filtered); err != nil {
+				return err
+			}
+			if err := gui.FocusView(filterInput.Name, true); err != nil {
 				return err
 			}
 			return nil

@@ -24,7 +24,7 @@ const (
 	scrollDownAction           = "scrollDown"
 	scrollTopAction            = "scrollTop"
 	scrollBottomAction         = "scrollBottom"
-	filterActionName           = "filterAction"
+	filterResourceActionName   = "filterResourceAction"
 	editResourceActionName     = "Edit Resource"
 	rolloutRestartActionName   = "Rollout Restart"
 	moreActionsName            = "moreActions"
@@ -55,7 +55,7 @@ var (
 		scrollDownAction:         {gocui.MouseWheelDown},
 		scrollTopAction:          {gocui.KeyHome},
 		scrollBottomAction:       {gocui.KeyEnd},
-		filterActionName:         {gocui.KeyF4, 'f'},
+		filterResourceActionName: {gocui.KeyF4, 'f'},
 		editResourceActionName:   {'e'},
 		rolloutRestartActionName: {'r'},
 		moreActionsName:          {gocui.KeyF3, 'm'},

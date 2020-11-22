@@ -69,7 +69,7 @@ var (
 )
 
 //nolint:gocognit
-func newConfirmFilterInput(resourceViewName string) *guilib.Action {
+func newConfirmFilterInput(confirmHandler func(string) error) *guilib.Action {
 	confirmFilterInput := &guilib.Action{
 		Name: confirmFilterInputAction,
 		Keys: keyMap[confirmFilterInputAction],
@@ -81,35 +81,8 @@ func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 
 			_, cy := filteredView.Cursor()
 			filtered, _ := filteredView.Line(cy)
-			if filtered == "" || filtered == filteredNoResource {
-				return nil
-			}
 
-			resourceView, err := gui.GetView(resourceViewName)
-			if err != nil {
-				return err
-			}
-
-			y := resourceView.WhichLine(filtered)
-			if y < 0 {
-				if err := resourceView.ResetCursorOrigin(); err != nil {
-					return err
-				}
-			} else {
-				if err := resourceView.SetOrigin(0, y); err != nil {
-					return err
-				}
-				if err := resourceView.SetCursor(0, 0); err != nil {
-					return err
-				}
-			}
-			if err := closeFilterDialog(gui); err != nil {
-				return err
-			}
-			if err := gui.ReturnPreviousView(); err != nil {
-				return err
-			}
-			return nil
+			return confirmHandler(filtered)
 		},
 		Mod: gocui.ModNone,
 	}
@@ -120,10 +93,8 @@ func newConfirmFilterInput(resourceViewName string) *guilib.Action {
 //nolint:gocognit
 //nolint:gocognit
 //nolint:gocognit
-func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) error {
-
-	confirmFilterInput := newConfirmFilterInput(resourceViewName)
-
+func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
+	confirmAction := newConfirmFilterInput(confirmHandler)
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,
 		Title:        title,
@@ -144,7 +115,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toFilteredView,
-			confirmFilterInput,
+			confirmAction,
 		}),
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = true
@@ -193,7 +164,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 		SelBgColor:   gocui.ColorWhite,
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toFilterInputView,
-			confirmFilterInput,
+			confirmAction,
 			filteredNextLine,
 			filteredPreviousLine,
 		}),
@@ -210,18 +181,17 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 				return err
 			}
 
-			resourceView, err := gui.GetView(resourceViewName)
+			data, err := dataFunc()
 			if err != nil {
 				return err
 			}
 
-			resourceList := resourceView.ViewBufferLines()
-			if len(resourceList) == 0 {
+			if len(data) == 0 {
 				return nil
 			}
 
 			if value == "" {
-				_, err := fmt.Fprint(view, strings.Join(resourceList[1:], "\n"))
+				_, err := fmt.Fprint(view, strings.Join(data[1:], "\n"))
 				if err != nil {
 					return err
 				}
@@ -231,14 +201,14 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 
 			filtered := make([]string, 0)
 			value = strings.ToLower(value)
-			for _, resource := range resourceList[1:] {
+			for _, resource := range data[1:] {
 				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)
 				}
 			}
 
 			if len(filtered) == 0 {
-				_, err := fmt.Fprint(view, filteredNoResource)
+				_, err := fmt.Fprint(view, noResultMsg)
 				if err != nil {
 					return err
 				}
@@ -267,19 +237,7 @@ func newFilterDialog(title string, gui *guilib.Gui, resourceViewName string) err
 			return x0, y0, x1, y1
 		},
 	}
-	filterInput.InitView()
-	filtered.InitView()
-
-	if err := gui.AddView(filterInput); err != nil {
-		return err
-	}
-	if err := gui.AddView(filtered); err != nil {
-		return err
-	}
-	if err := gui.FocusView(filterInput.Name, true); err != nil {
-		return err
-	}
-	return nil
+	return filterInput, filtered
 }
 
 func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {

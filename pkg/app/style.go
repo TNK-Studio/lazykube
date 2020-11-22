@@ -104,8 +104,6 @@ func migrateTopFunc(gui *guilib.Gui, view *guilib.View) int {
 				}
 			}
 		}
-	}
-	if maxHeight < HeightLine {
 		return -1
 	}
 	return 1
