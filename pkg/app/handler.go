@@ -272,11 +272,9 @@ func resourceMoreActionHandlerHelper(gui *guilib.Gui, view *guilib.View) (resour
 
 func newConfirmDialogHandler(title, relatedViewName string, handler guilib.ViewHandler) guilib.ViewHandler {
 	return func(gui *guilib.Gui, view *guilib.View) error {
-		confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
-		if err := gui.AddView(confirmDialog); err != nil {
+		if err := showConfirmActionDialog(gui, title, relatedViewName, handler); err != nil {
 			return err
 		}
-
 		return nil
 	}
 }
@@ -307,6 +305,19 @@ func confirmDialogOptionHandler(gui *guilib.Gui, view *guilib.View, relatedViewN
 			return err
 		}
 		return nil
+	}
+	return nil
+}
+
+func addCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error {
+	if err := showFilterDialog(
+		gui,
+		"Filter resource by name.",
+		func(string) error { return nil },
+		func() ([]string, error) { return []string{}, nil },
+		"Resource not found.",
+	); err != nil {
+		return err
 	}
 	return nil
 }

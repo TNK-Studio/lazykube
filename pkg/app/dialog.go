@@ -236,6 +236,20 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 	return filterInput, filtered
 }
 
+func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
+	filterInput, filtered := newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
+	if err := gui.AddView(filterInput); err != nil {
+		return err
+	}
+	if err := gui.AddView(filtered); err != nil {
+		return err
+	}
+	if err := gui.FocusView(filterInput.Name, true); err != nil {
+		return err
+	}
+	return nil
+}
+
 func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
 	return gui.RenderString(
 		optionViewName,
@@ -277,7 +291,7 @@ func closeFilterDialog(gui *guilib.Gui) error {
 	return nil
 }
 
-func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreActions []*moreAction) *guilib.View {
+func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 	return &guilib.View{
 		Title:       title,
 		Name:        moreActionsViewName,
@@ -335,6 +349,22 @@ func newMoreActionDialog(title string, gui *guilib.Gui, view *guilib.View, moreA
 		},
 		Actions: toMoreActionArr(moreActions),
 	}
+}
+
+func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, moreActions []*moreAction) error {
+	moreActionView := newMoreActionDialog(title, moreActions)
+	if err := gui.AddView(moreActionView); err != nil {
+		return err
+	}
+
+	if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
+		return err
+	}
+
+	if err := gui.FocusView(moreActionView.Name, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {
@@ -475,4 +505,12 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 			},
 		}),
 	}
+}
+
+func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, handler guilib.ViewHandler) error {
+	confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
+	if err := gui.AddView(confirmDialog); err != nil {
+		return err
+	}
+	return nil
 }

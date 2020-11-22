@@ -46,46 +46,6 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
-	appActions = []*guilib.Action{
-		backToPreviousView,
-		{
-			Name:    previousPageAction,
-			Keys:    keyMap[previousPageAction],
-			Handler: previousPageHandler,
-			Mod:     gocui.ModNone,
-		},
-		{
-			Name:    nextPageAction,
-			Keys:    keyMap[nextPageAction],
-			Handler: nextPageHandler,
-			Mod:     gocui.ModNone,
-		},
-		{
-			Name:    scrollUpAction,
-			Keys:    keyMap[scrollUpAction],
-			Handler: scrollUpHandler,
-			Mod:     gocui.ModNone,
-		},
-		{
-			Name:    scrollDownAction,
-			Keys:    keyMap[scrollDownAction],
-			Handler: scrollDownHandler,
-			Mod:     gocui.ModNone,
-		},
-		{
-			Name:    scrollTopAction,
-			Keys:    keyMap[scrollTopAction],
-			Handler: scrollTopHandler,
-			Mod:     gocui.ModNone,
-		},
-		{
-			Name:    scrollBottomAction,
-			Keys:    keyMap[scrollBottomAction],
-			Handler: scrollBottomHandler,
-			Mod:     gocui.ModNone,
-		},
-	}
-
 	filterResource = &guilib.Action{
 		Name: filterResourceActionName,
 		Keys: keyMap[filterResourceActionName],
@@ -95,7 +55,8 @@ var (
 				return nil
 			}
 			resourceViewName := resourceViewName(resourceName)
-			filterInput, filtered := newFilterDialog(
+			if err := showFilterDialog(
+				gui,
 				fmt.Sprintf("Input to filter %s", resourceName),
 				func(filtered string) error {
 					if filtered == "" || filtered == filteredNoResource {
@@ -139,14 +100,7 @@ var (
 					return data, nil
 				},
 				filteredNoResource,
-			)
-			if err := gui.AddView(filterInput); err != nil {
-				return err
-			}
-			if err := gui.AddView(filtered); err != nil {
-				return err
-			}
-			if err := gui.FocusView(filterInput.Name, true); err != nil {
+			); err != nil {
 				return err
 			}
 			return nil
@@ -173,12 +127,26 @@ var (
 		Action:             *editResourceAction,
 	}
 
+	addCustomResourcePanelAction = &guilib.Action{
+		Keys:    keyMap[addCustomResourcePanelActionName],
+		Name:    addCustomResourcePanelActionName,
+		Handler: addCustomResourcePanelHandler,
+		Mod:     gocui.ModNone,
+	}
+
+	addCustomResourcePanelMoreAction = &moreAction{
+		NeedSelectResource: false,
+		Action:             *addCustomResourcePanelAction,
+	}
+
 	moreActionsMap = map[string][]*moreAction{
 		namespaceViewName: {
 			editResourceMoreAction,
+			addCustomResourcePanelMoreAction,
 		},
 		serviceViewName: {
 			editResourceMoreAction,
+			addCustomResourcePanelMoreAction,
 		},
 		deploymentViewName: {
 			editResourceMoreAction,
@@ -186,10 +154,56 @@ var (
 				NeedSelectResource: true,
 				Action:             *newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
 			},
+			addCustomResourcePanelMoreAction,
 		},
 		podViewName: {
 			editResourceMoreAction,
+			addCustomResourcePanelMoreAction,
 		},
+	}
+
+	appActions = []*guilib.Action{
+		backToPreviousView,
+		{
+			Name:    previousPageAction,
+			Keys:    keyMap[previousPageAction],
+			Handler: previousPageHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name:    nextPageAction,
+			Keys:    keyMap[nextPageAction],
+			Handler: nextPageHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name:    scrollUpAction,
+			Keys:    keyMap[scrollUpAction],
+			Handler: scrollUpHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name:    scrollDownAction,
+			Keys:    keyMap[scrollDownAction],
+			Handler: scrollDownHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name:    scrollTopAction,
+			Keys:    keyMap[scrollTopAction],
+			Handler: scrollTopHandler,
+			Mod:     gocui.ModNone,
+		},
+		{
+			Name:    scrollBottomAction,
+			Keys:    keyMap[scrollBottomAction],
+			Handler: scrollBottomHandler,
+			Mod:     gocui.ModNone,
+		},
+		addCustomResourcePanelAction,
+		newMoreActions([]*moreAction{
+			addCustomResourcePanelMoreAction,
+		}),
 	}
 )
 
@@ -238,16 +252,7 @@ func newMoreActions(moreActions []*moreAction) *guilib.Action {
 		Name: moreActionsName,
 		Keys: keyMap[moreActionsName],
 		Handler: func(gui *guilib.Gui, view *guilib.View) error {
-			moreActionView := newMoreActionDialog("More Actions", gui, view, moreActions)
-			if err := gui.AddView(moreActionView); err != nil {
-				return err
-			}
-
-			if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
-				return err
-			}
-
-			if err := gui.FocusView(moreActionView.Name, true); err != nil {
+			if err := showMoreActionDialog(gui, view, "More Actions", moreActions); err != nil {
 				return err
 			}
 			return nil
