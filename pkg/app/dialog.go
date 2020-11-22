@@ -68,26 +68,47 @@ var (
 	}
 )
 
-//nolint:gocognit
-func newConfirmFilterInput(confirmHandler func(string) error) *guilib.Action {
-	confirmFilterInput := &guilib.Action{
-		Name: confirmFilterInputAction,
-		Keys: keyMap[confirmFilterInputAction],
-		Handler: func(gui *guilib.Gui, _ *guilib.View) error {
-			filteredView, err := gui.GetView(filteredViewName)
-			if err != nil {
-				return err
-			}
+// Show dialog functions
 
-			_, cy := filteredView.Cursor()
-			filtered, _ := filteredView.Line(cy)
-
-			return confirmHandler(filtered)
-		},
-		Mod: gocui.ModNone,
+func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
+	filterInput, filtered := newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
+	if err := gui.AddView(filterInput); err != nil {
+		return err
 	}
-	return confirmFilterInput
+	if err := gui.AddView(filtered); err != nil {
+		return err
+	}
+	if err := gui.FocusView(filterInput.Name, true); err != nil {
+		return err
+	}
+	return nil
 }
+
+func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, moreActions []*moreAction) error {
+	moreActionView := newMoreActionDialog(title, moreActions)
+	if err := gui.AddView(moreActionView); err != nil {
+		return err
+	}
+
+	if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
+		return err
+	}
+
+	if err := gui.FocusView(moreActionView.Name, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, handler guilib.ViewHandler) error {
+	confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
+	if err := gui.AddView(confirmDialog); err != nil {
+		return err
+	}
+	return nil
+}
+
+// New dialog functions
 
 func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
 	confirmAction := newConfirmFilterInput(confirmHandler)
@@ -236,61 +257,6 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 	return filterInput, filtered
 }
 
-func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
-	filterInput, filtered := newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
-	if err := gui.AddView(filterInput); err != nil {
-		return err
-	}
-	if err := gui.AddView(filtered); err != nil {
-		return err
-	}
-	if err := gui.FocusView(filterInput.Name, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
-	return gui.RenderString(
-		optionViewName,
-		utils.OptionsMapToString(
-			map[string]string{
-				"←→↑↓":      "navigate",
-				"Ctrl+c":    "exit",
-				"Esc":       "close dialog",
-				"PgUp/PgDn": "scroll",
-				"Home/End":  "top/bottom",
-				"Tab":       "next panel",
-				"Enter":     "confirm",
-			}),
-	)
-}
-
-func filterDialogFocusLost(gui *guilib.Gui, _ *guilib.View) error {
-	currentView := gui.CurrentView()
-
-	if currentView != nil && (currentView.Name == filterInputViewName || currentView.Name == filteredViewName) {
-		return nil
-	}
-
-	if err := closeFilterDialog(gui); err != nil {
-		return err
-	}
-	return nil
-}
-
-func closeFilterDialog(gui *guilib.Gui) error {
-	if err := gui.DeleteView(filterInputViewName); err != nil {
-		return err
-	}
-	if err := gui.DeleteView(filteredViewName); err != nil {
-		return err
-	}
-	gui.Config.Cursor = false
-	gui.Configure()
-	return nil
-}
-
 func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 	return &guilib.View{
 		Title:       title,
@@ -349,34 +315,6 @@ func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 		},
 		Actions: toMoreActionArr(moreActions),
 	}
-}
-
-func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, moreActions []*moreAction) error {
-	moreActionView := newMoreActionDialog(title, moreActions)
-	if err := gui.AddView(moreActionView); err != nil {
-		return err
-	}
-
-	if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
-		return err
-	}
-
-	if err := gui.FocusView(moreActionView.Name, true); err != nil {
-		return err
-	}
-	return nil
-}
-
-func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {
-	val, err := moreActionView.GetState(moreActionTriggerViewStateKey)
-	if err != nil {
-		return nil, err
-	}
-	view, ok := val.(*guilib.View)
-	if !ok {
-		return nil, errors.New("editResourceHandler - more action trigger view not found. ")
-	}
-	return view, nil
 }
 
 func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHandler) *guilib.View {
@@ -507,10 +445,57 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 	}
 }
 
-func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, handler guilib.ViewHandler) error {
-	confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
-	if err := gui.AddView(confirmDialog); err != nil {
+// New dialog function utils.
+
+func filterDialogRenderOption(gui *guilib.Gui, _ *guilib.View) error {
+	return gui.RenderString(
+		optionViewName,
+		utils.OptionsMapToString(
+			map[string]string{
+				"←→↑↓":      "navigate",
+				"Ctrl+c":    "exit",
+				"Esc":       "close dialog",
+				"PgUp/PgDn": "scroll",
+				"Home/End":  "top/bottom",
+				"Tab":       "next panel",
+				"Enter":     "confirm",
+			}),
+	)
+}
+
+func filterDialogFocusLost(gui *guilib.Gui, _ *guilib.View) error {
+	currentView := gui.CurrentView()
+
+	if currentView != nil && (currentView.Name == filterInputViewName || currentView.Name == filteredViewName) {
+		return nil
+	}
+
+	if err := closeFilterDialog(gui); err != nil {
 		return err
 	}
 	return nil
+}
+
+func closeFilterDialog(gui *guilib.Gui) error {
+	if err := gui.DeleteView(filterInputViewName); err != nil {
+		return err
+	}
+	if err := gui.DeleteView(filteredViewName); err != nil {
+		return err
+	}
+	gui.Config.Cursor = false
+	gui.Configure()
+	return nil
+}
+
+func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error) {
+	val, err := moreActionView.GetState(moreActionTriggerViewStateKey)
+	if err != nil {
+		return nil, err
+	}
+	view, ok := val.(*guilib.View)
+	if !ok {
+		return nil, errors.New("editResourceHandler - more action trigger view not found. ")
+	}
+	return view, nil
 }

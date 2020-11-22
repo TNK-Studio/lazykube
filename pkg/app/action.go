@@ -272,3 +272,23 @@ func newConfirmDialogAction(relatedViewName string, action *guilib.Action) *guil
 		Mod:             action.Mod,
 	}
 }
+
+func newConfirmFilterInput(confirmHandler func(string) error) *guilib.Action {
+	confirmFilterInput := &guilib.Action{
+		Name: confirmFilterInputAction,
+		Keys: keyMap[confirmFilterInputAction],
+		Handler: func(gui *guilib.Gui, _ *guilib.View) error {
+			filteredView, err := gui.GetView(filteredViewName)
+			if err != nil {
+				return err
+			}
+
+			_, cy := filteredView.Cursor()
+			filtered, _ := filteredView.Line(cy)
+
+			return confirmHandler(filtered)
+		},
+		Mod: gocui.ModNone,
+	}
+	return confirmFilterInput
+}
