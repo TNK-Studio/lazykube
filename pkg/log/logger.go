@@ -18,5 +18,6 @@ func init() {
 	if err != nil {
 		panic("unable to log to file")
 	}
+	Logger.SetReportCaller(true)
 	Logger.SetOutput(writer)
 }

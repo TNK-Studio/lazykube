@@ -140,6 +140,9 @@ var (
 	}
 
 	moreActionsMap = map[string][]*moreAction{
+		clusterInfoViewName: {
+			addCustomResourcePanelMoreAction,
+		},
 		namespaceViewName: {
 			editResourceMoreAction,
 			addCustomResourcePanelMoreAction,
@@ -158,6 +161,12 @@ var (
 		},
 		podViewName: {
 			editResourceMoreAction,
+			addCustomResourcePanelMoreAction,
+		},
+		navigationViewName: {
+			addCustomResourcePanelMoreAction,
+		},
+		detailViewName: {
 			addCustomResourcePanelMoreAction,
 		},
 	}
@@ -200,10 +209,6 @@ var (
 			Handler: scrollBottomHandler,
 			Mod:     gocui.ModNone,
 		},
-		addCustomResourcePanelAction,
-		newMoreActions([]*moreAction{
-			addCustomResourcePanelMoreAction,
-		}),
 	}
 )
 
@@ -244,7 +249,8 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	if err != nil {
 		log.Logger.Warningf("switchNamespace - detailView.SetOrigin(0, 0) error %s", err)
 	}
-	gui.ReRenderViews(namespaceViewName, serviceViewName, deploymentViewName, podViewName, navigationViewName, detailViewName)
+	gui.ReRenderViews(resizeableViews...)
+	gui.ReRenderViews(navigationViewName, detailViewName)
 }
 
 func newMoreActions(moreActions []*moreAction) *guilib.Action {

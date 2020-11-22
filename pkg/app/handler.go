@@ -6,6 +6,11 @@ import (
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/pkg/errors"
 	"math"
+	"strings"
+)
+
+const (
+	resourceNotFound = "Resource not found."
 )
 
 func nextCyclicViewHandler(gui *guilib.Gui, _ *guilib.View) error {
@@ -188,6 +193,10 @@ func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string)
 }
 
 func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (string, string, error) {
+	if resourceView.Name == namespaceViewName {
+		return "", formatSelectedNamespace(resourceView.SelectedLine), nil
+	}
+
 	namespaceView, err := gui.GetView(namespaceViewName)
 	if err != nil {
 		return "", "", err
@@ -309,13 +318,38 @@ func confirmDialogOptionHandler(gui *guilib.Gui, view *guilib.View, relatedViewN
 	return nil
 }
 
-func addCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error {
+func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
+	stream := newStream()
+	kubecli.Cli.APIResources(stream).Run()
+	apiResourcesStr := streamToString(stream)
+
+	apiResources := strings.Split(apiResourcesStr, "\n")
+	if len(apiResources) > 0 {
+		apiResources = apiResources[1:]
+	}
+
 	if err := showFilterDialog(
 		gui,
 		"Filter resource by name.",
-		func(string) error { return nil },
-		func() ([]string, error) { return []string{}, nil },
-		"Resource not found.",
+		func(resource string) error {
+			if resource == "" || resource == resourceNotFound {
+				return nil
+			}
+
+			resource = formatResourceName(resource, 0)
+
+			if err := addCustomResourcePanel(gui, resource); err != nil {
+				return err
+			}
+			if err := closeFilterDialog(gui); err != nil {
+				return err
+			}
+			return nil
+		},
+		func() ([]string, error) {
+			return apiResources, nil
+		},
+		resourceNotFound,
 	); err != nil {
 		return err
 	}

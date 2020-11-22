@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
@@ -41,23 +40,23 @@ var (
 	}
 
 	detailRenderMap = map[string]guilib.ViewHandler{
-		navigationPath(clusterInfoViewName, "Nodes"):     renderAfterClear(clusterNodesRender),
-		navigationPath(clusterInfoViewName, "Top Nodes"): renderAfterClear(topNodesRender),
-		navigationPath(namespaceViewName, "Deployments"): renderAfterClear(deploymentRender),
-		navigationPath(namespaceViewName, "Pods"):        renderAfterClear(podRender),
-		navigationPath(namespaceViewName, "Config"):      renderAfterClear(configRender),
-		navigationPath(serviceViewName, "Config"):        renderAfterClear(configRender),
-		navigationPath(serviceViewName, "Pods"):          renderAfterClear(labelsPodsRender),
+		navigationPath(clusterInfoViewName, "Nodes"):     clearBeforeRender(clusterNodesRender),
+		navigationPath(clusterInfoViewName, "Top Nodes"): clearBeforeRender(topNodesRender),
+		navigationPath(namespaceViewName, "Deployments"): clearBeforeRender(resourceListRender),
+		navigationPath(namespaceViewName, "Pods"):        clearBeforeRender(podRender),
+		navigationPath(namespaceViewName, "Config"):      clearBeforeRender(configRender),
+		navigationPath(serviceViewName, "Config"):        clearBeforeRender(configRender),
+		navigationPath(serviceViewName, "Pods"):          clearBeforeRender(labelsPodsRender),
 		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
-		navigationPath(serviceViewName, "Top Pods"):      renderAfterClear(topPodsRender),
-		navigationPath(deploymentViewName, "Config"):     renderAfterClear(configRender),
-		navigationPath(deploymentViewName, "Pods"):       renderAfterClear(labelsPodsRender),
-		navigationPath(deploymentViewName, "Describe"):   renderAfterClear(describeRender),
+		navigationPath(serviceViewName, "Top Pods"):      clearBeforeRender(topPodsRender),
+		navigationPath(deploymentViewName, "Config"):     clearBeforeRender(configRender),
+		navigationPath(deploymentViewName, "Pods"):       clearBeforeRender(labelsPodsRender),
+		navigationPath(deploymentViewName, "Describe"):   clearBeforeRender(describeRender),
 		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
-		navigationPath(deploymentViewName, "Top Pods"):   renderAfterClear(topPodsRender),
-		navigationPath(podViewName, "Config"):            renderAfterClear(configRender),
+		navigationPath(deploymentViewName, "Top Pods"):   clearBeforeRender(topPodsRender),
+		navigationPath(podViewName, "Config"):            clearBeforeRender(configRender),
 		navigationPath(podViewName, "Log"):               podLogsRender,
-		navigationPath(podViewName, "Describe"):          renderAfterClear(describeRender),
+		navigationPath(podViewName, "Describe"):          clearBeforeRender(describeRender),
 		navigationPath(podViewName, "Top"):               podMetricsPlotRender,
 	}
 )
@@ -69,7 +68,7 @@ func notResourceSelected(selectedName string) bool {
 	return false
 }
 
-func renderAfterClear(render guilib.ViewHandler) guilib.ViewHandler {
+func clearBeforeRender(render guilib.ViewHandler) guilib.ViewHandler {
 	return func(gui *guilib.Gui, view *guilib.View) error {
 		view.Clear()
 		return render(gui, view)
@@ -220,26 +219,6 @@ func namespaceRender(_ *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
-func serviceRender(_ *guilib.Gui, view *guilib.View) error {
-	view.Clear()
-	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(viewStreams(view), "services").SetFlag("all-namespaces", "true").Run()
-		return nil
-	}
-	kubecli.Cli.Get(viewStreams(view), "services").Run()
-	return nil
-}
-
-func deploymentRender(_ *guilib.Gui, view *guilib.View) error {
-	view.Clear()
-	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(viewStreams(view), "deployments").SetFlag("all-namespaces", "true").Run()
-		return nil
-	}
-	kubecli.Cli.Get(viewStreams(view), "deployments").Run()
-	return nil
-}
-
 func podRender(_ *guilib.Gui, view *guilib.View) error {
 	view.Clear()
 	if kubecli.Cli.Namespace() == "" {
@@ -250,36 +229,15 @@ func podRender(_ *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
-func newStream() genericclioptions.IOStreams {
-	return genericclioptions.IOStreams{
-		In:     &bytes.Buffer{},
-		Out:    &bytes.Buffer{},
-		ErrOut: &bytes.Buffer{},
+func resourceListRender(_ *guilib.Gui, view *guilib.View) error {
+	view.Clear()
+	resource := getViewResourceName(view.Name)
+	if kubecli.Cli.Namespace() == "" {
+		kubecli.Cli.Get(viewStreams(view), resource).SetFlag("all-namespaces", "true").Run()
+		return nil
 	}
-}
-
-func newStdStream() genericclioptions.IOStreams {
-	return genericclioptions.IOStreams{
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		ErrOut: os.Stderr,
-	}
-}
-
-func streamCopyTo(streams genericclioptions.IOStreams, writer io.Writer) {
-	if _, err := io.Copy(writer, (streams.Out).(io.Reader)); err != nil {
-		log.Logger.Warningf("streamCopyTo - streams.Out copy error %s", err)
-	}
-	if _, err := io.Copy(writer, (streams.ErrOut).(io.Reader)); err != nil {
-		log.Logger.Warningf("streamCopyTo - streams.ErrOut copy error %s", err)
-	}
-}
-
-func streamToString(streams genericclioptions.IOStreams) string {
-	buf := new(strings.Builder)
-	streamCopyTo(streams, buf)
-	// check errors
-	return buf.String()
+	kubecli.Cli.Get(viewStreams(view), resource).Run()
+	return nil
 }
 
 func showPleaseSelected(view io.Writer, name string) {
@@ -340,7 +298,7 @@ func describeRender(gui *guilib.Gui, view *guilib.View) error {
 	if activeView == nil {
 		return nil
 	}
-	if activeView == Namespace {
+	if activeView.Name == namespaceViewName {
 		return namespaceConfigRender(gui, view)
 	}
 
@@ -470,7 +428,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 		if activeView == nil {
 			return nil
 		}
-		if activeView == Namespace {
+		if activeView.Name == namespaceViewName {
 			return namespaceConfigRender(gui, view)
 		}
 		selected := activeView.SelectedLine

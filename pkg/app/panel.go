@@ -33,6 +33,7 @@ var (
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
+			newMoreActions(moreActionsMap[clusterInfoViewName]),
 		}),
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.ReRenderViews(navigationViewName, detailViewName)
@@ -48,7 +49,7 @@ var (
 		Clickable:            true,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
-		OnRender:             deploymentRender,
+		OnRender:             resourceListRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
 			if err := onFocusClearSelected(gui, view); err != nil {
@@ -243,7 +244,7 @@ var (
 		Title:                "Services",
 		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
-		OnRender:             serviceRender,
+		OnRender:             resourceListRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -288,7 +289,7 @@ func newCustomResourcePanel(resource string) *guilib.View {
 		Title:                resourceViewTitle(resource),
 		ZIndex:               zIndexOfFunctionView(viewName),
 		Clickable:            true,
-		OnRender:             serviceRender,
+		OnRender:             resourceListRender,
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -299,7 +300,7 @@ func newCustomResourcePanel(resource string) *guilib.View {
 			return nil
 		},
 		DimensionFunc: guilib.BeneathView(
-			podViewName,
+			functionViews[len(functionViews)-1],
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -319,6 +320,26 @@ func newCustomResourcePanel(resource string) *guilib.View {
 			return y1
 		},
 	}
+}
+
+func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
+	var customResourcePanel *guilib.View
+	customResourcePanel, _ = gui.GetView(resourceViewName(resource))
+	if customResourcePanel != nil {
+		return nil
+	}
+
+	customResourcePanel = newCustomResourcePanel(resource)
+	viewNameResourceMap[customResourcePanel.Name] = resource
+	functionViews = append(functionViews, customResourcePanel.Name)
+	resizeableViews = append(resizeableViews, customResourcePanel.Name)
+	viewNavigationMap[customResourcePanel.Name] = []string{"Config", "Describe"}
+	detailRenderMap[navigationPath(customResourcePanel.Name, "Config")] = clearBeforeRender(configRender)
+	detailRenderMap[navigationPath(customResourcePanel.Name, "Describe")] = clearBeforeRender(describeRender)
+	if err := gui.AddView(customResourcePanel); err != nil {
+		return err
+	}
+	return nil
 }
 
 func resourceViewName(resource string) string {

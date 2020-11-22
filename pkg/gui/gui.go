@@ -295,7 +295,7 @@ func (gui *Gui) Run() {
 	}
 
 	if err := gui.g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
-		log.Logger.Panicf("%+v", err)
+		log.Logger.Panicf("MainLoop - %+v", err)
 	}
 }
 

@@ -71,7 +71,18 @@ var (
 // Show dialog functions
 
 func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
-	filterInput, filtered := newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
+	var filterInput, filtered *guilib.View
+	// If views existed.
+	filterInput, _ = gui.GetView(filterInputViewName)
+	if filterInput != nil {
+		return nil
+	}
+	filtered, _ = gui.GetView(filteredViewName)
+	if filtered != nil {
+		return nil
+	}
+
+	filterInput, filtered = newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
 	if err := gui.AddView(filterInput); err != nil {
 		return err
 	}
@@ -85,7 +96,14 @@ func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string)
 }
 
 func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, moreActions []*moreAction) error {
-	moreActionView := newMoreActionDialog(title, moreActions)
+	var moreActionView *guilib.View
+	// If more action view existed.
+	moreActionView, _ = gui.GetView(moreActionsViewName)
+	if moreActionView != nil {
+		return nil
+	}
+
+	moreActionView = newMoreActionDialog(title, moreActions)
 	if err := gui.AddView(moreActionView); err != nil {
 		return err
 	}
@@ -101,7 +119,14 @@ func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, more
 }
 
 func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, handler guilib.ViewHandler) error {
-	confirmDialog := newConfirmActionDialog(title, relatedViewName, handler)
+	var confirmDialog *guilib.View
+	// If view existed.
+	confirmDialog, _ = gui.GetView(confirmDialogViewName)
+	if confirmDialog != nil {
+		return nil
+	}
+
+	confirmDialog = newConfirmActionDialog(title, relatedViewName, handler)
 	if err := gui.AddView(confirmDialog); err != nil {
 		return err
 	}
@@ -495,7 +520,7 @@ func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error)
 	}
 	view, ok := val.(*guilib.View)
 	if !ok {
-		return nil, errors.New("editResourceHandler - more action trigger view not found. ")
+		return nil, errors.New("getMoreActionTriggerView - more action trigger view not found. ")
 	}
 	return view, nil
 }
