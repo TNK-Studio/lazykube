@@ -12,6 +12,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -23,6 +24,10 @@ const (
 	serviceResource    = "service"
 	deploymentResource = "deployment"
 	podResource        = "pod"
+
+	viewLastRenderTimeStateKey = "viewLastRenderTime"
+	logSinceTimeStateKey       = "logSinceTime"
+	reRenderIntervalDuration   = 3 * time.Second
 )
 
 var (
@@ -32,33 +37,46 @@ var (
 	navigationIndex     int
 	activeNavigationOpt string
 
+	navigationOptNodes       = "Nodes"
+	navigationOptTopNodes    = "Top Nodes"
+	navigationOptDeployments = "Deployments"
+	navigationOptPods        = "Pods"
+	navigationOptPodsLog     = "Pods Log"
+	navigationOptTopPods     = "Top Pods"
+	navigationOptServices    = "Services"
+	navigationOptConfig      = "Config"
+	navigationOptDescribe    = "Describe"
+	navigationOptTop         = "Top"
+	navigationOptLog         = "Log"
+
 	viewNavigationMap = map[string][]string{
-		clusterInfoViewName: {"Nodes", "Top Nodes"},
-		namespaceViewName:   {"Config", "Deployments", "Pods"},
-		serviceViewName:     {"Config", "Pods", "Pods Log", "Top Pods"},
-		deploymentViewName:  {"Config", "Pods", "Pods Log", "Describe", "Top Pods"},
-		podViewName:         {"Log", "Config", "Top", "Describe"},
+		clusterInfoViewName: {navigationOptNodes, navigationOptTopNodes},
+		namespaceViewName:   {navigationOptConfig, navigationOptServices, navigationOptDeployments, navigationOptPods},
+		serviceViewName:     {navigationOptConfig, navigationOptPods, navigationOptPodsLog, navigationOptTopPods},
+		deploymentViewName:  {navigationOptConfig, navigationOptDescribe, navigationOptPods, navigationOptPodsLog, navigationOptTopPods},
+		podViewName:         {navigationOptLog, navigationOptConfig, navigationOptDescribe, navigationOptTop},
 	}
 
 	detailRenderMap = map[string]guilib.ViewHandler{
-		navigationPath(clusterInfoViewName, "Nodes"):     clearBeforeRender(clusterNodesRender),
-		navigationPath(clusterInfoViewName, "Top Nodes"): clearBeforeRender(topNodesRender),
-		navigationPath(namespaceViewName, "Deployments"): clearBeforeRender(resourceListRender),
-		navigationPath(namespaceViewName, "Pods"):        clearBeforeRender(podRender),
-		navigationPath(namespaceViewName, "Config"):      clearBeforeRender(configRender),
-		navigationPath(serviceViewName, "Config"):        clearBeforeRender(configRender),
-		navigationPath(serviceViewName, "Pods"):          clearBeforeRender(labelsPodsRender),
-		navigationPath(serviceViewName, "Pods Log"):      podsLogsRender,
-		navigationPath(serviceViewName, "Top Pods"):      clearBeforeRender(topPodsRender),
-		navigationPath(deploymentViewName, "Config"):     clearBeforeRender(configRender),
-		navigationPath(deploymentViewName, "Pods"):       clearBeforeRender(labelsPodsRender),
-		navigationPath(deploymentViewName, "Describe"):   clearBeforeRender(describeRender),
-		navigationPath(deploymentViewName, "Pods Log"):   podsLogsRender,
-		navigationPath(deploymentViewName, "Top Pods"):   clearBeforeRender(topPodsRender),
-		navigationPath(podViewName, "Config"):            clearBeforeRender(configRender),
-		navigationPath(podViewName, "Log"):               podLogsRender,
-		navigationPath(podViewName, "Describe"):          clearBeforeRender(describeRender),
-		navigationPath(podViewName, "Top"):               podMetricsPlotRender,
+		navigationPath(clusterInfoViewName, navigationOptNodes):     reRenderInterval(clearBeforeRender(clusterNodesRender), reRenderIntervalDuration),
+		navigationPath(clusterInfoViewName, navigationOptTopNodes):  reRenderInterval(clearBeforeRender(topNodesRender), reRenderIntervalDuration),
+		navigationPath(namespaceViewName, navigationOptDeployments): reRenderInterval(clearBeforeRender(namespaceResourceListRender("deployments")), reRenderIntervalDuration),
+		navigationPath(namespaceViewName, navigationOptPods):        reRenderInterval(clearBeforeRender(namespaceResourceListRender("pods")), reRenderIntervalDuration),
+		navigationPath(namespaceViewName, navigationOptServices):    reRenderInterval(clearBeforeRender(namespaceResourceListRender("services")), reRenderIntervalDuration),
+		navigationPath(namespaceViewName, navigationOptConfig):      reRenderInterval(clearBeforeRender(configRender), reRenderIntervalDuration),
+		navigationPath(serviceViewName, navigationOptConfig):        reRenderInterval(clearBeforeRender(configRender), reRenderIntervalDuration),
+		navigationPath(serviceViewName, navigationOptPods):          reRenderInterval(clearBeforeRender(labelsPodsRender), reRenderIntervalDuration),
+		navigationPath(serviceViewName, navigationOptPodsLog):       reRenderInterval(podsLogsRender, reRenderIntervalDuration),
+		navigationPath(serviceViewName, navigationOptTopPods):       reRenderInterval(clearBeforeRender(topPodsRender), reRenderIntervalDuration),
+		navigationPath(deploymentViewName, navigationOptConfig):     reRenderInterval(clearBeforeRender(configRender), reRenderIntervalDuration),
+		navigationPath(deploymentViewName, navigationOptPods):       reRenderInterval(clearBeforeRender(labelsPodsRender), reRenderIntervalDuration),
+		navigationPath(deploymentViewName, navigationOptDescribe):   reRenderInterval(clearBeforeRender(describeRender), reRenderIntervalDuration),
+		navigationPath(deploymentViewName, navigationOptPodsLog):    reRenderInterval(podsLogsRender, reRenderIntervalDuration),
+		navigationPath(deploymentViewName, navigationOptTopPods):    reRenderInterval(clearBeforeRender(topPodsRender), reRenderIntervalDuration),
+		navigationPath(podViewName, navigationOptConfig):            reRenderInterval(clearBeforeRender(configRender), reRenderIntervalDuration),
+		navigationPath(podViewName, navigationOptLog):               reRenderInterval(podLogsRender, reRenderIntervalDuration),
+		navigationPath(podViewName, navigationOptDescribe):          reRenderInterval(clearBeforeRender(describeRender), reRenderIntervalDuration),
+		navigationPath(podViewName, navigationOptTop):               reRenderInterval(podMetricsPlotRender, reRenderIntervalDuration),
 	}
 )
 
@@ -76,17 +94,80 @@ func clearBeforeRender(render guilib.ViewHandler) guilib.ViewHandler {
 	}
 }
 
+func reRenderInterval(handler guilib.ViewHandler, interval time.Duration) guilib.ViewHandler {
+	return func(gui *guilib.Gui, view *guilib.View) error {
+		now := time.Now()
+		view.ReRender()
+		val, _ := view.GetState(viewLastRenderTimeStateKey)
+		if val == nil {
+			if err := view.SetState(viewLastRenderTimeStateKey, now); err != nil {
+				return err
+			}
+			log.Logger.Debugf("reRenderInterval - interval: %+v handler %+v view %s", interval, handler, view.Name)
+			if err := handler(gui, view); err != nil {
+				return nil
+			}
+			return nil
+		}
+
+		viewLastRenderTime := val.(time.Time)
+		if viewLastRenderTime.Add(interval).After(now) {
+			return nil
+		}
+		if err := view.SetState(viewLastRenderTimeStateKey, now); err != nil {
+			return err
+		}
+		log.Logger.Debugf("reRenderInterval - interval: %+v handler %+v view %s", interval, handler, view.Name)
+		if err := handler(gui, view); err != nil {
+			return nil
+		}
+		return nil
+	}
+}
+
+func clearLastRenderTime(gui *guilib.Gui, viewName string) error {
+	view, err := gui.GetView(viewName)
+	if err != nil {
+		return err
+	}
+	if err := view.SetState(viewLastRenderTimeStateKey, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func clearDetailViewState(gui *guilib.Gui) {
+	detailView, err := gui.GetView(detailViewName)
+	if err != nil {
+		log.Logger.Warningf("clearDetailViewState - get view error %s", err)
+		return
+	}
+
+	if err := clearLastRenderTime(gui, detailViewName); err != nil {
+		log.Logger.Warningf("clearDetailViewState - clearLastRenderTime err %s", err)
+		return
+	}
+
+	if err := detailView.SetState(logSinceTimeStateKey, nil); err != nil {
+		log.Logger.Warningf("clearDetailViewState - clear logSinceTimeStateKey err %s", err)
+		return
+	}
+
+	detailView.Clear()
+}
+
 func navigationPath(args ...string) string {
 	return strings.Join(args, navigationPathJoin)
 }
 
-func switchNavigation(index int) string {
+func switchNavigation(gui *guilib.Gui, index int) string {
 	err := Detail.SetOrigin(0, 0)
 	if err != nil {
 		log.Logger.Warningf("switchNavigation - Detail.SetOrigin(0, 0) error %s", err)
 	}
 
 	Detail.Clear()
+	clearDetailViewState(gui)
 	if index < 0 {
 		return ""
 	}
@@ -132,7 +213,7 @@ func navigationRender(gui *guilib.Gui, view *guilib.View) error {
 		activeNavigationOpt = options[navigationIndex]
 	}
 	if changeNavigation {
-		switchNavigation(0)
+		switchNavigation(gui, 0)
 	}
 
 	colorfulOptions := make([]string, 0)
@@ -155,7 +236,7 @@ func navigationRender(gui *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
-func navigationOnClick(_ *guilib.Gui, view *guilib.View) error {
+func navigationOnClick(gui *guilib.Gui, view *guilib.View) error {
 	cx, cy := view.Cursor()
 	log.Logger.Debugf("navigationOnClick - cx %d cy %d", cx, cy)
 
@@ -165,7 +246,7 @@ func navigationOnClick(_ *guilib.Gui, view *guilib.View) error {
 		return nil
 	}
 	log.Logger.Debugf("navigationOnClick - cx %d selected '%s'", cx, selected)
-	selected = switchNavigation(optionIndex)
+	_ = switchNavigation(gui, optionIndex)
 	view.ReRender()
 	Detail.ReRender()
 	return nil
@@ -204,7 +285,7 @@ func viewStreams(view *guilib.View) genericclioptions.IOStreams {
 }
 
 func clusterNodesRender(_ *guilib.Gui, view *guilib.View) error {
-	kubecli.Cli.Get(viewStreams(view), "nodes").Run()
+	kubecli.Cli.Get(viewStreams(view), navigationOptNodes).Run()
 	return nil
 }
 
@@ -220,14 +301,16 @@ func namespaceRender(_ *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
-func podRender(_ *guilib.Gui, view *guilib.View) error {
-	view.Clear()
-	if kubecli.Cli.Namespace() == "" {
-		kubecli.Cli.Get(viewStreams(view), "pods").SetFlag("all-namespaces", "true").SetFlag("output", "wide").Run()
+func namespaceResourceListRender(resource string) guilib.ViewHandler {
+	return func(gui *guilib.Gui, view *guilib.View) error {
+		view.Clear()
+		if kubecli.Cli.Namespace() == "" {
+			kubecli.Cli.Get(viewStreams(view), resource).SetFlag("all-namespaces", "true").SetFlag("output", "wide").Run()
+			return nil
+		}
+		kubecli.Cli.Get(viewStreams(view), resource).SetFlag("output", "wide").Run()
 		return nil
 	}
-	kubecli.Cli.Get(viewStreams(view), "pods").SetFlag("output", "wide").Run()
-	return nil
 }
 
 func resourceListRender(_ *guilib.Gui, view *guilib.View) error {
@@ -350,6 +433,7 @@ func onFocusClearSelected(gui *guilib.Gui, view *guilib.View) error {
 }
 
 func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
+	// Todo: Fix chinese character of logs.
 	podView, err := gui.GetView(podViewName)
 	if err != nil {
 		return err
@@ -365,24 +449,60 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 		}
 		return err
 	}
+	var since time.Time
+	var hasSince bool
+	val, _ := view.GetState(logSinceTimeStateKey)
+	if val != nil {
+		hasSince = true
+		since = val.(time.Time)
+	}
 
-	cli(namespace).
+	cmd := cli(namespace).
 		Logs(viewStreams(view), resourceName).
 		SetFlag("all-containers", "true").
 		SetFlag("tail", logsTail).
-		SetFlag("prefix", "true").
-		Run()
+		SetFlag("prefix", "true")
+
+	if hasSince {
+		cmd.SetFlag("since-time", since.Format(time.RFC3339))
+	}
+
+	cmd.Run()
+
+	if err := view.SetState(logSinceTimeStateKey, time.Now()); err != nil {
+		return err
+	}
 
 	view.ReRender()
 	return nil
 }
 func podsLogsRender(gui *guilib.Gui, view *guilib.View) error {
+	// Todo: Fix chinese character of logs.
 	if err := podsSelectorRenderHelper(func(namespace string, labelsArr []string) error {
+		var since time.Time
+		var hasSince bool
+		val, _ := view.GetState(logSinceTimeStateKey)
+		if val != nil {
+			hasSince = true
+			since = val.(time.Time)
+		}
+
 		streams := newStream()
 		cmd := kubecli.Cli.WithNamespace(namespace).Logs(streams)
-		cmd.SetFlag("selector", strings.Join(labelsArr, ","))
-		cmd.SetFlag("all-containers", "true").SetFlag("tail", logsTail).SetFlag("prefix", "true").Run()
-		view.Clear()
+		cmd.SetFlag("selector", strings.Join(labelsArr, ",")).
+			SetFlag("all-containers", "true").
+			SetFlag("tail", logsTail).
+			SetFlag("prefix", "true")
+
+		if hasSince {
+			cmd.SetFlag("since-time", since.Format(time.RFC3339))
+		}
+
+		cmd.Run()
+
+		if err := view.SetState(logSinceTimeStateKey, time.Now()); err != nil {
+			return err
+		}
 		streamCopyTo(streams, view)
 		view.ReRender()
 		return nil
@@ -436,17 +556,13 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 			return namespaceConfigRender(gui, view)
 		}
 		selected := activeView.SelectedLine
-		var resource, jsonPath string
-		switch activeView.Name {
-		case serviceViewName:
-			resource = "service"
-			jsonPath = "jsonpath='{.spec.selector}'"
-		case deploymentViewName:
-			resource = "deployment"
-			jsonPath = "jsonpath='{.spec.selector.matchLabels}'"
+		resource := getViewResourceName(activeView.Name)
+		if resource == "" {
+			return nil
 		}
 
-		if resource == "" {
+		jsonPath := resourceLabelSelectorJsonPath(resource)
+		if jsonPath == "" {
 			return nil
 		}
 

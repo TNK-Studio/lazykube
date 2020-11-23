@@ -21,9 +21,9 @@ const (
 
 func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 	view.ReRender()
-	if !canRenderPlot(gui, view) {
-		return nil
-	}
+	//if !canRenderPlot(gui, view) {
+	//	return nil
+	//}
 	view.Clear()
 	var err error
 

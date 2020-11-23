@@ -123,16 +123,33 @@ var (
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			{
-				Name: detailArrowUp,
-				Keys: keyMap[detailArrowUp],
-				Handler: func(gui *guilib.Gui, _ *guilib.View) error {
-					err := gui.FocusView(navigationViewName, false)
-					if err != nil {
-						return err
-					}
-					return nil
+				Keys: keyMap[detailToNavigation],
+				Name: detailToNavigation,
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					return gui.FocusView(navigationViewName, false)
 				},
 				Mod: gocui.ModNone,
+			},
+			{
+				Name: detailArrowUp,
+				Keys: keyMap[detailArrowUp],
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					_, oy := view.Origin()
+					if oy == 0 {
+						err := gui.FocusView(navigationViewName, false)
+						if err != nil {
+							return err
+						}
+					}
+					return scrollUpHandler(gui, view)
+				},
+				Mod: gocui.ModNone,
+			},
+			{
+				Keys:    keyMap[detailArrowDown],
+				Name:    detailArrowDown,
+				Handler: scrollDownHandler,
+				Mod:     gocui.ModNone,
 			},
 		}),
 	}
@@ -197,7 +214,7 @@ var (
 		Title:                "Pods",
 		ZIndex:               zIndexOfFunctionView(deploymentViewName),
 		Clickable:            true,
-		OnRender:             podRender,
+		OnRender:             namespaceResourceListRender("pods"),
 		OnSelectedLineChange: viewSelectedLineChangeHandler,
 		Highlight:            true,
 		SelFgColor:           gocui.ColorGreen,
@@ -359,7 +376,6 @@ func newCustomResourcePanel(resource string) *guilib.View {
 		)
 	}
 
-	customPanelMoreActions = append(customPanelMoreActions)
 	customResourcePanel.Actions = append(customResourcePanel.Actions, newMoreActions(customPanelMoreActions))
 	return customResourcePanel
 }
@@ -373,11 +389,31 @@ func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
 
 	customResourcePanel = newCustomResourcePanel(resource)
 	viewNameResourceMap[customResourcePanel.Name] = resource
+
+	// Add to function views and resizeable views.
 	functionViews = append(functionViews, customResourcePanel.Name)
 	resizeableViews = append(resizeableViews, customResourcePanel.Name)
-	viewNavigationMap[customResourcePanel.Name] = []string{"Config", "Describe"}
-	detailRenderMap[navigationPath(customResourcePanel.Name, "Config")] = clearBeforeRender(configRender)
-	detailRenderMap[navigationPath(customResourcePanel.Name, "Describe")] = clearBeforeRender(describeRender)
+
+	// Add custom panel navigation.
+	viewNavigationMap[customResourcePanel.Name] = []string{navigationOptConfig, navigationOptDescribe}
+	detailRenderMap[navigationPath(customResourcePanel.Name, navigationOptConfig)] = clearBeforeRender(configRender)
+	detailRenderMap[navigationPath(customResourcePanel.Name, navigationOptDescribe)] = reRenderInterval(clearBeforeRender(describeRender), reRenderIntervalDuration)
+
+	// Add pods and pods log navigation
+	if resourceRestartable(resource) {
+		detailRenderMap[navigationPath(customResourcePanel.Name, navigationOptPods)] = reRenderInterval(clearBeforeRender(labelsPodsRender), reRenderIntervalDuration)
+		detailRenderMap[navigationPath(customResourcePanel.Name, navigationOptPodsLog)] = reRenderInterval(podsLogsRender, reRenderIntervalDuration)
+		detailRenderMap[navigationPath(customResourcePanel.Name, navigationOptTopPods)] = reRenderInterval(clearBeforeRender(topPodsRender), reRenderIntervalDuration)
+		viewNavigationMap[customResourcePanel.Name] = append(viewNavigationMap[customResourcePanel.Name], navigationOptPods, navigationOptPodsLog, navigationOptTopPods)
+	}
+
+	// Add namespace navigation options.
+	viewNavigationMap[namespaceViewName] = append(viewNavigationMap[namespaceViewName], customResourcePanel.Title)
+	detailRenderMap[navigationPath(namespaceViewName, customResourcePanel.Title)] = reRenderInterval(
+		clearBeforeRender(namespaceResourceListRender(resource)),
+		reRenderIntervalDuration,
+	)
+
 	if err := resizePanelHeight(gui); err != nil {
 		return err
 	}
@@ -408,6 +444,15 @@ func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
 	for index, eachViewName := range resizeableViews {
 		if eachViewName == viewName {
 			resizeableViews = append(resizeableViews[:index], resizeableViews[index+1:]...)
+		}
+	}
+
+	for index, option := range viewNavigationMap[namespaceViewName] {
+		if option == customResourcePanel.Title {
+			resizeableViews = append(
+				viewNavigationMap[namespaceViewName][:index],
+				viewNavigationMap[namespaceViewName][index+1:]...,
+			)
 		}
 	}
 
