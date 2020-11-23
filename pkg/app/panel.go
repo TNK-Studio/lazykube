@@ -258,7 +258,7 @@ var (
 			nextLine,
 			filterResource,
 			editResourceAction,
-			newMoreActions(moreActionsMap[namespaceViewName]),
+			newMoreActions(moreActionsMap[podViewName]),
 		}),
 	}
 

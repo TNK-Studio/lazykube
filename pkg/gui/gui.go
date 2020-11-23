@@ -195,6 +195,23 @@ func (gui *Gui) Configure() {
 	gui.g.BgColor = gui.Config.BgColor
 	gui.g.Mouse = gui.Config.Mouse
 	gui.g.InputEsc = gui.Config.InputEsc
+
+	inputMode := termbox.InputAlt
+	if gui.g.InputEsc {
+		inputMode = termbox.InputEsc
+	}
+	if gui.g.Mouse {
+		inputMode |= termbox.InputMouse
+	}
+	termbox.SetInputMode(inputMode)
+
+	// Must to set cursor otherwise hide cursor not work.
+	termbox.SetCursor(0, 0)
+	if !gui.g.Cursor {
+		termbox.HideCursor()
+	}
+
+	_ = termbox.Flush()
 }
 
 // Size Size
@@ -338,6 +355,9 @@ func (gui *Gui) unRenderNotEnoughSpaceView() error {
 // Clear Clear
 func (gui *Gui) Clear() error {
 	if err := gui.unRenderNotEnoughSpaceView(); err != nil {
+		return err
+	}
+	if err := termbox.Clear(termbox.Attribute(gui.g.FgColor), termbox.Attribute(gui.g.BgColor)); err != nil {
 		return err
 	}
 	return nil
@@ -691,6 +711,14 @@ func (gui *Gui) ForceFlush() error {
 	}
 
 	return termbox.Flush()
+}
+
+func (gui *Gui) ReInitTermBox() error {
+	termbox.Close()
+	if err := termbox.Init(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (gui *Gui) SetState(key string, value interface{}, reRenderAll bool, reRenderViews ...string) error {

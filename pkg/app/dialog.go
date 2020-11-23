@@ -136,6 +136,42 @@ func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, han
 	return nil
 }
 
+func showOptionsDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler func(string) error, optionsFunc func() []string) error {
+	var optionsDialog *guilib.View
+	// If view existed.
+	optionsDialog, _ = gui.GetView(optionsDialogViewName)
+	if optionsDialog != nil {
+		return nil
+	}
+
+	optionsDialog = newOptionsDialog(title, zIndex, confirmHandler, optionsFunc)
+	if err := gui.AddView(optionsDialog); err != nil {
+		return err
+	}
+	if err := gui.FocusView(optionsDialogViewName, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func showInputDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler func(string) error, defaultValue string) error {
+	var inputDialog *guilib.View
+	// If view existed.
+	inputDialog, _ = gui.GetView(inputDialogViewName)
+	if inputDialog != nil {
+		return nil
+	}
+
+	inputDialog = newInputDialog(title, zIndex, confirmHandler, defaultValue)
+	if err := gui.AddView(inputDialog); err != nil {
+		return err
+	}
+	if err := gui.FocusView(inputDialogViewName, false); err != nil {
+		return err
+	}
+	return nil
+}
+
 // New dialog functions
 
 func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
@@ -287,7 +323,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 }
 
 func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
-	return &guilib.View{
+	moreActionDialog := &guilib.View{
 		Title:       title,
 		Name:        moreActionsViewName,
 		AlwaysOnTop: true,
@@ -342,8 +378,21 @@ func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 			}
 			return nil
 		},
-		Actions: toMoreActionArr(moreActions),
 	}
+
+	moreActionDialog.Actions = make([]guilib.ActionInterface, 0)
+	for _, each := range moreActions {
+		action := each.Action
+		action.Handler = moreActionHandlerWrapper(action.Handler)
+		moreActionDialog.Actions = append(
+			moreActionDialog.Actions,
+			&moreAction{
+				NeedSelectResource: each.NeedSelectResource,
+				Action:             action,
+			},
+		)
+	}
+	return moreActionDialog
 }
 
 func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHandler) *guilib.View {
@@ -474,7 +523,7 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 	}
 }
 
-func newOptionsDialog(title string, zIndex int, confirmHandler func(string) error) *guilib.View {
+func newOptionsDialog(title string, zIndex int, confirmHandler func(string) error, optionsFunc func() []string) *guilib.View {
 	return &guilib.View{
 		Name:         optionsDialogViewName,
 		Title:        title,
@@ -482,6 +531,25 @@ func newOptionsDialog(title string, zIndex int, confirmHandler func(string) erro
 		CanNotReturn: false,
 		AlwaysOnTop:  true,
 		ZIndex:       zIndex,
+		Highlight:    true,
+		SelFgColor:   gocui.ColorBlack,
+		SelBgColor:   gocui.ColorWhite,
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
+			maxWidth, maxHeight := gui.Size()
+			halfWidth, halfHeight := maxWidth/2, maxHeight/2
+			eighthWidth, eighthHeight := maxWidth/8, maxHeight/8
+			return halfWidth - eighthWidth*2, halfHeight - eighthHeight, halfWidth + eighthHeight*2, halfHeight + eighthHeight
+		},
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			view.Clear()
+			options := optionsFunc()
+			for _, option := range options {
+				if _, err := fmt.Fprintln(view, option); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
 		OnLineClick: func(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
 			return confirmHandler(lineString)
 		},
@@ -505,7 +573,7 @@ func newOptionsDialog(title string, zIndex int, confirmHandler func(string) erro
 	}
 }
 
-func newInputDialog(title string, zIndex int, confirmHandler func(string) error) *guilib.View {
+func newInputDialog(title string, zIndex int, confirmHandler func(string) error, defaultValue string) *guilib.View {
 	return &guilib.View{
 		Name:         inputDialogViewName,
 		Title:        title,
@@ -515,9 +583,21 @@ func newInputDialog(title string, zIndex int, confirmHandler func(string) error)
 		Editable:     true,
 		MouseDisable: true,
 		ZIndex:       zIndex,
+		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
+			maxWidth, maxHeight := gui.Size()
+			quarterWidth, quarterHeight := maxWidth/4, maxHeight/4
+			x0 := quarterWidth
+			x1 := quarterWidth * 3
+			y0 := quarterHeight
+			y1 := quarterHeight + 3
+			return x0, y0, x1, y1
+		},
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
-			if view.ViewBuffer() == "" {
-				fmt.Fprint(view, "/bin/sh")
+			if view.ViewBuffer() == "" && defaultValue != "" {
+				if _, err := fmt.Fprint(view, defaultValue); err != nil {
+					return err
+				}
+				view.MoveCursor(0, len([]rune(view.ViewBuffer())), true)
 			}
 			return nil
 		},
@@ -601,4 +681,16 @@ func getMoreActionTriggerView(moreActionView *guilib.View) (*guilib.View, error)
 		return nil, errors.New("getMoreActionTriggerView - more action trigger view not found. ")
 	}
 	return view, nil
+}
+
+func moreActionHandlerWrapper(handler guilib.ViewHandler) guilib.ViewHandler {
+	return func(gui *guilib.Gui, view *guilib.View) error {
+		triggerView := view
+		var err error
+		triggerView, err = getMoreActionTriggerView(view)
+		if err != nil {
+			return err
+		}
+		return handler(gui, triggerView)
+	}
 }
