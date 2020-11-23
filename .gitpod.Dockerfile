@@ -1,10 +1,10 @@
 FROM gitpod/workspace-full
 
 RUN brew install zsh
-RUN sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0 \
-    sudo apt-add-repository https://cli.github.com/packages \
-    sudo apt update \
-    sudo apt install gh
+RUN sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
+RUN sudo apt-add-repository https://cli.github.com/packages
+RUN sudo apt update
+RUN sudo apt install gh
 RUN sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
 # Install custom tools, runtimes, etc.
