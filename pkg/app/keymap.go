@@ -15,7 +15,9 @@ const (
 	navigationArrowLeft        = "navigationArrowLeft"
 	navigationArrowRight       = "navigationArrowRight"
 	navigationDown             = "navigationDown"
+	detailToNavigation         = "detailToNavigation"
 	detailArrowUp              = "detailArrowUp"
+	detailArrowDown            = "detailArrowDown"
 	previousLineAction         = "previousLine"
 	nextLineAction             = "nextLine"
 	previousPageAction         = "previousPage"
@@ -50,7 +52,9 @@ var (
 		navigationArrowLeft:                 {gocui.KeyArrowLeft, 'k'},
 		navigationArrowRight:                {gocui.KeyArrowRight, 'l'},
 		navigationDown:                      {gocui.KeyArrowDown, 'j', gocui.KeyTab},
-		detailArrowUp:                       {gocui.KeyArrowUp, 'h', gocui.KeyTab},
+		detailToNavigation:                  {gocui.KeyTab},
+		detailArrowUp:                       {gocui.KeyArrowUp, 'h'},
+		detailArrowDown:                     {gocui.KeyArrowDown, 'j'},
 		previousLineAction:                  {gocui.KeyArrowUp, 'h'},
 		nextLineAction:                      {gocui.KeyArrowDown, 'j'},
 		previousPageAction:                  {gocui.KeyPgup},
