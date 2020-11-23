@@ -58,7 +58,7 @@ func navigationArrowRightHandler(gui *guilib.Gui, _ *guilib.View) error {
 	if navigationIndex+1 >= len(options) {
 		return nil
 	}
-	switchNavigation(navigationIndex + 1)
+	switchNavigation(gui, navigationIndex+1)
 	return nil
 }
 
@@ -67,7 +67,7 @@ func navigationArrowLeftHandler(gui *guilib.Gui, _ *guilib.View) error {
 	if navigationIndex-1 < 0 {
 		return gui.ReturnPreviousView()
 	}
-	switchNavigation(navigationIndex - 1)
+	switchNavigation(gui, navigationIndex-1)
 	return nil
 }
 
@@ -190,6 +190,7 @@ func nextLineHandler(gui *guilib.Gui, view *guilib.View) error {
 func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string) error {
 	gui.ReRenderViews(view.Name, navigationViewName, detailViewName)
 	gui.ClearViews(detailViewName)
+	clearDetailViewState(gui)
 	return nil
 }
 

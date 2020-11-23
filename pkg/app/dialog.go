@@ -176,6 +176,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 			return nil
 		},
 		OnEditedChange: func(gui *guilib.Gui, view *guilib.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+			// Todo: fix character "_"
 			var value string
 			bufferLines := view.ViewBufferLines()
 			if len(bufferLines) > 0 {
