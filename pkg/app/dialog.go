@@ -21,6 +21,9 @@ const (
 	moreActionTriggerViewStateKey = "triggerView"
 
 	confirmDialogViewName = "confirmDialog"
+
+	optionsDialogViewName = "optionsDialog"
+	inputDialogViewName   = "inputDialog"
 )
 
 var (
@@ -268,7 +271,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 		OnRenderOptions: filterDialogRenderOption,
 		OnFocusLost:     filterDialogFocusLost,
 		OnLineClick: func(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
-			return nil
+			return confirmHandler(lineString)
 		},
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
@@ -466,6 +469,80 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 					return confirmDialogOptionHandler(gui, view, relatedViewName, value, handler)
 				},
 				Mod: gocui.ModNone,
+			},
+		}),
+	}
+}
+
+func newOptionsDialog(title string, zIndex int, confirmHandler func(string) error) *guilib.View {
+	return &guilib.View{
+		Name:         optionsDialogViewName,
+		Title:        title,
+		Clickable:    true,
+		CanNotReturn: false,
+		AlwaysOnTop:  true,
+		ZIndex:       zIndex,
+		OnLineClick: func(gui *guilib.Gui, view *guilib.View, cy int, lineString string) error {
+			return confirmHandler(lineString)
+		},
+		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
+			if err := gui.DeleteView(view.Name); err != nil {
+				return err
+			}
+			return nil
+		},
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			{
+				Keys: keyMap[optionsDialogEnter],
+				Name: optionsDialogEnter,
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					return confirmHandler(view.SelectedLine)
+				},
+				ReRenderAllView: false,
+				Mod:             gocui.ModNone,
+			},
+		}),
+	}
+}
+
+func newInputDialog(title string, zIndex int, confirmHandler func(string) error) *guilib.View {
+	return &guilib.View{
+		Name:         inputDialogViewName,
+		Title:        title,
+		Clickable:    true,
+		CanNotReturn: false,
+		AlwaysOnTop:  true,
+		Editable:     true,
+		MouseDisable: true,
+		ZIndex:       zIndex,
+		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
+			if view.ViewBuffer() == "" {
+				fmt.Fprint(view, "/bin/sh")
+			}
+			return nil
+		},
+		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {
+			gui.Config.Cursor = true
+			gui.Configure()
+			return nil
+		},
+		OnFocusLost: func(gui *guilib.Gui, view *guilib.View) error {
+			gui.Config.Cursor = false
+			gui.Configure()
+			if err := gui.DeleteView(view.Name); err != nil {
+				return err
+			}
+			return nil
+		},
+		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			{
+				Keys: keyMap[inputDialogEnter],
+				Name: inputDialogEnter,
+				Handler: func(gui *guilib.Gui, view *guilib.View) error {
+					return confirmHandler(view.SelectedLine)
+				},
+				ReRenderAllView: false,
+				Mod:             gocui.ModNone,
 			},
 		}),
 	}

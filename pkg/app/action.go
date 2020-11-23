@@ -141,6 +141,13 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	containerExecCommandAction = &guilib.Action{
+		Keys:    keyMap[containerExecCommandActionName],
+		Name:    containerExecCommandActionName,
+		Handler: nil,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,

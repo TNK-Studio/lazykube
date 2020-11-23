@@ -221,6 +221,11 @@ func (view *View) ViewBufferLines() []string {
 	return view.v.ViewBufferLines()
 }
 
+// ViewBuffer ViewBuffer
+func (view *View) ViewBuffer() string {
+	return view.v.ViewBuffer()
+}
+
 // Line Line
 func (view *View) Line(y int) (string, error) {
 	return view.v.Line(y)
