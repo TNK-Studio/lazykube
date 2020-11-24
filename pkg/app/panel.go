@@ -460,7 +460,7 @@ func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
 
 	for index, option := range viewNavigationMap[namespaceViewName] {
 		if option == customResourcePanel.Title {
-			resizeableViews = append(
+			viewNavigationMap[namespaceViewName] = append(
 				viewNavigationMap[namespaceViewName][:index],
 				viewNavigationMap[namespaceViewName][index+1:]...,
 			)
