@@ -171,19 +171,16 @@ func nextLineHandler(gui *guilib.Gui, view *guilib.View) error {
 
 	_, height := view.Size()
 	cx, cy := view.Cursor()
-
 	if cy+1 >= height-1 {
 		ox, oy := view.Origin()
 		err := view.SetOrigin(ox, oy+height-1)
 		if err != nil {
 			return err
 		}
-
 		err = view.SetCursor(cx, 0)
 		if err != nil {
 			return err
 		}
-
 		return nil
 	}
 
@@ -237,7 +234,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (na
 }
 
 func editResourceHandler(gui *guilib.Gui, view *guilib.View) error {
-	view, resource, namespace, resourceName, err := resourceMoreActionHandlerHelper(gui, view)
+	_, resource, namespace, resourceName, err := resourceMoreActionHandlerHelper(gui, view)
 	if errors.Is(err, resourceNotFoundErr) || errors.Is(err, noResourceSelectedErr) {
 		// Todo: show error on panel
 		return nil
@@ -363,8 +360,6 @@ func deleteCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error 
 }
 
 func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
-	// Todo: support others resource
-	resource := "pods"
 	namespace, resourceName, err := getResourceNamespaceAndName(gui, view)
 	if err != nil {
 		if errors.Is(err, noResourceSelectedErr) {
@@ -373,17 +368,7 @@ func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
 		return err
 	}
 
-	stream := newStream()
-	cli(namespace).
-		Get(stream, resource, resourceName).
-		SetFlag("output", "jsonpath='{.spec.containers[*].name}'").
-		Run()
-
-	result := strings.ReplaceAll(streamToString(stream), "'", "")
-	containers := strings.Split(result, " ")
-	if len(containers) == 0 {
-		return nil
-	}
+	containers := getPodContainers(namespace, resourceName)
 
 	if err := showOptionsDialog(
 		gui,
@@ -439,6 +424,59 @@ func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
 				return err
 			}
 
+			return nil
+		},
+		func() []string {
+			return containers
+		},
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
+	podView, err := gui.GetView(podViewName)
+	if err != nil {
+		return err
+	}
+
+	namespace, resourceName, err := getResourceNamespaceAndName(gui, podView)
+	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			return nil
+		}
+		return err
+	}
+
+	containers := getPodContainers(namespace, resourceName)
+
+	if err := showOptionsDialog(
+		gui,
+		"Please select a container to view logs.",
+		1,
+		func(containerName string) error {
+			if containerName == "" {
+				return nil
+			}
+			if err := view.SetState(logContainerStateKey, containerName); err != nil {
+				return err
+			}
+			if err := view.SetState(viewLastRenderTimeStateKey, nil); err != nil {
+				return err
+			}
+			if err := view.SetState(logSinceTimeStateKey, nil); err != nil {
+				return err
+			}
+			view.Clear()
+			if err := view.SetOrigin(0, 0); err != nil {
+				return err
+			}
+			view.ReRender()
+			if err := gui.FocusView(detailViewName, false); err != nil {
+				return err
+			}
 			return nil
 		},
 		func() []string {

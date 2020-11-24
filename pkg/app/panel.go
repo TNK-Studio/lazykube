@@ -151,6 +151,7 @@ var (
 				Handler: scrollDownHandler,
 				Mod:     gocui.ModNone,
 			},
+			newMoreActions(moreActionsMap[detailViewName]),
 		}),
 	}
 

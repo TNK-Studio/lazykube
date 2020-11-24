@@ -25,9 +25,7 @@ const (
 	deploymentResource = "deployment"
 	podResource        = "pod"
 
-	viewLastRenderTimeStateKey = "viewLastRenderTime"
-	logSinceTimeStateKey       = "logSinceTime"
-	reRenderIntervalDuration   = 3 * time.Second
+	reRenderIntervalDuration = 3 * time.Second
 )
 
 var (
@@ -150,6 +148,11 @@ func clearDetailViewState(gui *guilib.Gui) {
 
 	if err := detailView.SetState(logSinceTimeStateKey, nil); err != nil {
 		log.Logger.Warningf("clearDetailViewState - clear logSinceTimeStateKey err %s", err)
+		return
+	}
+
+	if err := detailView.SetState(logContainerStateKey, nil); err != nil {
+		log.Logger.Warningf("clearDetailViewState - clear logContainerStateKey err %s", err)
 		return
 	}
 
@@ -440,7 +443,6 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 	}
 
 	resource := "pod"
-
 	namespace, resourceName, err := getResourceNamespaceAndName(gui, podView)
 	if err != nil {
 		if errors.Is(err, noResourceSelectedErr) {
@@ -449,19 +451,35 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 		}
 		return err
 	}
+
+	containers := getPodContainers(namespace, resourceName)
+
+	if err := view.SetState(podContainersStateKey, containers); err != nil {
+		return err
+	}
+
 	var since time.Time
 	var hasSince bool
-	val, _ := view.GetState(logSinceTimeStateKey)
-	if val != nil {
+	if val, _ := view.GetState(logSinceTimeStateKey); val != nil {
 		hasSince = true
 		since = val.(time.Time)
 	}
 
+	var logContainer string
+	if val, _ := view.GetState(logContainerStateKey); val != nil {
+		logContainer = val.(string)
+	}
+
 	cmd := cli(namespace).
 		Logs(viewStreams(view), resourceName).
-		SetFlag("all-containers", "true").
 		SetFlag("tail", logsTail).
 		SetFlag("prefix", "true")
+
+	if logContainer == "" {
+		cmd.SetFlag("all-containers", "true")
+	} else {
+		cmd.SetFlag("container", logContainer)
+	}
 
 	if hasSince {
 		cmd.SetFlag("since-time", since.Format(time.RFC3339))

@@ -1,6 +1,9 @@
 package app
 
-import "github.com/TNK-Studio/lazykube/pkg/kubecli"
+import (
+	"github.com/TNK-Studio/lazykube/pkg/kubecli"
+	"strings"
+)
 
 const matchLabels = "jsonpath='{.spec.selector.matchLabels}'"
 
@@ -24,4 +27,20 @@ func resourceLabelSelectorJSONPath(resource string) string {
 		jsonPath = matchLabels
 	}
 	return jsonPath
+}
+
+func getPodContainers(namespace, podName string) []string {
+	// Todo: support others resource
+	stream := newStream()
+	cli(namespace).
+		Get(stream, "pods", podName).
+		SetFlag("output", "jsonpath='{.spec.containers[*].name}'").
+		Run()
+
+	result := strings.ReplaceAll(streamToString(stream), "'", "")
+	containers := strings.Split(result, " ")
+	if len(containers) == 0 {
+		return []string{}
+	}
+	return containers
 }
