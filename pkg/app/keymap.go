@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
+	"github.com/gookit/color"
 	"github.com/jroimartin/gocui"
 	"strings"
 )
@@ -39,6 +40,7 @@ const (
 	inputDialogEnter           = "inputDialogEnter"
 
 	// More actions
+	copySelectedLineAction              = "Copy Selected Line"
 	editResourceActionName              = "Edit Resource"
 	rolloutRestartActionName            = "Rollout Restart"
 	addCustomResourcePanelActionName    = "Add custom resource panel"
@@ -61,6 +63,7 @@ var (
 		detailArrowDown:                     {gocui.KeyArrowDown, 'j'},
 		previousLineAction:                  {gocui.KeyArrowUp, 'h'},
 		nextLineAction:                      {gocui.KeyArrowDown, 'j'},
+		copySelectedLineAction:              {'C'},
 		previousPageAction:                  {gocui.KeyPgup},
 		nextPageAction:                      {gocui.KeyPgdn},
 		scrollUpAction:                      {gocui.MouseWheelUp},
@@ -91,5 +94,5 @@ func keyMapDescription(keys []interface{}, description string) string {
 	for _, key := range keys {
 		keysName = append(keysName, utils.GetKey(key))
 	}
-	return fmt.Sprintf("%-7s %s", strings.Join(keysName, " "), description)
+	return fmt.Sprintf("%-20s %s", color.Blue.Sprintf(strings.Join(keysName, "/")), description)
 }

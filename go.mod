@@ -8,6 +8,7 @@ replace (
 )
 
 require (
+	github.com/atotto/clipboard v0.1.2
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fatih/camelcase v1.0.0
 	github.com/go-logr/logr v0.2.0

@@ -155,7 +155,8 @@ func clearDetailViewState(gui *guilib.Gui) {
 		log.Logger.Warningf("clearDetailViewState - clear logContainerStateKey err %s", err)
 		return
 	}
-
+	_ = detailView.SetOrigin(0, 0)
+	_ = detailView.SetCursor(0, 0)
 	detailView.Clear()
 }
 

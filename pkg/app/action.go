@@ -46,6 +46,18 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	copySelectedLine = &guilib.Action{
+		Keys:    keyMap[copySelectedLineAction],
+		Name:    copySelectedLineAction,
+		Handler: copySelectedLineHandler,
+		Mod:     gocui.ModNone,
+	}
+
+	copySelectedLineMoreAction = &moreAction{
+		NeedSelectResource: false,
+		Action:             *copySelectedLine,
+	}
+
 	filterResource = &guilib.Action{
 		Name: filterResourceActionName,
 		Keys: keyMap[filterResourceActionName],
@@ -179,12 +191,15 @@ var (
 		},
 		namespaceViewName: append(
 			commonResourceMoreActions,
+			copySelectedLineMoreAction,
 		),
 		serviceViewName: append(
 			commonResourceMoreActions,
+			copySelectedLineMoreAction,
 		),
 		deploymentViewName: append(
 			commonResourceMoreActions,
+			copySelectedLineMoreAction,
 			&moreAction{
 				NeedSelectResource: true,
 				Action:             *newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
@@ -193,18 +208,28 @@ var (
 		podViewName: append(
 			commonResourceMoreActions,
 			containerExecCommandMoreAction,
+			copySelectedLineMoreAction,
 		),
 		navigationViewName: {
 			addCustomResourcePanelMoreAction,
+			copySelectedLineMoreAction,
 		},
 		detailViewName: {
 			addCustomResourcePanelMoreAction,
+			copySelectedLineMoreAction,
 			&moreAction{
 				NeedSelectResource: false,
 				ShowAction: func(gui *guilib.Gui, view *guilib.View) bool {
 					return navigationPath(activeView.Name, activeNavigationOpt) == navigationPath(podViewName, navigationOptLog)
 				},
 				Action: *changePodLogsContainerAction,
+			},
+			&moreAction{
+				NeedSelectResource: false,
+				ShowAction: func(gui *guilib.Gui, view *guilib.View) bool {
+					return activeNavigationOpt == navigationOptConfig
+				},
+				Action: *editResourceAction,
 			},
 		},
 	}

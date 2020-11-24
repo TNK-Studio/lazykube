@@ -67,6 +67,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
+			copySelectedLine,
 			filterResource,
 			editResourceAction,
 			newConfirmDialogAction(deploymentViewName, rolloutRestartAction),
@@ -113,15 +114,19 @@ var (
 	}
 
 	Detail = &guilib.View{
-		Name:      detailViewName,
-		Wrap:      true,
-		Title:     "",
-		Clickable: true,
-		OnRender:  detailRender,
+		Name:       detailViewName,
+		Wrap:       true,
+		Title:      "",
+		Clickable:  true,
+		OnRender:   detailRender,
+		Highlight:  true,
+		SelFgColor: gocui.ColorGreen,
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			return leftSideWidth(gui.MaxWidth()) + 1, 2, gui.MaxWidth() - 1, gui.MaxHeight() - 2
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			editResourceAction,
+			copySelectedLine,
 			{
 				Keys: keyMap[detailToNavigation],
 				Name: detailToNavigation,
@@ -151,6 +156,7 @@ var (
 				Handler: scrollDownHandler,
 				Mod:     gocui.ModNone,
 			},
+			changePodLogsContainerAction,
 			newMoreActions(moreActionsMap[detailViewName]),
 		}),
 	}
@@ -193,6 +199,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
+			copySelectedLine,
 			filterResource,
 			editResourceAction,
 			newMoreActions(moreActionsMap[namespaceViewName]),
@@ -257,6 +264,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
+			copySelectedLine,
 			filterResource,
 			editResourceAction,
 			containerExecCommandAction,
@@ -289,6 +297,7 @@ var (
 			nextCyclicView,
 			previousLine,
 			nextLine,
+			copySelectedLine,
 			filterResource,
 			editResourceAction,
 			newMoreActions(moreActionsMap[namespaceViewName]),

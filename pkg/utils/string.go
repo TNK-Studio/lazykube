@@ -45,14 +45,15 @@ func DeleteExtraSpace(s string) string {
 }
 
 func GetKey(key interface{}) string {
+	var k int
 	if _, ok := key.(rune); ok {
-		key = int(key.(rune))
+		k = int(key.(rune))
 	} else {
-		key = int(key.(gocui.Key))
+		k = int(key.(gocui.Key))
 	}
 
 	// special keys
-	switch key {
+	switch k {
 	case 27:
 		return "esc"
 	case 13:
@@ -73,5 +74,9 @@ func GetKey(key interface{}) string {
 		return "PgDn"
 	}
 
-	return fmt.Sprintf("%c", key)
+	if k >= 65 && k <= 90 {
+		return fmt.Sprintf("Shift+%c", k+32)
+	}
+
+	return fmt.Sprintf("%c", k)
 }
