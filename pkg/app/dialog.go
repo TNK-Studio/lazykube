@@ -325,6 +325,7 @@ func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 		Title:       title,
 		Name:        moreActionsViewName,
 		AlwaysOnTop: true,
+		Wrap:        true,
 		DimensionFunc: func(gui *guilib.Gui, view *guilib.View) (int, int, int, int) {
 			maxWidth, maxHeight := gui.Size()
 			quarterWidth, quarterHeight := maxWidth/4, maxHeight/4

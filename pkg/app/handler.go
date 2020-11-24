@@ -5,6 +5,7 @@ import (
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
+	"github.com/atotto/clipboard"
 	"github.com/jroimartin/gocui"
 	"github.com/pkg/errors"
 	"math"
@@ -188,6 +189,19 @@ func nextLineHandler(gui *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
+func copySelectedLineHandler(gui *guilib.Gui, view *guilib.View) error {
+	if view.SelectedLine != "" {
+		clipboard.WriteAll(view.SelectedLine)
+	}
+	currentView := gui.CurrentView()
+	if currentView != nil && currentView.Name == moreActionsViewName {
+		if err := gui.ReturnPreviousView(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string) error {
 	gui.ReRenderViews(view.Name, navigationViewName, detailViewName)
 	gui.ClearViews(detailViewName)
@@ -234,7 +248,13 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (na
 }
 
 func editResourceHandler(gui *guilib.Gui, view *guilib.View) error {
-	_, resource, namespace, resourceName, err := resourceMoreActionHandlerHelper(gui, view)
+	var err error
+	var resource, namespace, resourceName string
+	if view.Name == detailViewName {
+		_, resource, namespace, resourceName, err = resourceMoreActionHandlerHelper(gui, activeView)
+	} else {
+		_, resource, namespace, resourceName, err = resourceMoreActionHandlerHelper(gui, view)
+	}
 	if errors.Is(err, resourceNotFoundErr) || errors.Is(err, noResourceSelectedErr) {
 		// Todo: show error on panel
 		return nil
