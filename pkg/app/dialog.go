@@ -12,13 +12,11 @@ import (
 )
 
 const (
-	filterInputViewName      = "filterInput"
-	filterInputValueStateKey = "value"
-	filteredViewName         = "filtered"
-	filteredNoResource       = "No Resource."
+	filterInputViewName = "filterInput"
+	filteredViewName    = "filtered"
+	filteredNoResource  = "No Resource."
 
-	moreActionsViewName           = "moreActions"
-	moreActionTriggerViewStateKey = "triggerView"
+	moreActionsViewName = "moreActions"
 
 	confirmDialogViewName = "confirmDialog"
 
@@ -340,6 +338,10 @@ func newMoreActionDialog(title string, moreActions []*moreAction) *guilib.View {
 			view.Clear()
 			moreActionsDescription := make([]string, 0)
 			for _, moreAct := range moreActions {
+				if moreAct.ShowAction != nil && !moreAct.ShowAction(gui, view) {
+					continue
+				}
+
 				if moreAct.NeedSelectResource {
 					resourceView, err := getMoreActionTriggerView(view)
 					if err != nil {
@@ -421,9 +423,9 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 			}
 
 			var value string
-			val, err := view.GetState("value")
+			val, err := view.GetState(confirmValueStateKey)
 			if err != nil {
-				_ = view.SetState("value", confirmDialogOpt)
+				_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
 				value = confirmDialogOpt
 			} else {
 				value = val.(string)
@@ -483,18 +485,18 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 				Name: switchConfirmDialogOpt,
 				Handler: func(gui *guilib.Gui, view *guilib.View) error {
 					var value string
-					val, err := view.GetState("value")
+					val, err := view.GetState(confirmValueStateKey)
 					if err != nil {
-						_ = view.SetState("value", confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)
 					}
 
 					if value == confirmDialogOpt {
-						_ = view.SetState("value", cancelDialogOpt)
+						_ = view.SetState(confirmValueStateKey, cancelDialogOpt)
 					} else {
-						_ = view.SetState("value", confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
 					}
 					view.ReRender()
 					return nil
@@ -507,9 +509,9 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 				Name: confirmDialogEnter,
 				Handler: func(gui *guilib.Gui, view *guilib.View) error {
 					var value string
-					val, err := view.GetState("value")
+					val, err := view.GetState(confirmValueStateKey)
 					if err != nil {
-						_ = view.SetState("value", confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)
@@ -560,6 +562,8 @@ func newOptionsDialog(title string, zIndex int, confirmHandler func(string) erro
 			return nil
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
+			nextLine,
+			previousLine,
 			{
 				Keys: keyMap[optionsDialogEnter],
 				Name: optionsDialogEnter,

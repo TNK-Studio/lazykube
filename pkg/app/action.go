@@ -148,6 +148,13 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	changePodLogsContainerAction = &guilib.Action{
+		Keys:    keyMap[changePodLogsContainerActionName],
+		Name:    changePodLogsContainerActionName,
+		Handler: changePodLogsContainerHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,
@@ -192,6 +199,13 @@ var (
 		},
 		detailViewName: {
 			addCustomResourcePanelMoreAction,
+			&moreAction{
+				NeedSelectResource: false,
+				ShowAction: func(gui *guilib.Gui, view *guilib.View) bool {
+					return navigationPath(activeView.Name, activeNavigationOpt) == navigationPath(podViewName, navigationOptLog)
+				},
+				Action: *changePodLogsContainerAction,
+			},
 		},
 	}
 
@@ -239,6 +253,7 @@ var (
 type (
 	moreAction struct {
 		NeedSelectResource bool
+		ShowAction         func(*guilib.Gui, *guilib.View) bool
 		guilib.Action
 	}
 )

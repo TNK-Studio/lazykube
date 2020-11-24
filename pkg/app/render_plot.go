@@ -13,12 +13,6 @@ import (
 	"time"
 )
 
-const (
-	cpuPlotStateKey        = "cpuPlot"
-	memoryPlotStateKey     = "memoryPlot"
-	plotLastRenderStateKey = "plotLastRender"
-)
-
 func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 	view.ReRender()
 	//if !canRenderPlot(gui, view) {
@@ -93,23 +87,6 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 	)
 	memoryPlot.Render(view)
 	return nil
-}
-
-func canRenderPlot(gui *guilib.Gui, view *guilib.View) bool {
-	val, _ := view.GetState(plotLastRenderStateKey)
-	now := time.Now()
-	if val == nil {
-		view.SetState(plotLastRenderStateKey, now)
-		return true
-	}
-
-	since := val.(time.Time)
-	if since.Add(1 * time.Second).Before(now) {
-		view.SetState(plotLastRenderStateKey, now)
-		return true
-	}
-
-	return false
 }
 
 func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, namespace, name string, dataGetter func() []float64, resourceName v1.ResourceName, colorSprintf func(format string, args ...interface{}) string) *guilib.Plot {
