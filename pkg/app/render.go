@@ -561,7 +561,7 @@ func podsSelectorRenderHelper(cmdFunc func(namespace string, labelsArr []string)
 			return nil
 		}
 
-		jsonPath := resourceLabelSelectorJsonPath(resource)
+		jsonPath := resourceLabelSelectorJSONPath(resource)
 		if jsonPath == "" {
 			return nil
 		}

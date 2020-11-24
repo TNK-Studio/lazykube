@@ -35,12 +35,15 @@ const (
 	confirmFilterInputAction   = "confirmFilterInput"
 	switchConfirmDialogOpt     = "switchConfirmDialogOpt"
 	confirmDialogEnter         = "confirmDialogEnter"
+	optionsDialogEnter         = "optionsDialogEnter"
+	inputDialogEnter           = "inputDialogEnter"
 
 	// More actions
 	editResourceActionName              = "Edit Resource"
 	rolloutRestartActionName            = "Rollout Restart"
 	addCustomResourcePanelActionName    = "Add custom resource panel"
 	deleteCustomResourcePanelActionName = "Delete custom resource panel"
+	containerExecCommandActionName      = "Execute the command"
 )
 
 var (
@@ -75,6 +78,9 @@ var (
 		confirmDialogEnter:                  {gocui.KeyEnter},
 		addCustomResourcePanelActionName:    {'+'},
 		deleteCustomResourcePanelActionName: {'-'},
+		containerExecCommandActionName:      {'x'},
+		optionsDialogEnter:                  {gocui.KeyEnter},
+		inputDialogEnter:                    {gocui.KeyEnter},
 	}
 )
 

@@ -1,17 +1,21 @@
 package app
 
 import (
+	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 	"github.com/pkg/errors"
 	"math"
+	"os"
 	"strings"
 )
 
 const (
 	resourceNotFound = "Resource not found."
+
+	defaultCommand = "/bin/sh"
 )
 
 func nextCyclicViewHandler(gui *guilib.Gui, _ *guilib.View) error {
@@ -194,7 +198,7 @@ func viewSelectedLineChangeHandler(gui *guilib.Gui, view *guilib.View, _ string)
 	return nil
 }
 
-func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (string, string, error) {
+func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (namespace string, resourceName string, err error) {
 	if resourceView.Name == namespaceViewName {
 		return "", formatSelectedNamespace(resourceView.SelectedLine), nil
 	}
@@ -204,7 +208,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 		return "", "", err
 	}
 
-	namespace := formatSelectedNamespace(namespaceView.SelectedLine)
+	namespace = formatSelectedNamespace(namespaceView.SelectedLine)
 	selected := resourceView.SelectedLine
 
 	if selected == "" {
@@ -220,7 +224,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (st
 	}
 
 	namespace = formatResourceName(selected, 0)
-	resourceName := formatResourceName(selected, 1)
+	resourceName = formatResourceName(selected, 1)
 	if notResourceSelected(resourceName) {
 		return "", "", noResourceSelectedErr
 	}
@@ -260,13 +264,6 @@ func rolloutRestartHandler(gui *guilib.Gui, view *guilib.View) error {
 }
 
 func resourceMoreActionHandlerHelper(gui *guilib.Gui, view *guilib.View) (resourceView *guilib.View, resource string, namespace string, resourceName string, err error) {
-	if view.Name == moreActionsViewName {
-		var err error
-		view, err = getMoreActionTriggerView(view)
-		if err != nil {
-			return nil, "", "", "", err
-		}
-	}
 	resource = getViewResourceName(view.Name)
 	if resource == "" {
 		return nil, "", "", "", resourceNotFoundErr
@@ -359,15 +356,97 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 }
 
 func deleteCustomResourcePanelHandler(gui *guilib.Gui, view *guilib.View) error {
-	if view.Name == moreActionsViewName {
-		var err error
-		view, err = getMoreActionTriggerView(view)
-		if err != nil {
-			return err
-		}
-	}
 	if err := deleteCustomResourcePanel(gui, view.Name); err != nil {
 		return err
 	}
+	return nil
+}
+
+func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
+	// Todo: support others resource
+	resource := "pods"
+	namespace, resourceName, err := getResourceNamespaceAndName(gui, view)
+	if err != nil {
+		if errors.Is(err, noResourceSelectedErr) {
+			return nil
+		}
+		return err
+	}
+
+	stream := newStream()
+	cli(namespace).
+		Get(stream, resource, resourceName).
+		SetFlag("output", "jsonpath='{.spec.containers[*].name}'").
+		Run()
+
+	result := strings.ReplaceAll(streamToString(stream), "'", "")
+	containers := strings.Split(result, " ")
+	if len(containers) == 0 {
+		return nil
+	}
+
+	if err := showOptionsDialog(
+		gui,
+		"Please select a container to execute command.",
+		1,
+		func(containerName string) error {
+			if containerName == "" {
+				return nil
+			}
+
+			if err := showInputDialog(
+				gui,
+				"Please input command.",
+				2,
+				func(command string) error {
+					if err := gui.ReInitTermBox(); err != nil {
+						return err
+					}
+					gui.Config.Mouse = false
+					gui.Configure()
+
+					cli(namespace).
+						Exec(newStdStream(), resourceName, command).
+						SetFlag("container", containerName).
+						SetFlag("tty", "true").
+						SetFlag("stdin", "true").
+						Run()
+
+					_, err = fmt.Fprintf(os.Stdout, "\n\n%s\n", "Press 'x' twice time return to lazykube.")
+					if err != nil {
+						log.Logger.Error(err)
+					}
+
+					// Note: Enter key not working, but dont know why ...
+					if _, err := fmt.Scanln(); err != nil {
+						log.Logger.Error(err)
+					}
+
+					if err := gui.ForceFlush(); err != nil {
+						return err
+					}
+					gui.Config.Mouse = true
+					gui.Configure()
+					if err := gui.ReturnPreviousView(); err != nil {
+						return err
+					}
+
+					gui.ReRenderAll()
+					return nil
+				},
+				defaultCommand,
+			); err != nil {
+				return err
+			}
+
+			return nil
+		},
+		func() []string {
+			return containers
+		},
+	); err != nil {
+		return err
+	}
+
 	return nil
 }

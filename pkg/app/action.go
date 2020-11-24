@@ -141,6 +141,13 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	containerExecCommandAction = &guilib.Action{
+		Keys:    keyMap[containerExecCommandActionName],
+		Name:    containerExecCommandActionName,
+		Handler: containerExecCommandHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,
@@ -148,6 +155,10 @@ var (
 	deleteCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *deleteCustomResourcePanelAction,
+	}
+	containerExecCommandMoreAction = &moreAction{
+		NeedSelectResource: true,
+		Action:             *containerExecCommandAction,
 	}
 
 	commonResourceMoreActions = []*moreAction{
@@ -174,6 +185,7 @@ var (
 		),
 		podViewName: append(
 			commonResourceMoreActions,
+			containerExecCommandMoreAction,
 		),
 		navigationViewName: {
 			addCustomResourcePanelMoreAction,

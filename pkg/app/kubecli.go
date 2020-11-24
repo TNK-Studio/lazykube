@@ -11,7 +11,7 @@ func cli(namespace string) *kubecli.KubeCLI {
 	return kubecli.Cli.WithNamespace(namespace)
 }
 
-func resourceLabelSelectorJsonPath(resource string) string {
+func resourceLabelSelectorJSONPath(resource string) string {
 	var jsonPath string
 	switch resource {
 	case "services", "service", "svc":
