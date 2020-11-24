@@ -597,7 +597,8 @@ func newInputDialog(title string, zIndex int, confirmHandler func(string) error,
 				if _, err := fmt.Fprint(view, defaultValue); err != nil {
 					return err
 				}
-				view.MoveCursor(0, len([]rune(view.ViewBuffer())), true)
+				dx := len([]rune(defaultValue))
+				view.MoveCursor(dx, 0, true)
 			}
 			return nil
 		},

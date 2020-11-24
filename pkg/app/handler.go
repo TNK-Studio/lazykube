@@ -1,12 +1,14 @@
 package app
 
 import (
+	"fmt"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/jroimartin/gocui"
 	"github.com/pkg/errors"
 	"math"
+	"os"
 	"strings"
 )
 
@@ -409,11 +411,26 @@ func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
 						SetFlag("tty", "true").
 						SetFlag("stdin", "true").
 						Run()
+
+					_, err = fmt.Fprintf(os.Stdout, "\n\n%s\n", "Press 'x' twice time return to lazykube.")
+					if err != nil {
+						log.Logger.Error(err)
+					}
+
+					// Note: Enter key not working, but dont know why ...
+					if _, err := fmt.Scanln(); err != nil {
+						log.Logger.Error(err)
+					}
+
 					if err := gui.ForceFlush(); err != nil {
 						return err
 					}
 					gui.Config.Mouse = true
 					gui.Configure()
+					if err := gui.ReturnPreviousView(); err != nil {
+						return err
+					}
+
 					gui.ReRenderAll()
 					return nil
 				},

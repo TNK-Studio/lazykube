@@ -258,6 +258,7 @@ var (
 			nextLine,
 			filterResource,
 			editResourceAction,
+			containerExecCommandAction,
 			newMoreActions(moreActionsMap[podViewName]),
 		}),
 	}

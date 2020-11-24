@@ -10,6 +10,7 @@ replace (
 require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fatih/camelcase v1.0.0
+	github.com/go-logr/logr v0.2.0
 	github.com/gookit/color v1.3.2
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
