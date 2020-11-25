@@ -71,7 +71,14 @@ var (
 
 // Show dialog functions
 
-func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
+func showFilterDialog(
+	gui *guilib.Gui,
+	title string,
+	confirmHandler func(confirmed string) error,
+	dataFunc func(inputted string) ([]string, error),
+	noResultMsg string,
+	showInputValueInFiltered bool,
+) error {
 	var filterInput, filtered *guilib.View
 	// If views existed.
 	filterInput, _ = gui.GetView(filterInputViewName)
@@ -83,7 +90,7 @@ func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string)
 		return nil
 	}
 
-	filterInput, filtered = newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
+	filterInput, filtered = newFilterDialog(title, confirmHandler, dataFunc, noResultMsg, showInputValueInFiltered)
 	if err := gui.AddView(filterInput); err != nil {
 		return err
 	}
@@ -172,7 +179,13 @@ func showInputDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler f
 
 // New dialog functions
 
-func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
+func newFilterDialog(
+	title string,
+	confirmHandler func(confirmed string) error,
+	dataFunc func(inputted string) ([]string, error),
+	noResultMsg string,
+	showInputValueInFiltered bool,
+) (*guilib.View, *guilib.View) {
 	confirmAction := newConfirmFilterInput(confirmHandler)
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,
@@ -261,7 +274,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 				return err
 			}
 
-			data, err := dataFunc()
+			data, err := dataFunc(value)
 			if err != nil {
 				return err
 			}
@@ -285,6 +298,10 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)
 				}
+			}
+
+			if showInputValueInFiltered {
+				filtered = append([]string{value}, filtered...)
 			}
 
 			if len(filtered) == 0 {

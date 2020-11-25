@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/TNK-Studio/lazykube/pkg/dockerhub"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
@@ -362,10 +363,11 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 			}
 			return nil
 		},
-		func() ([]string, error) {
+		func(string) ([]string, error) {
 			return apiResources, nil
 		},
 		resourceNotFound,
+		false,
 	); err != nil {
 		return err
 	}
@@ -506,5 +508,107 @@ func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
 		return err
 	}
 
+	return nil
+}
+
+func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
+	if err := showFilterDialog(
+		gui,
+		"Please select a namespace to run a pod.",
+		func(namespace string) error {
+			return runPodImageOptions(gui, namespace)
+		},
+		func(string) ([]string, error) {
+			namespaceView, err := gui.GetView(namespaceViewName)
+			if err != nil {
+				log.Logger.Error(err)
+				return nil, err
+			}
+			return namespaceView.ViewBufferLines()[1:], nil
+		},
+		"No namespaces.",
+		false,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runPodImageOptions(gui *guilib.Gui, namespace string) error {
+	if err := showFilterDialog(
+		gui,
+		"Please input image of container.",
+		func(image string) error {
+			return runPodCommandInput(gui, namespace, image)
+		},
+		func(inputted string) ([]string, error) {
+			//resp, err := dockerhub.SearchImage(inputted, 1, 10)
+			//if err != nil {
+			//	return []string{}, nil
+			//}
+
+			//data := make([]string, 0)
+			//for _, image := range resp.Summaries {
+			//
+			//}
+
+			return []string{}, nil
+		},
+		"",
+		true,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
+	if err := showInputDialog(
+		gui,
+		"Please input command.",
+		1,
+		func(command string) error {
+			if err := gui.ReInitTermBox(); err != nil {
+				return err
+			}
+			gui.Config.Mouse = false
+			gui.Configure()
+
+			cli(namespace).
+				Run(newStdStream(), command).
+				SetFlag("rm", "true").
+				SetFlag("restart", "Never").
+				SetFlag("image-pull-policy", "IfNotPresent").
+				SetFlag("tty", "true").
+				SetFlag("stdin", "true").
+				SetFlag("image", image).
+				Run()
+
+			_, err := fmt.Fprintf(os.Stdout, "\n\n%s\n", "Press 'x' twice time return to lazykube.")
+			if err != nil {
+				log.Logger.Error(err)
+			}
+
+			// Note: Enter key not working, but dont know why ...
+			if _, err := fmt.Scanln(); err != nil {
+				log.Logger.Error(err)
+			}
+
+			if err := gui.ForceFlush(); err != nil {
+				return err
+			}
+			gui.Config.Mouse = true
+			gui.Configure()
+			if err := gui.ReturnPreviousView(); err != nil {
+				return err
+			}
+
+			gui.ReRenderAll()
+			return nil
+		},
+		defaultCommand,
+	); err != nil {
+		return err
+	}
 	return nil
 }
