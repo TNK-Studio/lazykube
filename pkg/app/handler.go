@@ -2,12 +2,13 @@ package app
 
 import (
 	"fmt"
-	"github.com/TNK-Studio/lazykube/pkg/dockerhub"
+	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/atotto/clipboard"
 	"github.com/jroimartin/gocui"
+	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
 	"math"
 	"os"
@@ -364,7 +365,10 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 			return nil
 		},
 		func(string) ([]string, error) {
-			return apiResources, nil
+			if len(apiResources) >= 1 {
+				return apiResources[1:], nil
+			}
+			return []string{}, nil
 		},
 		resourceNotFound,
 		false,
@@ -411,6 +415,7 @@ func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
 					}
 					gui.Config.Mouse = false
 					gui.Configure()
+					_ = termbox.Flush()
 
 					cli(namespace).
 						Exec(newStdStream(), resourceName, command).
@@ -482,13 +487,13 @@ func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
 			if containerName == "" {
 				return nil
 			}
-			if err := view.SetState(logContainerStateKey, containerName); err != nil {
+			if err := view.SetState(logContainerStateKey, containerName, true); err != nil {
 				return err
 			}
-			if err := view.SetState(viewLastRenderTimeStateKey, nil); err != nil {
+			if err := view.SetState(viewLastRenderTimeStateKey, nil, true); err != nil {
 				return err
 			}
-			if err := view.SetState(logSinceTimeStateKey, nil); err != nil {
+			if err := view.SetState(logSinceTimeStateKey, nil, true); err != nil {
 				return err
 			}
 			view.Clear()
@@ -516,7 +521,12 @@ func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
 		gui,
 		"Please select a namespace to run a pod.",
 		func(namespace string) error {
-			return runPodImageOptions(gui, namespace)
+			namespace = formatSelectedNamespace(namespace)
+			if notResourceSelected(namespace) {
+				return nil
+			}
+
+			return runPodNameInput(gui, namespace)
 		},
 		func(string) ([]string, error) {
 			namespaceView, err := gui.GetView(namespaceViewName)
@@ -524,10 +534,39 @@ func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
 				log.Logger.Error(err)
 				return nil, err
 			}
-			return namespaceView.ViewBufferLines()[1:], nil
+
+			namespaces := namespaceView.ViewBufferLines()
+			if len(namespaces) >= 1 {
+				return namespaces[1:], nil
+			}
+
+			return []string{}, nil
 		},
 		"No namespaces.",
 		false,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runPodNameInput(gui *guilib.Gui, namespace string) error {
+	if err := showFilterDialog(
+		gui,
+		"Please input pod name.",
+		func(podName string) error {
+
+			return nil
+		},
+		func(inputted string) ([]string, error) {
+			if config.Conf.UserConfig.History.CommandHistory != nil {
+				return config.Conf.UserConfig.History.PodNameHistory, nil
+			}
+
+			return []string{}, nil
+		},
+		"",
+		true,
 	); err != nil {
 		return err
 	}
@@ -542,15 +581,9 @@ func runPodImageOptions(gui *guilib.Gui, namespace string) error {
 			return runPodCommandInput(gui, namespace, image)
 		},
 		func(inputted string) ([]string, error) {
-			//resp, err := dockerhub.SearchImage(inputted, 1, 10)
-			//if err != nil {
-			//	return []string{}, nil
-			//}
-
-			//data := make([]string, 0)
-			//for _, image := range resp.Summaries {
-			//
-			//}
+			if config.Conf.UserConfig.History.ImageHistory != nil {
+				return config.Conf.UserConfig.History.ImageHistory, nil
+			}
 
 			return []string{}, nil
 		},
@@ -561,18 +594,17 @@ func runPodImageOptions(gui *guilib.Gui, namespace string) error {
 	}
 	return nil
 }
-
 func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
-	if err := showInputDialog(
+	if err := showFilterDialog(
 		gui,
 		"Please input command.",
-		1,
 		func(command string) error {
 			if err := gui.ReInitTermBox(); err != nil {
 				return err
 			}
 			gui.Config.Mouse = false
 			gui.Configure()
+			_ = termbox.Flush()
 
 			cli(namespace).
 				Run(newStdStream(), command).
@@ -604,9 +636,20 @@ func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
 			}
 
 			gui.ReRenderAll()
+			config.Conf.UserConfig.History.AddImageHistory(image)
+			config.Conf.UserConfig.History.AddImageHistory(command)
+			config.Save()
 			return nil
 		},
-		defaultCommand,
+		func(inputted string) ([]string, error) {
+			if config.Conf.UserConfig.History.CommandHistory != nil {
+				return config.Conf.UserConfig.History.CommandHistory, nil
+			}
+
+			return []string{}, nil
+		},
+		"",
+		true,
 	); err != nil {
 		return err
 	}

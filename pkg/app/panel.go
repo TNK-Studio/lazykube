@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/fatih/camelcase"
@@ -268,6 +269,7 @@ var (
 			filterResource,
 			editResourceAction,
 			containerExecCommandAction,
+			runPodAction,
 			newMoreActions(moreActionsMap[podViewName]),
 		}),
 	}
@@ -435,7 +437,8 @@ func addCustomResourcePanel(gui *guilib.Gui, resource string) error {
 	if err := gui.FocusView(customResourcePanel.Name, false); err != nil {
 		return err
 	}
-
+	config.Conf.UserConfig.AddCustomResourcePanels(resource)
+	config.Save()
 	return nil
 }
 
@@ -476,6 +479,8 @@ func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
 	if err := gui.FocusView(functionViews[0], false); err != nil {
 		return err
 	}
+	config.Conf.UserConfig.DeleteCustomResourcePanels(getViewResourceName(customResourcePanel.Name))
+	config.Save()
 	return nil
 }
 

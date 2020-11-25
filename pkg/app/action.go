@@ -109,6 +109,9 @@ var (
 					}
 
 					data = resourceView.ViewBufferLines()
+					if len(data) >= 1 {
+						return data[1:], nil
+					}
 					return data, nil
 				},
 				filteredNoResource,
@@ -171,7 +174,7 @@ var (
 	runPodAction = &guilib.Action{
 		Keys:    keyMap[runPodActionName],
 		Name:    runPodActionName,
-		Handler: nil,
+		Handler: runPodHandler,
 		Mod:     gocui.ModNone,
 	}
 
@@ -188,6 +191,11 @@ var (
 	containerExecCommandMoreAction = &moreAction{
 		NeedSelectResource: true,
 		Action:             *containerExecCommandAction,
+	}
+
+	runPodMoreAction = &moreAction{
+		NeedSelectResource: false,
+		Action:             *runPodAction,
 	}
 
 	commonResourceMoreActions = []*moreAction{
@@ -219,6 +227,7 @@ var (
 			commonResourceMoreActions,
 			containerExecCommandMoreAction,
 			copySelectedLineMoreAction,
+			runPodMoreAction,
 		),
 		navigationViewName: {
 			addCustomResourcePanelMoreAction,

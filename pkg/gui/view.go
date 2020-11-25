@@ -71,7 +71,7 @@ type (
 		MouseDisable          bool
 		// When the "CanNotReturn" parameter is true, it will not be placed in previousViews where the view was clicked.
 		CanNotReturn bool
-		reRendered   bool
+		renderTimes  int
 		AlwaysOnTop  bool
 	}
 
@@ -208,7 +208,9 @@ func (view *View) Write(p []byte) (n int, err error) {
 
 // Clear Clear
 func (view *View) Clear() {
-	view.v.Clear()
+	if view.Rendered() {
+		view.v.Clear()
+	}
 }
 
 // Cursor Cursor
@@ -249,14 +251,14 @@ func (view *View) MoveCursor(dx, dy int, writeMode bool) {
 
 // ReRender ReRender
 func (view *View) ReRender() {
-	view.reRendered = false
+	view.renderTimes += 1
 }
 
 func (view *View) render() error {
-	if view.reRendered {
+	if view.renderTimes < 0 {
 		return nil
 	}
-	view.reRendered = true
+	view.renderTimes -= 1
 
 	if view.OnRender != nil {
 		if err := view.OnRender(view.gui, view); err != nil {
@@ -323,13 +325,15 @@ func (view *View) onCursorChange(_ *gocui.View, x, y int) error {
 	return nil
 }
 
-func (view *View) SetState(key string, value interface{}) error {
+func (view *View) SetState(key string, value interface{}, reRender bool) error {
 	err := view.state.Set(key, value)
 	if err != nil {
 		return err
 	}
 
-	view.ReRender()
+	if reRender {
+		view.ReRender()
+	}
 	return nil
 }
 

@@ -3,8 +3,8 @@ package app
 import (
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
+	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
-	"github.com/jroimartin/gocui"
 )
 
 // App lazykube application
@@ -33,16 +33,8 @@ func NewApp() *App {
 		Option:      Option,
 	}
 
-	//Todo: add app config
-	conf := config.GuiConfig{
-		Highlight:  true,
-		SelFgColor: gocui.ColorGreen,
-		FgColor:    gocui.ColorWhite,
-		Mouse:      true,
-		InputEsc:   true,
-	}
 	app.Gui = guilib.NewGui(
-		conf,
+		*config.Conf.GuiConfig,
 		app.ClusterInfo,
 		app.Namespace,
 		app.Service,
@@ -77,6 +69,13 @@ func (app *App) Stop() {
 
 // OnRender OnRender
 func (app *App) OnRender(gui *guilib.Gui) error {
+	if config.Conf.UserConfig.CustomResourcePanels != nil {
+		for _, resource := range config.Conf.UserConfig.CustomResourcePanels {
+			if err := addCustomResourcePanel(gui, resource); err != nil {
+				log.Logger.Warningf("app.OnRender - addCustomResourcePanel(gui, %s) error %s", resource, err)
+			}
+		}
+	}
 	return nil
 }
 
