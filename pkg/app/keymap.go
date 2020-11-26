@@ -48,6 +48,7 @@ const (
 	containerExecCommandActionName      = "Execute the command"
 	changePodLogsContainerActionName    = "Change pod logs container"
 	runPodActionName                    = "Run a pod with an image"
+	changeContextActionName             = "Change context"
 )
 
 var (
@@ -77,7 +78,8 @@ var (
 		moreActionsName:                     {gocui.KeyF3, 'm'},
 		toFilteredViewAction:                {gocui.KeyTab, gocui.KeyArrowDown},
 		toFilterInputAction:                 {gocui.KeyTab},
-		filteredNextLineAction:              {gocui.KeyArrowDown},
+		filteredNextLineAction:              {gocui.KeyArrowDown, 'j'},
+		filteredPreviousLineAction:          {gocui.KeyArrowUp, 'h'},
 		confirmFilterInputAction:            {gocui.KeyEnter},
 		switchConfirmDialogOpt:              {gocui.KeyTab, gocui.KeyArrowRight, gocui.KeyArrowLeft, 'k', 'l'},
 		confirmDialogEnter:                  {gocui.KeyEnter},
@@ -88,6 +90,7 @@ var (
 		inputDialogEnter:                    {gocui.KeyEnter},
 		changePodLogsContainerActionName:    {'c'},
 		runPodActionName:                    {'r'},
+		changeContextActionName:             {'~'},
 	}
 )
 

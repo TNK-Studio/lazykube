@@ -31,6 +31,7 @@ func init() {
 type KubeCLI struct {
 	factory   util.Factory
 	namespace *string
+	context   *string
 }
 
 type Cmd struct {
@@ -63,14 +64,17 @@ func (c *Cmd) SetFlag(name, value string) *Cmd {
 
 func NewKubeCLI() *KubeCLI {
 	namespace := ""
+	context := config.CurrentContext()
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	kubeConfigFlags.Namespace = &namespace
+	kubeConfigFlags.Context = &context
 
 	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
 
 	k := &KubeCLI{
 		factory:   util.NewFactory(matchVersionKubeConfigFlags),
 		namespace: &namespace,
+		context:   &context,
 	}
 	return k
 }
@@ -78,10 +82,22 @@ func NewKubeCLI() *KubeCLI {
 func (cli *KubeCLI) SetNamespace(namespace string) {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	kubeConfigFlags.Namespace = &namespace
+	kubeConfigFlags.Context = cli.context
 
 	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
 	cli.factory = util.NewFactory(matchVersionKubeConfigFlags)
 	cli.namespace = &namespace
+}
+
+func (cli *KubeCLI) SetCurrentContext(context string) {
+	config.SetCurrentContext(context)
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
+	kubeConfigFlags.Namespace = cli.namespace
+	kubeConfigFlags.Context = &context
+
+	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
+	cli.factory = util.NewFactory(matchVersionKubeConfigFlags)
+	cli.context = &context
 }
 
 func (cli *KubeCLI) WithNamespace(namespace string) *KubeCLI {
@@ -101,8 +117,12 @@ func (cli *KubeCLI) Namespace() string {
 	return *cli.namespace
 }
 
-func (cli *KubeCLI) CurrentContext() (string, error) {
+func (cli *KubeCLI) CurrentContext() string {
 	return config.CurrentContext()
+}
+
+func (cli *KubeCLI) ListContexts() []string {
+	return config.ListContexts()
 }
 
 func (cli *KubeCLI) ClusterInfo() (string, error) {

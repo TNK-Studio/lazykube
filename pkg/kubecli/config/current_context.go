@@ -1,16 +1,35 @@
 package config
 
-import "k8s.io/client-go/tools/clientcmd"
+import (
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+)
 
-func CurrentContext() (string, error) {
+var (
+	config *clientcmdapi.Config
+)
+
+func init() {
+	var err error
 	pathOptions := clientcmd.NewDefaultPathOptions()
-	config, err := pathOptions.GetStartingConfig()
+	config, err = pathOptions.GetStartingConfig()
 	if err != nil {
-		return "", err
+		panic(err)
 	}
+}
 
-	if config.CurrentContext == "" {
-		return "current-context is not set", nil
+func CurrentContext() string {
+	return config.CurrentContext
+}
+
+func SetCurrentContext(context string) {
+	config.CurrentContext = context
+}
+
+func ListContexts() []string {
+	contexts := make([]string, 0)
+	for name, _ := range config.Contexts {
+		contexts = append(contexts, name)
 	}
-	return config.CurrentContext, nil
+	return contexts
 }
