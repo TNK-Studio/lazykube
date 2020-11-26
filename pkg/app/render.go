@@ -98,7 +98,7 @@ func reRenderInterval(handler guilib.ViewHandler, interval time.Duration) guilib
 		view.ReRender()
 		val, _ := view.GetState(viewLastRenderTimeStateKey)
 		if val == nil {
-			if err := view.SetState(viewLastRenderTimeStateKey, now); err != nil {
+			if err := view.SetState(viewLastRenderTimeStateKey, now, true); err != nil {
 				return err
 			}
 			log.Logger.Debugf("reRenderInterval - interval: %+v handler %+v view %s", interval, handler, view.Name)
@@ -112,7 +112,7 @@ func reRenderInterval(handler guilib.ViewHandler, interval time.Duration) guilib
 		if viewLastRenderTime.Add(interval).After(now) {
 			return nil
 		}
-		if err := view.SetState(viewLastRenderTimeStateKey, now); err != nil {
+		if err := view.SetState(viewLastRenderTimeStateKey, now, true); err != nil {
 			return err
 		}
 		log.Logger.Debugf("reRenderInterval - interval: %+v handler %+v view %s", interval, handler, view.Name)
@@ -128,7 +128,7 @@ func clearLastRenderTime(gui *guilib.Gui, viewName string) error {
 	if err != nil {
 		return err
 	}
-	if err := view.SetState(viewLastRenderTimeStateKey, nil); err != nil {
+	if err := view.SetState(viewLastRenderTimeStateKey, nil, true); err != nil {
 		return err
 	}
 	return nil
@@ -146,12 +146,12 @@ func clearDetailViewState(gui *guilib.Gui) {
 		return
 	}
 
-	if err := detailView.SetState(logSinceTimeStateKey, nil); err != nil {
+	if err := detailView.SetState(logSinceTimeStateKey, nil, true); err != nil {
 		log.Logger.Warningf("clearDetailViewState - clear logSinceTimeStateKey err %s", err)
 		return
 	}
 
-	if err := detailView.SetState(logContainerStateKey, nil); err != nil {
+	if err := detailView.SetState(logContainerStateKey, nil, true); err != nil {
 		log.Logger.Warningf("clearDetailViewState - clear logContainerStateKey err %s", err)
 		return
 	}
@@ -455,7 +455,7 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	containers := getPodContainers(namespace, resourceName)
 
-	if err := view.SetState(podContainersStateKey, containers); err != nil {
+	if err := view.SetState(podContainersStateKey, containers, true); err != nil {
 		return err
 	}
 
@@ -488,7 +488,7 @@ func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 	cmd.Run()
 
-	if err := view.SetState(logSinceTimeStateKey, time.Now()); err != nil {
+	if err := view.SetState(logSinceTimeStateKey, time.Now(), true); err != nil {
 		return err
 	}
 
@@ -519,7 +519,7 @@ func podsLogsRender(gui *guilib.Gui, view *guilib.View) error {
 
 		cmd.Run()
 
-		if err := view.SetState(logSinceTimeStateKey, time.Now()); err != nil {
+		if err := view.SetState(logSinceTimeStateKey, time.Now(), true); err != nil {
 			return err
 		}
 		streamCopyTo(streams, view)

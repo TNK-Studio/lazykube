@@ -71,19 +71,26 @@ var (
 
 // Show dialog functions
 
-func showFilterDialog(gui *guilib.Gui, title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) error {
+func showFilterDialog(
+	gui *guilib.Gui,
+	title string,
+	confirmHandler func(confirmed string) error,
+	dataFunc func(inputted string) ([]string, error),
+	noResultMsg string,
+	showInputValueInFiltered bool,
+) error {
 	var filterInput, filtered *guilib.View
 	// If views existed.
 	filterInput, _ = gui.GetView(filterInputViewName)
 	if filterInput != nil {
-		return nil
+		_ = gui.DeleteView(filterInputViewName)
 	}
 	filtered, _ = gui.GetView(filteredViewName)
 	if filtered != nil {
-		return nil
+		_ = gui.DeleteView(filteredViewName)
 	}
 
-	filterInput, filtered = newFilterDialog(title, confirmHandler, dataFunc, noResultMsg)
+	filterInput, filtered = newFilterDialog(title, confirmHandler, dataFunc, noResultMsg, showInputValueInFiltered)
 	if err := gui.AddView(filterInput); err != nil {
 		return err
 	}
@@ -101,7 +108,7 @@ func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, more
 	// If more action view existed.
 	moreActionView, _ = gui.GetView(moreActionsViewName)
 	if moreActionView != nil {
-		return nil
+		_ = gui.DeleteView(moreActionsViewName)
 	}
 
 	moreActionView = newMoreActionDialog(title, moreActions)
@@ -109,7 +116,7 @@ func showMoreActionDialog(gui *guilib.Gui, view *guilib.View, title string, more
 		return err
 	}
 
-	if err := moreActionView.SetState(moreActionTriggerViewStateKey, view); err != nil {
+	if err := moreActionView.SetState(moreActionTriggerViewStateKey, view, true); err != nil {
 		return err
 	}
 
@@ -124,7 +131,7 @@ func showConfirmActionDialog(gui *guilib.Gui, title, relatedViewName string, han
 	// If view existed.
 	confirmDialog, _ = gui.GetView(confirmDialogViewName)
 	if confirmDialog != nil {
-		return nil
+		_ = gui.DeleteView(confirmDialogViewName)
 	}
 
 	confirmDialog = newConfirmActionDialog(title, relatedViewName, handler)
@@ -139,14 +146,14 @@ func showOptionsDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler
 	// If view existed.
 	optionsDialog, _ = gui.GetView(optionsDialogViewName)
 	if optionsDialog != nil {
-		return nil
+		_ = gui.DeleteView(optionsDialogViewName)
 	}
 
 	optionsDialog = newOptionsDialog(title, zIndex, confirmHandler, optionsFunc)
 	if err := gui.AddView(optionsDialog); err != nil {
 		return err
 	}
-	if err := gui.FocusView(optionsDialogViewName, false); err != nil {
+	if err := gui.FocusView(optionsDialogViewName, true); err != nil {
 		return err
 	}
 	return nil
@@ -157,14 +164,14 @@ func showInputDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler f
 	// If view existed.
 	inputDialog, _ = gui.GetView(inputDialogViewName)
 	if inputDialog != nil {
-		return nil
+		_ = gui.DeleteView(inputDialogViewName)
 	}
 
 	inputDialog = newInputDialog(title, zIndex, confirmHandler, defaultValue)
 	if err := gui.AddView(inputDialog); err != nil {
 		return err
 	}
-	if err := gui.FocusView(inputDialogViewName, false); err != nil {
+	if err := gui.FocusView(inputDialogViewName, true); err != nil {
 		return err
 	}
 	return nil
@@ -172,7 +179,13 @@ func showInputDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler f
 
 // New dialog functions
 
-func newFilterDialog(title string, confirmHandler func(string) error, dataFunc func() ([]string, error), noResultMsg string) (*guilib.View, *guilib.View) {
+func newFilterDialog(
+	title string,
+	confirmHandler func(confirmed string) error,
+	dataFunc func(inputted string) ([]string, error),
+	noResultMsg string,
+	showInputValueInFiltered bool,
+) (*guilib.View, *guilib.View) {
 	confirmAction := newConfirmFilterInput(confirmHandler)
 	filterInput := &guilib.View{
 		Name:         filterInputViewName,
@@ -199,6 +212,27 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 		OnRender: func(gui *guilib.Gui, view *guilib.View) error {
 			gui.Config.Cursor = true
 			gui.Configure()
+			var value string
+			bufferLines := view.ViewBufferLines()
+			if len(bufferLines) > 0 {
+				value = view.ViewBufferLines()[0]
+			}
+
+			//valueRune := []rune(value)
+			//length := len(valueRune)
+
+			//if (key == gocui.KeyBackspace || key == gocui.KeyBackspace2) && value != "" {
+			//	valueRune = valueRune[:length-1]
+			//} else {
+			//	valueRune = append(valueRune, ch)
+			//}
+
+			//value = string(valueRune)
+			if err := view.SetState(filterInputValueStateKey, value, false); err != nil {
+				log.Logger.Warningf("OnEditedChange - view.SetState(filterInputValueStateKey,%s) error %s", value, err)
+				return err
+			}
+
 			return nil
 		},
 		OnRenderOptions: filterDialogRenderOption,
@@ -213,24 +247,15 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 			return nil
 		},
 		OnEditedChange: func(gui *guilib.Gui, view *guilib.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-			// Todo: fix character "_"
-			var value string
-			bufferLines := view.ViewBufferLines()
-			if len(bufferLines) > 0 {
-				value = view.ViewBufferLines()[0]
-			}
-
-			if err := view.SetState(filterInputValueStateKey, value); err != nil {
-				log.Logger.Warningf("OnEditedChange - view.SetState(filterInputValueStateKey,%s) error %s", value, err)
-				return
-			}
+			// rerender twice times to wait flush.
+			view.ReRenderTimes(2)
 
 			filteredView, err := gui.GetView(filteredViewName)
 			if err != nil {
 				log.Logger.Warningf("filteredView - gui.GetView(filteredViewName) error %s", err)
 				return
 			}
-			filteredView.ReRender()
+			filteredView.ReRenderTimes(2)
 		},
 	}
 	filtered := &guilib.View{
@@ -261,17 +286,25 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 				return err
 			}
 
-			data, err := dataFunc()
+			data, err := dataFunc(value)
 			if err != nil {
 				return err
 			}
 
+			if showInputValueInFiltered && value != "" {
+				data = append([]string{value}, data...)
+			}
+
 			if len(data) == 0 {
+				_, err := fmt.Fprint(view, noResultMsg)
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 
 			if value == "" {
-				_, err := fmt.Fprint(view, strings.Join(data[1:], "\n"))
+				_, err := fmt.Fprint(view, strings.Join(data, "\n"))
 				if err != nil {
 					return err
 				}
@@ -281,7 +314,7 @@ func newFilterDialog(title string, confirmHandler func(string) error, dataFunc f
 
 			filtered := make([]string, 0)
 			value = strings.TrimSpace(strings.ToLower(value))
-			for _, resource := range data[1:] {
+			for _, resource := range data {
 				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)
 				}
@@ -426,7 +459,7 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 			var value string
 			val, err := view.GetState(confirmValueStateKey)
 			if err != nil {
-				_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
+				_ = view.SetState(confirmValueStateKey, confirmDialogOpt, true)
 				value = confirmDialogOpt
 			} else {
 				value = val.(string)
@@ -488,16 +521,16 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 					var value string
 					val, err := view.GetState(confirmValueStateKey)
 					if err != nil {
-						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt, true)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)
 					}
 
 					if value == confirmDialogOpt {
-						_ = view.SetState(confirmValueStateKey, cancelDialogOpt)
+						_ = view.SetState(confirmValueStateKey, cancelDialogOpt, true)
 					} else {
-						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt, true)
 					}
 					view.ReRender()
 					return nil
@@ -512,7 +545,7 @@ func newConfirmActionDialog(title, relatedViewName string, handler guilib.ViewHa
 					var value string
 					val, err := view.GetState(confirmValueStateKey)
 					if err != nil {
-						_ = view.SetState(confirmValueStateKey, confirmDialogOpt)
+						_ = view.SetState(confirmValueStateKey, confirmDialogOpt, true)
 						value = confirmDialogOpt
 					} else {
 						value = val.(string)

@@ -116,7 +116,7 @@ func getPlot(gui *guilib.Gui, view *guilib.View, plotStateKey, captionFormat, na
 				return colorSprintf(graph)
 			},
 		)
-		view.SetState(plotStateKey, plot)
+		view.SetState(plotStateKey, plot, true)
 	}
 	return plot
 }

@@ -47,6 +47,7 @@ const (
 	deleteCustomResourcePanelActionName = "Delete custom resource panel"
 	containerExecCommandActionName      = "Execute the command"
 	changePodLogsContainerActionName    = "Change pod logs container"
+	runPodActionName                    = "Run a pod with an image"
 )
 
 var (
@@ -86,6 +87,7 @@ var (
 		optionsDialogEnter:                  {gocui.KeyEnter},
 		inputDialogEnter:                    {gocui.KeyEnter},
 		changePodLogsContainerActionName:    {'c'},
+		runPodActionName:                    {'r'},
 	}
 )
 

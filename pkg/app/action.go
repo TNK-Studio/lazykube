@@ -101,7 +101,7 @@ var (
 					}
 					return nil
 				},
-				func() ([]string, error) {
+				func(string) ([]string, error) {
 					var data []string
 					resourceView, err := gui.GetView(resourceViewName)
 					if err != nil {
@@ -109,9 +109,13 @@ var (
 					}
 
 					data = resourceView.ViewBufferLines()
+					if len(data) >= 1 {
+						return data[1:], nil
+					}
 					return data, nil
 				},
 				filteredNoResource,
+				false,
 			); err != nil {
 				return err
 			}
@@ -167,17 +171,31 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	runPodAction = &guilib.Action{
+		Keys:    keyMap[runPodActionName],
+		Name:    runPodActionName,
+		Handler: runPodHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,
 	}
+
 	deleteCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *deleteCustomResourcePanelAction,
 	}
+
 	containerExecCommandMoreAction = &moreAction{
 		NeedSelectResource: true,
 		Action:             *containerExecCommandAction,
+	}
+
+	runPodMoreAction = &moreAction{
+		NeedSelectResource: false,
+		Action:             *runPodAction,
 	}
 
 	commonResourceMoreActions = []*moreAction{
@@ -209,6 +227,7 @@ var (
 			commonResourceMoreActions,
 			containerExecCommandMoreAction,
 			copySelectedLineMoreAction,
+			runPodMoreAction,
 		),
 		navigationViewName: {
 			addCustomResourcePanelMoreAction,
@@ -282,14 +301,6 @@ type (
 		guilib.Action
 	}
 )
-
-func toMoreActionArr(actions []*moreAction) []guilib.ActionInterface {
-	arr := make([]guilib.ActionInterface, 0)
-	for _, act := range actions {
-		arr = append(arr, act)
-	}
-	return arr
-}
 
 func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 	kubecli.Cli.SetNamespace(selectedNamespaceLine)

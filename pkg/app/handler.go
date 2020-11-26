@@ -2,11 +2,13 @@ package app
 
 import (
 	"fmt"
+	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/atotto/clipboard"
 	"github.com/jroimartin/gocui"
+	"github.com/nsf/termbox-go"
 	"github.com/pkg/errors"
 	"math"
 	"os"
@@ -15,6 +17,7 @@ import (
 
 const (
 	resourceNotFound = "Resource not found."
+	noHistory        = "No History."
 
 	defaultCommand = "/bin/sh"
 )
@@ -362,10 +365,14 @@ func addCustomResourcePanelHandler(gui *guilib.Gui, _ *guilib.View) error {
 			}
 			return nil
 		},
-		func() ([]string, error) {
-			return apiResources, nil
+		func(string) ([]string, error) {
+			if len(apiResources) >= 1 {
+				return apiResources[1:], nil
+			}
+			return []string{}, nil
 		},
 		resourceNotFound,
+		false,
 	); err != nil {
 		return err
 	}
@@ -409,6 +416,7 @@ func containerExecCommandHandler(gui *guilib.Gui, view *guilib.View) error {
 					}
 					gui.Config.Mouse = false
 					gui.Configure()
+					_ = termbox.Flush()
 
 					cli(namespace).
 						Exec(newStdStream(), resourceName, command).
@@ -480,13 +488,13 @@ func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
 			if containerName == "" {
 				return nil
 			}
-			if err := view.SetState(logContainerStateKey, containerName); err != nil {
+			if err := view.SetState(logContainerStateKey, containerName, true); err != nil {
 				return err
 			}
-			if err := view.SetState(viewLastRenderTimeStateKey, nil); err != nil {
+			if err := view.SetState(viewLastRenderTimeStateKey, nil, true); err != nil {
 				return err
 			}
-			if err := view.SetState(logSinceTimeStateKey, nil); err != nil {
+			if err := view.SetState(logSinceTimeStateKey, nil, true); err != nil {
 				return err
 			}
 			view.Clear()
@@ -506,5 +514,140 @@ func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
 		return err
 	}
 
+	return nil
+}
+
+func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
+	if err := showFilterDialog(
+		gui,
+		"Please select a namespace to run a pod.",
+		func(namespace string) error {
+			namespace = formatSelectedNamespace(namespace)
+			if notResourceSelected(namespace) {
+				return nil
+			}
+
+			return runPodNameInput(gui, namespace)
+		},
+		func(string) ([]string, error) {
+			namespaceView, err := gui.GetView(namespaceViewName)
+			if err != nil {
+				log.Logger.Error(err)
+				return nil, err
+			}
+
+			namespaces := namespaceView.ViewBufferLines()
+			if len(namespaces) >= 1 {
+				return namespaces[1:], nil
+			}
+
+			return []string{}, nil
+		},
+		"No namespaces.",
+		false,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runPodNameInput(gui *guilib.Gui, namespace string) error {
+	if err := showFilterDialog(gui, "Please input pod name.",
+		func(podName string) error {
+			return runPodImageOptions(gui, namespace, podName)
+		},
+		func(inputted string) ([]string, error) {
+			if config.Conf.UserConfig.History.PodNameHistory != nil {
+				return config.Conf.UserConfig.History.PodNameHistory, nil
+			}
+
+			return []string{}, nil
+		}, noHistory, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func runPodImageOptions(gui *guilib.Gui, namespace, podName string) error {
+	if err := showFilterDialog(
+		gui,
+		"Please input image of container.",
+		func(image string) error {
+			return runPodCommandInput(gui, namespace, podName, image)
+		},
+		func(inputted string) ([]string, error) {
+			if config.Conf.UserConfig.History.ImageHistory != nil {
+				return config.Conf.UserConfig.History.ImageHistory, nil
+			}
+
+			return []string{}, nil
+		},
+		noHistory,
+		true,
+	); err != nil {
+		return err
+	}
+	return nil
+}
+func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error {
+	if err := showFilterDialog(
+		gui,
+		"Please input command.",
+		func(command string) error {
+			if err := gui.ReInitTermBox(); err != nil {
+				return err
+			}
+			gui.Config.Mouse = false
+			gui.Configure()
+			_ = termbox.Flush()
+
+			cli(namespace).
+				Run(newStdStream(), podName, command).
+				SetFlag("rm", "true").
+				SetFlag("restart", "Never").
+				SetFlag("image-pull-policy", "IfNotPresent").
+				SetFlag("tty", "true").
+				SetFlag("stdin", "true").
+				SetFlag("image", image).
+				Run()
+
+			_, err := fmt.Fprintf(os.Stdout, "\n\n%s\n", "Press 'x' twice time return to lazykube.")
+			if err != nil {
+				log.Logger.Error(err)
+			}
+
+			// Note: Enter key not working, but dont know why ...
+			if _, err := fmt.Scanln(); err != nil {
+				log.Logger.Error(err)
+			}
+
+			if err := gui.ForceFlush(); err != nil {
+				return err
+			}
+			gui.Config.Mouse = true
+			gui.Configure()
+			if err := gui.ReturnPreviousView(); err != nil {
+				return err
+			}
+
+			gui.ReRenderAll()
+			config.Conf.UserConfig.History.AddPodNameHistory(podName)
+			config.Conf.UserConfig.History.AddImageHistory(image)
+			config.Conf.UserConfig.History.AddCommandHistory(command)
+			config.Save()
+			return nil
+		},
+		func(inputted string) ([]string, error) {
+			if config.Conf.UserConfig.History.CommandHistory != nil {
+				return config.Conf.UserConfig.History.CommandHistory, nil
+			}
+
+			return []string{}, nil
+		},
+		noHistory,
+		true,
+	); err != nil {
+		return err
+	}
 	return nil
 }

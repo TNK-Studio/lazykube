@@ -25,7 +25,7 @@ type (
 		preHeight          int
 		preWidth           int
 		Config             config.GuiConfig
-		reRendered         bool
+		renderTimes        int
 	}
 )
 
@@ -61,7 +61,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 
 // ReRenderAll ReRenderAll
 func (gui *Gui) ReRenderAll() {
-	gui.reRendered = false
+	gui.renderTimes += 1
 	for _, view := range gui.views {
 		view.ReRender()
 	}
@@ -78,6 +78,8 @@ func (gui *Gui) layout(*gocui.Gui) error {
 			}
 		}
 		gui.ReRenderAll()
+		gui.SortViewsByZIndex()
+		gui.SetAlwaysOnTopViews()
 	}
 
 	if err := gui.Clear(); err != nil {
@@ -103,7 +105,7 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if !gui.reRendered {
+	if gui.renderTimes < 0 {
 		if err := gui.onRender(); err != nil {
 			return err
 		}
@@ -117,8 +119,7 @@ func (gui *Gui) layout(*gocui.Gui) error {
 }
 
 func (gui *Gui) onRender() error {
-	gui.reRendered = true
-	if gui.OnRender != nil && !gui.reRendered {
+	if gui.OnRender != nil && gui.renderTimes < 0 {
 		if err := gui.OnRender(gui); err != nil {
 			return nil
 		}
@@ -130,6 +131,7 @@ func (gui *Gui) onRender() error {
 			return err
 		}
 	}
+	gui.renderTimes += 1
 	return nil
 }
 
@@ -210,8 +212,6 @@ func (gui *Gui) Configure() {
 	if !gui.g.Cursor {
 		termbox.HideCursor()
 	}
-
-	_ = termbox.Flush()
 }
 
 // Size Size
@@ -589,7 +589,7 @@ func (gui *Gui) FocusView(name string, canReturn bool) error {
 	currentView := gui.CurrentView()
 
 	if previousView != nil {
-		if canReturn && (currentView == nil || (previousView.Name != currentView.Name)) {
+		if canReturn && !currentView.CanNotReturn && (currentView == nil || (previousView.Name != currentView.Name)) {
 			gui.pushPreviousView(previousView.Name)
 		}
 		if previousView.Name != name {
