@@ -247,16 +247,15 @@ func newFilterDialog(
 			return nil
 		},
 		OnEditedChange: func(gui *guilib.Gui, view *guilib.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-			// Todo: fix character "_"
-			view.ReRender()
-			view.ReRender()
+			// rerender twice times to wait flush.
+			view.ReRenderTimes(2)
 
 			filteredView, err := gui.GetView(filteredViewName)
 			if err != nil {
 				log.Logger.Warningf("filteredView - gui.GetView(filteredViewName) error %s", err)
 				return
 			}
-			filteredView.ReRender()
+			filteredView.ReRenderTimes(2)
 		},
 	}
 	filtered := &guilib.View{
@@ -297,6 +296,10 @@ func newFilterDialog(
 			}
 
 			if len(data) == 0 {
+				_, err := fmt.Fprint(view, noResultMsg)
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 

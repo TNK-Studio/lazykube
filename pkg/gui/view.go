@@ -251,14 +251,19 @@ func (view *View) MoveCursor(dx, dy int, writeMode bool) {
 
 // ReRender ReRender
 func (view *View) ReRender() {
-	view.renderTimes += 1
+	view.renderTimes++
+}
+
+// ReRenderTimes ReRenderTimes
+func (view *View) ReRenderTimes(times int) {
+	view.renderTimes += times
 }
 
 func (view *View) render() error {
 	if view.renderTimes < 0 {
 		return nil
 	}
-	view.renderTimes -= 1
+	view.renderTimes--
 
 	if view.OnRender != nil {
 		if err := view.OnRender(view.gui, view); err != nil {

@@ -17,6 +17,7 @@ import (
 
 const (
 	resourceNotFound = "Resource not found."
+	noHistory        = "No History."
 
 	defaultCommand = "/bin/sh"
 )
@@ -551,34 +552,28 @@ func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
 }
 
 func runPodNameInput(gui *guilib.Gui, namespace string) error {
-	if err := showFilterDialog(
-		gui,
-		"Please input pod name.",
+	if err := showFilterDialog(gui, "Please input pod name.",
 		func(podName string) error {
-
-			return nil
+			return runPodImageOptions(gui, namespace, podName)
 		},
 		func(inputted string) ([]string, error) {
-			if config.Conf.UserConfig.History.CommandHistory != nil {
+			if config.Conf.UserConfig.History.PodNameHistory != nil {
 				return config.Conf.UserConfig.History.PodNameHistory, nil
 			}
 
 			return []string{}, nil
-		},
-		"",
-		true,
-	); err != nil {
+		}, noHistory, true); err != nil {
 		return err
 	}
 	return nil
 }
 
-func runPodImageOptions(gui *guilib.Gui, namespace string) error {
+func runPodImageOptions(gui *guilib.Gui, namespace, podName string) error {
 	if err := showFilterDialog(
 		gui,
 		"Please input image of container.",
 		func(image string) error {
-			return runPodCommandInput(gui, namespace, image)
+			return runPodCommandInput(gui, namespace, podName, image)
 		},
 		func(inputted string) ([]string, error) {
 			if config.Conf.UserConfig.History.ImageHistory != nil {
@@ -587,14 +582,14 @@ func runPodImageOptions(gui *guilib.Gui, namespace string) error {
 
 			return []string{}, nil
 		},
-		"",
+		noHistory,
 		true,
 	); err != nil {
 		return err
 	}
 	return nil
 }
-func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
+func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error {
 	if err := showFilterDialog(
 		gui,
 		"Please input command.",
@@ -607,7 +602,7 @@ func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
 			_ = termbox.Flush()
 
 			cli(namespace).
-				Run(newStdStream(), command).
+				Run(newStdStream(), podName, command).
 				SetFlag("rm", "true").
 				SetFlag("restart", "Never").
 				SetFlag("image-pull-policy", "IfNotPresent").
@@ -636,8 +631,9 @@ func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
 			}
 
 			gui.ReRenderAll()
+			config.Conf.UserConfig.History.AddPodNameHistory(podName)
 			config.Conf.UserConfig.History.AddImageHistory(image)
-			config.Conf.UserConfig.History.AddImageHistory(command)
+			config.Conf.UserConfig.History.AddCommandHistory(command)
 			config.Save()
 			return nil
 		},
@@ -648,7 +644,7 @@ func runPodCommandInput(gui *guilib.Gui, namespace, image string) error {
 
 			return []string{}, nil
 		},
-		"",
+		noHistory,
 		true,
 	); err != nil {
 		return err

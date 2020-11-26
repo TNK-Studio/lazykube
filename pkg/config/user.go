@@ -47,7 +47,7 @@ func (h *History) AddCommandHistory(newOne string) {
 }
 
 func (h *History) AddImageHistory(newOne string) {
-	h.CommandHistory = h.AddStringHistory(h.CommandHistory, newOne)
+	h.ImageHistory = h.AddStringHistory(h.ImageHistory, newOne)
 }
 
 func (h *History) AddPodNameHistory(newOne string) {

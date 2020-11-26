@@ -9,6 +9,7 @@ replace (
 
 require (
 	github.com/atotto/clipboard v0.1.2
+	github.com/docker/distribution v2.7.1+incompatible
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/fatih/camelcase v1.0.0
 	github.com/go-logr/logr v0.2.0
@@ -25,6 +26,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.0.0
+	github.com/spf13/pflag v1.0.5
 	github.com/spkg/bom v1.0.0
 	github.com/tebeka/strftime v0.1.5 // indirect
 	golang.org/x/net v0.0.0-20200927032502-5d4f70055728 // indirect
@@ -38,4 +40,5 @@ require (
 	k8s.io/klog/v2 v2.2.0
 	k8s.io/kubectl v0.19.3
 	k8s.io/metrics v0.19.3
+	k8s.io/utils v0.0.0-20200729134348-d5654de09c73
 )
