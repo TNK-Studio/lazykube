@@ -26,8 +26,17 @@ jobs:
         with:
           goxz-version: v0.6.0
           name: lazykube
-          arch: amd64,386,arm
+          arch: amd64,386
           os: darwin,linux,windows
+          package: ./cmd/lazykube
+          ldflags: "-X github.com/TNK-Studio/lazykube/pkg/app.Version=${{steps.tag.outputs.tag}}"
+
+      - uses: izumin5210/action-go-crossbuild@v1.0.0
+        with:
+          goxz-version: v0.6.0
+          name: lazykube
+          arch: arm
+          os: linux
           package: ./cmd/lazykube
           ldflags: "-X github.com/TNK-Studio/lazykube/pkg/app.Version=${{steps.tag.outputs.tag}}"
 
