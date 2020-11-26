@@ -10,7 +10,7 @@ import (
 
 const (
 	// All common actions name
-	nextCyclicViewAction       = "nextCyclicView"
+	nextFunctionViewAction     = "nextFunctionView"
 	backToPreviousViewAction   = "backToPreviousView"
 	toNavigationAction         = "toNavigation"
 	navigationArrowLeft        = "navigationArrowLeft"
@@ -54,7 +54,7 @@ const (
 var (
 	// All common actions key map.
 	keyMap = map[string][]interface{}{
-		nextCyclicViewAction:                {gocui.KeyTab},
+		nextFunctionViewAction:              {gocui.KeyTab},
 		backToPreviousViewAction:            {gocui.KeyEsc},
 		toNavigationAction:                  {gocui.KeyEnter, gocui.KeyArrowRight, 'l'},
 		navigationArrowLeft:                 {gocui.KeyArrowLeft, 'k'},

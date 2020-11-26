@@ -192,7 +192,7 @@ func newFilterDialog(
 		Title:        title,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
-		ZIndex:       0,
+		ZIndex:       10,
 		Clickable:    true,
 		Editable:     true,
 		MouseDisable: true,
@@ -260,7 +260,7 @@ func newFilterDialog(
 	}
 	filtered := &guilib.View{
 		Name:         filteredViewName,
-		ZIndex:       1,
+		ZIndex:       20,
 		Clickable:    true,
 		CanNotReturn: true,
 		AlwaysOnTop:  true,
