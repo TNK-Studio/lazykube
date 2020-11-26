@@ -22,21 +22,21 @@ const (
 	defaultCommand = "/bin/sh"
 )
 
-func nextCyclicViewHandler(gui *guilib.Gui, _ *guilib.View) error {
+func nextFunctionViewHandler(gui *guilib.Gui, _ *guilib.View) error {
 	currentView := gui.CurrentView()
 	if currentView == nil {
 		return nil
 	}
 
 	var nextViewName string
-	for index, viewName := range cyclicViews {
+	for index, viewName := range functionViews {
 		if currentView.Name == viewName {
 			nextIndex := index + 1
-			if nextIndex >= len(cyclicViews) {
+			if nextIndex >= len(functionViews) {
 				nextIndex = 0
 			}
-			nextViewName = cyclicViews[nextIndex]
-			log.Logger.Debugf("nextCyclicViewHandler - nextViewName: %s", nextViewName)
+			nextViewName = functionViews[nextIndex]
+			log.Logger.Debugf("nextFunctionViewHandler - nextViewName: %s", nextViewName)
 			break
 		}
 	}
@@ -598,6 +598,7 @@ func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error
 				return err
 			}
 			gui.Config.Mouse = false
+			gui.Config.Cursor = true
 			gui.Configure()
 			_ = termbox.Flush()
 
@@ -625,6 +626,8 @@ func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error
 				return err
 			}
 			gui.Config.Mouse = true
+			gui.Config.Cursor = false
+			gui.Configure()
 			gui.Configure()
 			if err := gui.ReturnPreviousView(); err != nil {
 				return err

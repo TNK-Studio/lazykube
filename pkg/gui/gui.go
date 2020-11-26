@@ -61,7 +61,7 @@ func NewGui(config config.GuiConfig, views ...*View) *Gui {
 
 // ReRenderAll ReRenderAll
 func (gui *Gui) ReRenderAll() {
-	gui.renderTimes += 1
+	gui.renderTimes++
 	for _, view := range gui.views {
 		view.ReRender()
 	}
@@ -79,7 +79,6 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		}
 		gui.ReRenderAll()
 		gui.SortViewsByZIndex()
-		gui.SetAlwaysOnTopViews()
 	}
 
 	if err := gui.Clear(); err != nil {
@@ -105,7 +104,7 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
-	if gui.renderTimes < 0 {
+	if gui.renderTimes > 0 {
 		if err := gui.onRender(); err != nil {
 			return err
 		}
@@ -115,13 +114,16 @@ func (gui *Gui) layout(*gocui.Gui) error {
 		return err
 	}
 
+	gui.SetAlwaysOnTopViews()
 	return nil
 }
 
 func (gui *Gui) onRender() error {
-	if gui.OnRender != nil && gui.renderTimes < 0 {
+	gui.renderTimes--
+
+	if gui.OnRender != nil {
 		if err := gui.OnRender(gui); err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -131,7 +133,6 @@ func (gui *Gui) onRender() error {
 			return err
 		}
 	}
-	gui.renderTimes += 1
 	return nil
 }
 
@@ -531,7 +532,25 @@ func (gui *Gui) SetViewOnTop(name string) (*View, error) {
 	if _, err := gui.g.SetViewOnTop(name); err != nil {
 		return nil, err
 	}
-	return gui.getView(name), nil
+
+	for i, view := range gui.views {
+		if view.Name == name {
+			s := append(gui.views[:i], gui.views[i+1:]...)
+			gui.views = append(s, view)
+			return view, nil
+		}
+	}
+
+	return nil, gocui.ErrUnknownView
+}
+
+func (gui *Gui) GetTopView() *View {
+	length := len(gui.views) - 1
+	if length < 1 {
+		return nil
+	}
+
+	return gui.views[length-1]
 }
 
 func (gui *Gui) getView(name string) *View {

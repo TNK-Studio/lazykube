@@ -326,7 +326,7 @@ func resourceListRender(_ *guilib.Gui, view *guilib.View) error {
 }
 
 func showPleaseSelected(view io.Writer, name string) {
-	_, err := fmt.Fprintf(view, "Please select a %s. ", name)
+	_, err := fmt.Fprintf(view, "Please select a %s.\n ", name)
 	if err != nil {
 		log.Logger.Warningf("showPleaseSelected - error %s", err)
 	}

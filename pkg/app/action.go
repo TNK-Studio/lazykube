@@ -9,12 +9,10 @@ import (
 )
 
 var (
-	cyclicViews = []string{clusterInfoViewName, namespaceViewName, serviceViewName, deploymentViewName, podViewName}
-
-	nextCyclicView = &guilib.Action{
-		Name:    nextCyclicViewAction,
-		Keys:    keyMap[nextCyclicViewAction],
-		Handler: nextCyclicViewHandler,
+	nextFunctionView = &guilib.Action{
+		Name:    nextFunctionViewAction,
+		Keys:    keyMap[nextFunctionViewAction],
+		Handler: nextFunctionViewHandler,
 		Mod:     gocui.ModNone,
 	}
 
