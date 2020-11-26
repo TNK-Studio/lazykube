@@ -1,14 +1,26 @@
 package app
 
 import (
+	"fmt"
+	"github.com/Matt-Gleich/release"
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/log"
 	"github.com/TNK-Studio/lazykube/pkg/utils"
+	"github.com/gookit/color"
+)
+
+const (
+	githubRepo = "https://github.com/TNK-Studio/lazykube"
+)
+
+var (
+	Version = "No Version Provided"
 )
 
 // App lazykube application
 type App struct {
+	version     string
 	ClusterInfo *guilib.View
 	Namespace   *guilib.View
 	Service     *guilib.View
@@ -23,6 +35,7 @@ type App struct {
 // NewApp new lazykube application
 func NewApp() *App {
 	app := &App{
+		version:     Version,
 		ClusterInfo: ClusterInfo,
 		Namespace:   Namespace,
 		Service:     Service,
@@ -57,6 +70,18 @@ func NewApp() *App {
 	return app
 }
 
+func (app *App) Version() string {
+	return app.version
+}
+
+func (app *App) CheckRelease() (bool, string, error) {
+	isOutdated, version, err := release.Check(app.version, githubRepo)
+	if err != nil {
+		log.Logger.Error(isOutdated, version, err)
+	}
+	return isOutdated, version, err
+}
+
 // Run run
 func (app *App) Run() {
 	app.Gui.Run()
@@ -65,6 +90,17 @@ func (app *App) Run() {
 // Stop stop
 func (app *App) Stop() {
 	app.Gui.Close()
+	isOutdated, version, err := app.CheckRelease()
+	if err == nil && isOutdated {
+		fmt.Printf(
+			"%s 🎉. %s => %s %s/releases/tag/%s\n",
+			color.Green.Sprint("A new release of lazykube is available"),
+			color.Yellow.Sprint(app.Version()),
+			color.Green.Sprint(version),
+			githubRepo,
+			version,
+		)
+	}
 }
 
 // OnRender OnRender

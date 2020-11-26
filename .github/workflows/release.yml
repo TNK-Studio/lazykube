@@ -15,9 +15,21 @@ jobs:
 
       - run: go mod download
 
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+
+      - name: Current tag
+        run: echo ${{steps.tag.outputs.tag}}
+
       - uses: izumin5210/action-go-crossbuild@v1.0.0
         with:
+          goxz-version: v0.6.0
+          name: lazykube
+          arch: amd64,386,arm
+          os: darwin,linux,windows
           package: ./cmd/lazykube
+          ldflags: "-X github.com/TNK-Studio/lazykube/pkg/app.Version=${{steps.tag.outputs.tag}}"
 
       - uses: softprops/action-gh-release@v1
         with:
