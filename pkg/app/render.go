@@ -258,10 +258,7 @@ func navigationOnClick(gui *guilib.Gui, view *guilib.View) error {
 
 func renderClusterInfo(_ *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	currentContext, err := kubecli.Cli.CurrentContext()
-	if err != nil {
-		return nil
-	}
+	currentContext := kubecli.Cli.CurrentContext()
 
 	if _, err := fmt.Fprintf(view, "Current Context: %s", color.Green.Sprint(currentContext)); err != nil {
 		return err

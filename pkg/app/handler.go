@@ -651,3 +651,27 @@ func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error
 	}
 	return nil
 }
+
+func changeContextHandler(gui *guilib.Gui, view *guilib.View) error {
+	if err := showFilterDialog(
+		gui,
+		"Selected a context to swicth.",
+		func(confirmed string) error {
+			kubecli.Cli.SetCurrentContext(confirmed)
+			gui.ReRenderAll()
+			if err := gui.FocusView(clusterInfoViewName, false); err != nil {
+				return err
+			}
+			return nil
+		},
+		func(inputted string) ([]string, error) {
+			return kubecli.Cli.ListContexts(), nil
+		},
+		"No contexts.",
+		false,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}

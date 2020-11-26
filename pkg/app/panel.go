@@ -34,6 +34,7 @@ var (
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
 			nextCyclicView,
+			changeContext,
 			newMoreActions(moreActionsMap[clusterInfoViewName]),
 		}),
 		OnFocus: func(gui *guilib.Gui, view *guilib.View) error {

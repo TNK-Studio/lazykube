@@ -178,6 +178,13 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	changeContext = &guilib.Action{
+		Keys:    keyMap[changeContextActionName],
+		Name:    changeContextActionName,
+		Handler: changeContextHandler,
+		Mod:     gocui.ModNone,
+	}
+
 	addCustomResourcePanelMoreAction = &moreAction{
 		NeedSelectResource: false,
 		Action:             *addCustomResourcePanelAction,
@@ -198,6 +205,12 @@ var (
 		Action:             *runPodAction,
 	}
 
+	changeContextMoreAction = &moreAction{
+		NeedSelectResource: false,
+		ShowAction:         nil,
+		Action:             *changeContext,
+	}
+
 	commonResourceMoreActions = []*moreAction{
 		addCustomResourcePanelMoreAction,
 		editResourceMoreAction,
@@ -206,6 +219,7 @@ var (
 	moreActionsMap = map[string][]*moreAction{
 		clusterInfoViewName: {
 			addCustomResourcePanelMoreAction,
+			changeContextMoreAction,
 		},
 		namespaceViewName: append(
 			commonResourceMoreActions,
