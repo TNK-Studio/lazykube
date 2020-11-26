@@ -33,7 +33,7 @@ var (
 		OnRender:             renderClusterInfo,
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			changeContext,
 			newMoreActions(moreActionsMap[clusterInfoViewName]),
 		}),
@@ -66,7 +66,7 @@ var (
 		),
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			previousLine,
 			nextLine,
 			copySelectedLine,
@@ -198,7 +198,7 @@ var (
 		),
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			previousLine,
 			nextLine,
 			copySelectedLine,
@@ -263,7 +263,7 @@ var (
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			previousLine,
 			nextLine,
 			copySelectedLine,
@@ -297,7 +297,7 @@ var (
 		),
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			previousLine,
 			nextLine,
 			copySelectedLine,
@@ -366,7 +366,7 @@ func newCustomResourcePanel(resource string) *guilib.View {
 		},
 		Actions: guilib.ToActionInterfaceArr([]*guilib.Action{
 			toNavigation,
-			nextCyclicView,
+			nextFunctionView,
 			previousLine,
 			nextLine,
 			filterResource,
