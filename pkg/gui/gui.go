@@ -608,7 +608,7 @@ func (gui *Gui) FocusView(name string, canReturn bool) error {
 	currentView := gui.CurrentView()
 
 	if previousView != nil {
-		if canReturn && !currentView.CanNotReturn && (currentView == nil || (previousView.Name != currentView.Name)) {
+		if canReturn && !previousView.CanNotReturn && (currentView == nil || (previousView.Name != currentView.Name)) {
 			gui.pushPreviousView(previousView.Name)
 		}
 		if previousView.Name != name {
