@@ -103,6 +103,7 @@ func (cli *KubeCLI) SetCurrentContext(context string) {
 func (cli *KubeCLI) WithNamespace(namespace string) *KubeCLI {
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	kubeConfigFlags.Namespace = &namespace
+	kubeConfigFlags.Context = cli.context
 
 	matchVersionKubeConfigFlags := util.NewMatchVersionFlags(kubeConfigFlags)
 

@@ -38,10 +38,6 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		return err
 	}
 
-	metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)
-	if err != nil {
-		log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, resourceName, err)
-	}
 	fmt.Fprintln(view)
 	cpuPlot := getPlot(
 		gui,
@@ -52,6 +48,10 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		resourceName,
 		func() []float64 {
 			data := make([]float64, 0)
+			metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)
+			if err != nil {
+				log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, resourceName, err)
+			}
 			if metrics == nil {
 				return data
 			}
@@ -74,6 +74,10 @@ func podMetricsPlotRender(gui *guilib.Gui, view *guilib.View) error {
 		resourceName,
 		func() []float64 {
 			data := make([]float64, 0)
+			metrics, err := kubecli.Cli.GetPodMetrics(namespace, resourceName, false, nil)
+			if err != nil {
+				log.Logger.Warningf("podMetricsDataGetter - kubecli.Cli.GetPodMetrics('%s', '%s', false, nil) error %s", namespace, resourceName, err)
+			}
 			if metrics == nil {
 				return data
 			}
