@@ -22,6 +22,15 @@ var (
 	migrateTopCache     = map[string]int{}
 )
 
+func aboveViewNameFunc(_ *guilib.Gui, view *guilib.View) string {
+	for index, viewName := range functionViews {
+		if viewName == view.Name && index != 0 {
+			return functionViews[index-1]
+		}
+	}
+	return ""
+}
+
 func resizeableView(viewName string) bool {
 	for _, resizeableView := range resizeableViews {
 		if resizeableView == viewName {
@@ -58,7 +67,6 @@ func resizePanelHeight(gui *guilib.Gui) error {
 	return nil
 }
 
-// Todo: cache result
 func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 	var currentViewName string
 	currentView := gui.CurrentView()
@@ -72,7 +80,7 @@ func reactiveHeight(gui *guilib.Gui, view *guilib.View) int {
 }
 
 func cacheAbleReactiveHeight(maxHeight int, resizeableViews []string, currentViewName, previousViewName, viewName string) int {
-	key := fmt.Sprintf("%d,%s,%s,%s,%s", maxHeight, strings.Join(resizeableViews, ","), currentViewName, previousViewName, viewName)
+	key := fmt.Sprintf("%d,[%s],%s,%s,%s", maxHeight, strings.Join(resizeableViews, ","), currentViewName, previousViewName, viewName)
 	cacheVal, ok := reactiveHeightCache[key]
 	if ok {
 		return cacheVal
