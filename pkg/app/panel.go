@@ -60,7 +60,9 @@ var (
 			return nil
 		},
 		DimensionFunc: guilib.BeneathView(
-			serviceViewName,
+			func(*guilib.Gui, *guilib.View) string {
+				return serviceViewName
+			},
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -192,7 +194,7 @@ var (
 		},
 		FgColor: gocui.ColorDefault,
 		DimensionFunc: guilib.BeneathView(
-			clusterInfoViewName,
+			aboveViewNameFunc,
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -236,7 +238,7 @@ var (
 		},
 		FgColor: gocui.ColorDefault,
 		DimensionFunc: guilib.BeneathView(
-			deploymentViewName,
+			aboveViewNameFunc,
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -291,7 +293,7 @@ var (
 			return nil
 		},
 		DimensionFunc: guilib.BeneathView(
-			namespaceViewName,
+			aboveViewNameFunc,
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -339,7 +341,7 @@ func newCustomResourcePanel(resource string) *guilib.View {
 			return nil
 		},
 		DimensionFunc: guilib.BeneathView(
-			functionViews[len(functionViews)-1],
+			aboveViewNameFunc,
 			reactiveHeight,
 			migrateTopFunc,
 		),
@@ -462,6 +464,7 @@ func deleteCustomResourcePanel(gui *guilib.Gui, viewName string) error {
 		}
 	}
 
+	// Delete navigation options of namespace panel
 	for index, option := range viewNavigationMap[namespaceViewName] {
 		if option == customResourcePanel.Title {
 			viewNavigationMap[namespaceViewName] = append(

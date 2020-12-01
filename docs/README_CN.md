@@ -4,6 +4,8 @@
 
 ![gif](./lazykube.gif)
 
+你可以在这里看到更多的示例。 [(更多示例)](https://lazykube.tnk-studio.org/)
+
 ## 安装方式
 
 ### Mac Homebrew
