@@ -5,6 +5,7 @@ go 1.14
 replace (
 	github.com/jroimartin/gocui v0.4.0 => github.com/TNK-Studio/gocui v0.4.1-0.20201118030412-21fac610f2e0
 	golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
+	github.com/Matt-Gleich/release => github.com/TNK-Studio/release v0.0.0-20201205162738-c1bc22c24d07
 )
 
 require (

@@ -47,6 +47,8 @@ github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 h1:d+Bc7a5rLufV
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/TNK-Studio/gocui v0.4.1-0.20201118030412-21fac610f2e0 h1:MjkmJCU22bjYIWcD9IPYYAQ6YkXazeQ53nTx4tT/CJ8=
 github.com/TNK-Studio/gocui v0.4.1-0.20201118030412-21fac610f2e0/go.mod h1:fS7N+M2ibR/4EHbj2mvOpe/UTxbpuXPl1ZcYGI+8M80=
+github.com/TNK-Studio/release v0.0.0-20201205162738-c1bc22c24d07 h1:6WgX/z6To8gQkMZstR4voMNs6ufBeClto8ak746P8b8=
+github.com/TNK-Studio/release v0.0.0-20201205162738-c1bc22c24d07/go.mod h1:bXuZW6gUZgF3PlxKD/PWBXsnvAPnrScC+scuBEGOUUw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
