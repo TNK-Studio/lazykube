@@ -589,6 +589,7 @@ func runPodImageOptions(gui *guilib.Gui, namespace, podName string) error {
 	}
 	return nil
 }
+
 func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error {
 	if err := showFilterDialog(
 		gui,
@@ -628,16 +629,14 @@ func runPodCommandInput(gui *guilib.Gui, namespace, podName, image string) error
 			gui.Config.Mouse = true
 			gui.Config.Cursor = false
 			gui.Configure()
-			gui.Configure()
-			if err := gui.ReturnPreviousView(); err != nil {
-				return err
-			}
-
 			gui.ReRenderAll()
 			config.Conf.UserConfig.History.AddPodNameHistory(podName)
 			config.Conf.UserConfig.History.AddImageHistory(image)
 			config.Conf.UserConfig.History.AddCommandHistory(command)
 			config.Save()
+			if err := gui.ReturnPreviousView(); err != nil {
+				return err
+			}
 			return nil
 		},
 		func(inputted string) ([]string, error) {

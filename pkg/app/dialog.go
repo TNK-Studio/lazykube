@@ -171,7 +171,7 @@ func showInputDialog(gui *guilib.Gui, title string, zIndex int, confirmHandler f
 	if err := gui.AddView(inputDialog); err != nil {
 		return err
 	}
-	if err := gui.FocusView(inputDialogViewName, true); err != nil {
+	if err := gui.FocusView(inputDialogViewName, false); err != nil {
 		return err
 	}
 	return nil
@@ -218,16 +218,6 @@ func newFilterDialog(
 				value = view.ViewBufferLines()[0]
 			}
 
-			//valueRune := []rune(value)
-			//length := len(valueRune)
-
-			//if (key == gocui.KeyBackspace || key == gocui.KeyBackspace2) && value != "" {
-			//	valueRune = valueRune[:length-1]
-			//} else {
-			//	valueRune = append(valueRune, ch)
-			//}
-
-			//value = string(valueRune)
 			if err := view.SetState(filterInputValueStateKey, value, false); err != nil {
 				log.Logger.Warningf("OnEditedChange - view.SetState(filterInputValueStateKey,%s) error %s", value, err)
 				return err
@@ -291,18 +281,6 @@ func newFilterDialog(
 				return err
 			}
 
-			if showInputValueInFiltered && value != "" {
-				data = append([]string{value}, data...)
-			}
-
-			if len(data) == 0 {
-				_, err := fmt.Fprint(view, noResultMsg)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-
 			if value == "" {
 				_, err := fmt.Fprint(view, strings.Join(data, "\n"))
 				if err != nil {
@@ -318,6 +296,10 @@ func newFilterDialog(
 				if strings.Contains(strings.ToLower(resource), value) {
 					filtered = append(filtered, resource)
 				}
+			}
+
+			if showInputValueInFiltered && value != "" && len(filtered) == 0 {
+				filtered = append([]string{value}, filtered...)
 			}
 
 			if len(filtered) == 0 {
