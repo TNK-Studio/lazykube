@@ -2,7 +2,7 @@
 
 # allow specifying different destination directory
 DIR="${DIR:-"/usr/local/bin"}"
-PROXY="https://cool-moon-43e4.elfgzp.workers.dev/"
+PROXY="https://gh-proxy.tnk-studio.org/"
 
 ARCH=$(uname -m)
 case $ARCH in
