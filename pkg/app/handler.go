@@ -517,6 +517,26 @@ func changePodLogsContainerHandler(gui *guilib.Gui, view *guilib.View) error {
 	return nil
 }
 
+func tailLogsHandler(gui *guilib.Gui, view *guilib.View) error {
+	if err := view.SetState(ScrollingLogsStateKey, false, false); err != nil {
+		return err
+	}
+	if err := gui.FocusView(detailViewName, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+func scrollLogsHandler(gui *guilib.Gui, view *guilib.View) error {
+	if err := view.SetState(ScrollingLogsStateKey, true, false); err != nil {
+		return err
+	}
+	if err := gui.FocusView(detailViewName, false); err != nil {
+		return err
+	}
+	return nil
+}
+
 func runPodHandler(gui *guilib.Gui, _ *guilib.View) error {
 	if err := showFilterDialog(
 		gui,

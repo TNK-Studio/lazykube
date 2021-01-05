@@ -169,6 +169,20 @@ var (
 		Mod:     gocui.ModNone,
 	}
 
+	tailLogsAction = &guilib.Action{
+		Keys:            keyMap[tailLogsActionName],
+		Name:            tailLogsActionName,
+		Handler:         tailLogsHandler,
+		Mod:             gocui.ModNone,
+	}
+
+	scrollLogsAction = &guilib.Action{
+		Keys:            keyMap[scrollLogsActionName],
+		Name:            scrollLogsActionName,
+		Handler:          scrollLogsHandler,
+		Mod:             gocui.ModNone,
+	}
+
 	runPodAction = &guilib.Action{
 		Keys:    keyMap[runPodActionName],
 		Name:    runPodActionName,
@@ -254,6 +268,28 @@ var (
 					return navigationPath(activeView.Name, activeNavigationOpt) == navigationPath(podViewName, navigationOptLog)
 				},
 				Action: *changePodLogsContainerAction,
+			},
+			&moreAction{
+				NeedSelectResource: false,
+				ShowAction: func(gui *guilib.Gui, view *guilib.View) bool {
+					resourceName := resourceViewName(getViewResourceName(activeView.Name))
+					if resourceName == "" {
+						return false
+					}
+					return resourceLogAble(resourceName)
+				},
+				Action: *tailLogsAction,
+			},
+			&moreAction{
+				NeedSelectResource: false,
+				ShowAction: func(gui *guilib.Gui, view *guilib.View) bool {
+					resourceName := resourceViewName(getViewResourceName(activeView.Name))
+					if resourceName == "" {
+						return false
+					}
+					return resourceLogAble(resourceName)
+				},
+				Action: *scrollLogsAction,
 			},
 			&moreAction{
 				NeedSelectResource: false,

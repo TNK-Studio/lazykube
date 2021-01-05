@@ -435,6 +435,19 @@ func onFocusClearSelected(gui *guilib.Gui, view *guilib.View) error {
 
 func podLogsRender(gui *guilib.Gui, view *guilib.View) error {
 	// Todo: Fix chinese character of logs.
+	scrollLogs := true
+	if val, _ := view.GetState(ScrollingLogsStateKey); val != nil {
+		var ok bool
+		scrollLogs, ok = val.(bool)
+		if !ok {
+			scrollLogs = true
+		}
+	}
+
+	if !scrollLogs {
+		return nil
+	}
+
 	podView, err := gui.GetView(podViewName)
 	if err != nil {
 		return err

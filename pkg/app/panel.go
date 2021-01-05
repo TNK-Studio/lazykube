@@ -161,6 +161,8 @@ var (
 				Mod:     gocui.ModNone,
 			},
 			changePodLogsContainerAction,
+			tailLogsAction,
+			scrollLogsAction,
 			newMoreActions(moreActionsMap[detailViewName]),
 		}),
 	}
@@ -317,6 +319,8 @@ var (
 	}
 
 	restartableResource = []string{"deployments", "statefulsets", "daemonsets"}
+
+	logAbleResource = []string{"deployment", "statefulset", "daemonset", "service", "pod"}
 )
 
 func getViewResourceName(viewName string) string {
@@ -512,6 +516,15 @@ func zIndexOfFunctionView(viewName string) int {
 func resourceRestartable(resource string) bool {
 	for _, restartable := range restartableResource {
 		if resource == restartable {
+			return true
+		}
+	}
+	return false
+}
+
+func resourceLogAble(resource string) bool {
+	for _, logAble := range logAbleResource {
+		if resource == logAble {
 			return true
 		}
 	}
