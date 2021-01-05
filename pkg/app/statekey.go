@@ -8,6 +8,7 @@ const (
 	filterInputValueStateKey      = "filterInputValue"   // value type: string
 	confirmValueStateKey          = "confirmValue"       // value type: string
 	logSinceTimeStateKey          = "logSinceTime"       // value type: time.Time
+	ScrollingLogsStateKey         = "scrollingLogs"      // value type: boolean
 	podContainersStateKey         = "podContainers"      // value type: []string
 	logContainerStateKey          = "logContainer"       // value type: string
 )
