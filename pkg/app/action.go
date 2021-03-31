@@ -170,17 +170,17 @@ var (
 	}
 
 	tailLogsAction = &guilib.Action{
-		Keys:            keyMap[tailLogsActionName],
-		Name:            tailLogsActionName,
-		Handler:         tailLogsHandler,
-		Mod:             gocui.ModNone,
+		Keys:    keyMap[tailLogsActionName],
+		Name:    tailLogsActionName,
+		Handler: tailLogsHandler,
+		Mod:     gocui.ModNone,
 	}
 
 	scrollLogsAction = &guilib.Action{
-		Keys:            keyMap[scrollLogsActionName],
-		Name:            scrollLogsActionName,
-		Handler:          scrollLogsHandler,
-		Mod:             gocui.ModNone,
+		Keys:    keyMap[scrollLogsActionName],
+		Name:    scrollLogsActionName,
+		Handler: scrollLogsHandler,
+		Mod:     gocui.ModNone,
 	}
 
 	runPodAction = &guilib.Action{
@@ -373,7 +373,7 @@ func switchNamespace(gui *guilib.Gui, selectedNamespaceLine string) {
 		log.Logger.Warningf("switchNamespace - detailView.SetOrigin(0, 0) error %s", err)
 	}
 	gui.ReRenderViews(resizeableViews...)
-	gui.ReRenderViews(navigationViewName, detailViewName)
+	gui.ReRenderViews(clusterInfoViewName, navigationViewName, detailViewName)
 }
 
 func newMoreActions(moreActions []*moreAction) *guilib.Action {

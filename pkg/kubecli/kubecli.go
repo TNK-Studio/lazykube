@@ -63,7 +63,7 @@ func (c *Cmd) SetFlag(name, value string) *Cmd {
 }
 
 func NewKubeCLI() *KubeCLI {
-	namespace := ""
+	namespace := config.ContextNamespace()
 	context := config.CurrentContext()
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true).WithDeprecatedPasswordFlag()
 	kubeConfigFlags.Namespace = &namespace
