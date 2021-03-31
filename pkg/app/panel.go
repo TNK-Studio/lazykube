@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
 	"github.com/TNK-Studio/lazykube/pkg/kubecli"
@@ -177,6 +178,18 @@ var (
 			formatted := formatResourceName(selectedLine, 0)
 			if notResourceSelected(formatted) {
 				formatted = ""
+			}
+
+			_, err := view.GetState(iniDefaultNamespaceKey)
+			if err != nil {
+				if errors.Is(err, guilib.StateKeyError) {
+					ns := kubecli.Cli.Namespace()
+					if err := view.SetState(iniDefaultNamespaceKey, ns, false); err != nil {
+						return err
+					}
+					return nil
+				}
+				return err
 			}
 
 			if formatted == "" {

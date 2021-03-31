@@ -26,9 +26,18 @@ func SetCurrentContext(context string) {
 	config.CurrentContext = context
 }
 
+func ContextNamespace() string {
+	ctx, ok := config.Contexts[config.CurrentContext]
+	if !ok {
+		return ""
+	}
+	ns := ctx.Namespace
+	return ns
+}
+
 func ListContexts() []string {
 	contexts := make([]string, 0)
-	for name, _ := range config.Contexts {
+	for name := range config.Contexts {
 		contexts = append(contexts, name)
 	}
 	return contexts
