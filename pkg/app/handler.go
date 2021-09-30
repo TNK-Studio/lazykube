@@ -217,12 +217,7 @@ func getResourceNamespaceAndName(gui *guilib.Gui, resourceView *guilib.View) (na
 		return "", formatSelectedNamespace(resourceView.SelectedLine), nil
 	}
 
-	namespaceView, err := gui.GetView(namespaceViewName)
-	if err != nil {
-		return "", "", err
-	}
-
-	namespace = formatSelectedNamespace(namespaceView.SelectedLine)
+	namespace = kubecli.Cli.Namespace()
 	selected := resourceView.SelectedLine
 
 	if selected == "" {

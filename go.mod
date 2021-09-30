@@ -9,7 +9,7 @@ replace (
 )
 
 require (
-	github.com/Matt-Gleich/release v0.0.0-20201031213446-c4dd80460118
+	github.com/Matt-Gleich/release v0.0.0-20210604035540-68b9816a6144
 	github.com/atotto/clipboard v0.1.2
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
