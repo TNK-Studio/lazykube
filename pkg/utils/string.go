@@ -80,3 +80,4 @@ func GetKey(key interface{}) string {
 
 	return fmt.Sprintf("%c", k)
 }
+

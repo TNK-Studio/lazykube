@@ -17,11 +17,25 @@ func formatResourceName(selected string, index int) string {
 	formatted := strings.Split(selected, " ")
 	length := len(formatted)
 	if index < 0 && length-index >= 0 {
-		return formatted[length-index]
+		resourceName := formatted[length-index]
+		if validateResourceName(resourceName) {
+			return resourceName
+		}
 	}
 
 	if index < length {
-		return formatted[index]
+		resourceName := formatted[index]
+		if validateResourceName(resourceName) {
+			return resourceName
+		}
 	}
 	return ""
+}
+
+func validateResourceName(resourceName string) bool {
+	if strings.ToLower(resourceName) != resourceName {
+		return false
+	}
+
+	return true
 }
