@@ -79,7 +79,7 @@ var (
 )
 
 func notResourceSelected(selectedName string) bool {
-	if selectedName == "" || selectedName == "NAME" || selectedName == "NAMESPACE" || selectedName == "No" {
+	if selectedName == "" {
 		return true
 	}
 	return false
@@ -299,7 +299,7 @@ func topNodesRender(_ *guilib.Gui, view *guilib.View) error {
 
 func namespaceRender(_ *guilib.Gui, view *guilib.View) error {
 	view.Clear()
-	kubecli.Cli.Get(viewStreams(view), "namespaces").Run()
+	kubecli.Cli.Get(viewStreams(view), namespaceResource).Run()
 	return nil
 }
 

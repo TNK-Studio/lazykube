@@ -29,9 +29,9 @@ func init() {
 }
 
 type KubeCLI struct {
-	factory   util.Factory
-	namespace *string
-	context   *string
+	factory      util.Factory
+	namespace    *string
+	context      *string
 }
 
 type Cmd struct {
