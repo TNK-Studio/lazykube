@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"github.com/TNK-Studio/lazykube/pkg/config"
 	guilib "github.com/TNK-Studio/lazykube/pkg/gui"
@@ -175,6 +176,10 @@ var (
 		Clickable: true,
 		OnRender:  namespaceRender,
 		OnSelectedLineChange: func(gui *guilib.Gui, view *guilib.View, selectedLine string) error {
+			if !kubecli.Cli.HasNamespacePermission(context.Background()) {
+				return nil
+			}
+
 			formatted := formatResourceName(selectedLine, 0)
 			if notResourceSelected(formatted) {
 				formatted = ""
