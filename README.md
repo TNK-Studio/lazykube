@@ -53,3 +53,4 @@ $ lazykube
 ## Change log
 
 [CHANGELOG](CHANGELOG.md)
+
